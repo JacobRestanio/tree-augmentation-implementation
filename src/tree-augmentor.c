@@ -19,13 +19,12 @@ int main() {
       printf("[6] Lobster Tree\n");
       printf("Choose a tree to generate: ");
       scanf("%d", &treetype);
-      
+
       printf("Enter size of tree: ");
       scanf("%d", &treesize);
-      
       int tree[treesize][treesize];
       memset(tree, 0, sizeof tree);
-      
+
       switch(treetype) {
          case 1:
             randomForestTree(treesize, tree);
@@ -49,11 +48,16 @@ int main() {
             printf("invalid selection\n");
             break;
       }
-      
+
       printf("\n");
       printTreeAdjMat(treesize, tree);
       printf("\n");
-  
+      clock_t t; //begin clock time
+      t = clock();
+      printVertexCover(treesize, tree);
+      t = clock() - t; // end clock time
+      double time_taken = ((double)t)/CLOCKS_PER_SEC;
+      printf("It took %f seconds to execute \n", time_taken);
       printf("Continue? [y/n]: ");
       scanf(" %c", &exit);
       printf("\n");
