@@ -47,27 +47,10 @@ int vertexCover(int min, int n, int tree[][n], int r, int cover[n])
    }
    return cur;
 }
-void printMinCover(int n, int tree[][n]){
-      int stor[n][2];
-      for(int i=0; i<n; i++){
-         stor[i][0]=-1;
-         stor[i][1]=-1;
-      }
-      int minCover1=treeCover(n, tree, 0, stor, 1);
-      int minCover0=treeCover(n, tree, 0, stor, 0);
-      int cover=0;
-      if(minCover1<minCover0){
-         cover=minCover1;
-      }
-      else{
-         cover=minCover0;
-      }
-      printf("\n Size of Vertex cover: %d \n", cover);
-}
-int treeCover(int n, int tree[][n], int v,int stor[n][2], int covered){
+int treeCover(int n, int tree[][n], int v,int stor[n][2], int covered, int parent[n]){
    int leaf=1;
-   for(int i=v+1; i<n; i++){
-      if(tree[v][i]==1){
+   for(int i=0; i<n; i++){
+      if(tree[v][i]==1 && i!=parent[v]){
          leaf=0;
       }
    }
@@ -78,15 +61,16 @@ int treeCover(int n, int tree[][n], int v,int stor[n][2], int covered){
        return stor[v][covered];
    }
    int sum = 0;
-   for(int i=v+1; i<n; i++){
+   for(int i=0; i<n; i++){
        int u= tree[v][i];
-       if(u==1){             //not a parent
+       if(i!=parent[v]&& i!=v && u==1){             //not a parent
+           parent[i]=v;
            if(covered==0){                 //not guarded, must set a watchman
-               sum = sum + treeCover(n,tree,i,stor,1);
+               sum = sum + treeCover(n,tree,i,stor,1,parent);
            }
            else{
-               int f1=treeCover(n,tree,i,stor,1);//guarded, check both
-               int f2=treeCover(n,tree,i,stor,0);
+               int f1=treeCover(n,tree,i,stor,1,parent);//guarded, check both
+               int f2=treeCover(n,tree,i,stor,0,parent);
                if(f1<f2){
                   sum=sum+f1;
                }
@@ -97,8 +81,29 @@ int treeCover(int n, int tree[][n], int v,int stor[n][2], int covered){
       }
    }
    stor[v][covered] = sum + covered;
+    //printf("\n Stor: %d, v: %d, cover: %d \n", stor[v][covered],v,covered);
    return stor[v][covered];
 }
+void printMinCover(int n, int tree[][n]){
+      int parent[n];
+      int stor[n][2];
+      for(int i=0; i<n; i++){
+         stor[i][0]=-1;
+         stor[i][1]=-1;
+         parent[i]=-1;
+      }
+      int minCover1=treeCover(n, tree, 0, stor, 1,parent);
+      int minCover0=treeCover(n, tree, 0, stor, 0,parent);
+      int cover=0;
+      if(minCover1<minCover0){
+         cover=minCover1;
+      }
+      else{
+         cover=minCover0;
+      }
+      printf("\n Size of Vertex cover: %d \n", cover);
+}
+
 //to find and print minimum vertex cover
 void printVertexCover(int n, int tree[][n]) {
    int cover[n];
@@ -107,3 +112,5 @@ void printVertexCover(int n, int tree[][n]) {
    }
    printf("\n Size of Vertex cover: %d \n", vertexCover(n, n, tree, 0, cover) );
 }
+
+
