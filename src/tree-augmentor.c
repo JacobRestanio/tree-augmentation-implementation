@@ -54,6 +54,8 @@ int main() {
       printf("\n");
       clock_t t; //begin clock time
       t = clock();
+      printMinCover(treesize, tree);
+
       printVertexCover(treesize, tree);
       t = clock() - t; // end clock time
       double time_taken = ((double)t)/CLOCKS_PER_SEC;

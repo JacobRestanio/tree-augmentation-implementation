@@ -6,4 +6,5 @@
    tree is the adjacency matrix of size n x n */
 void printTreeAdjMat(int n, int tree[][n]);
 void printVertexCover(int n, int tree[][n]);
+void printMinCover(int n, int tree[][n]);
 #endif
