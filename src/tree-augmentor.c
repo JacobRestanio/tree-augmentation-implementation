@@ -52,14 +52,46 @@ int main() {
       printf("\n");
       printTreeAdjMat(treesize, tree);
       printf("\n");
-      clock_t t; //begin clock time
-      t = clock();
-      printMinCover(treesize, tree);
-
-      printVertexCover(treesize, tree);
-      t = clock() - t; // end clock time
-      double time_taken = ((double)t)/CLOCKS_PER_SEC;
-      printf("It took %f seconds to execute \n", time_taken);
+      //unweighted min cover using linear tree algorithm
+      int vertexWeights[treesize];
+      for(int i=0; i<treesize; i++){ //sets all to 1 for unweighted
+      	vertexWeights[i]=1;
+      }
+      clock_t t1; //begin clock time
+      t1 = clock();
+      printMinCover(treesize, tree,vertexWeights);
+      t1 = clock() - t1; // end clock time
+      double time_taken1 = ((double)t1)/CLOCKS_PER_SEC;
+      printf("It took %f seconds to execute \n", time_taken1);
+      //unweighted min cover using brute force
+      clock_t t2; //begin clock time
+      t2 = clock();
+      printVertexCover(treesize, tree, vertexWeights);
+      t2 = clock() - t2; // end clock time
+      double time_taken2 = ((double)t2)/CLOCKS_PER_SEC;
+      printf("It took %f seconds to execute \n", time_taken2);
+      //weighted min cover using linear tree algorithm
+      genVertexWeights(treesize, vertexWeights, 10); //generate random vertex weights from 1-10
+      /*print vertex weights (leaving here in case we need it)
+      printf("{ ");
+      for(int i=0; i<treesize; i++){
+      	printf(",%d ", vertexWeights[i]);
+      }
+      printf("}\n");
+      */
+      clock_t t3; //begin clock time
+      t3 = clock();
+      printMinCover(treesize, tree, vertexWeights);
+      t3 = clock() - t3; // end clock time
+      double time_taken3 = ((double)t3)/CLOCKS_PER_SEC;
+      printf("It took %f seconds to execute \n", time_taken3);
+      //weighted min cover using brute force
+      clock_t t4; //begin clock time
+      t4 = clock();
+      printVertexCover(treesize, tree, vertexWeights);
+      t4 = clock() - t4; // end clock time
+      double time_taken4 = ((double)t4)/CLOCKS_PER_SEC;
+      printf("It took %f seconds to execute \n", time_taken4);
       printf("Continue? [y/n]: ");
       scanf(" %c", &exit);
       printf("\n");

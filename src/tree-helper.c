@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <stdio.h>
 
 /* prints an adjacency matrix
@@ -12,7 +13,7 @@ void printTreeAdjMat(int n, int tree[][n]) {
    }
 }
 
-int vertexCover(int min, int n, int tree[][n], int r, int cover[n])
+int vertexCover(int min, int n, int tree[][n], int r, int cover[n], int vertex[n])
 {
    //if(cur>=min)
    //   return -1;
@@ -21,33 +22,33 @@ int vertexCover(int min, int n, int tree[][n], int r, int cover[n])
    }
     for(int i=0; i<n; i++){ //checks if this set covers
       for(int j=i+1; j<n; j++){
-         if(tree[i][j]==1 && (cover[i]==0&&cover[j]==0)){ //if it doesn't, return n+1
-            return n+1;
+         if(tree[i][j]==1 && (cover[i]==0&&cover[j]==0)){ //if it doesn't, return max int (i think)
+            return 2147483647;
          }
       }
     }
     int cur=0;
     for(int i=0; i<n; i++){
       if(cover[i]==1){
-         cur++;
+         cur=cur+vertex[i];
       }
     }
     if(cur<min){
       min=cur;
     }
    cover[r]=0;
-   cur=vertexCover(min, n, tree, r+1, cover);
+   cur=vertexCover(min, n, tree, r+1, cover, vertex);
    if(cur<min){
       min=cur;
    }
    cover[r]=1;
-   cur=vertexCover(min, n, tree, r+1, cover);
+   cur=vertexCover(min, n, tree, r+1, cover, vertex);
    if(cur<min){
       min=cur;
    }
    return cur;
 }
-int treeCover(int n, int tree[][n], int v,int stor[n][2], int covered, int parent[n]){
+int treeCover(int n, int tree[][n], int v,int stor[n][2], int covered, int parent[n], int vertex[n]){
    int leaf=1;
    for(int i=0; i<n; i++){
       if(tree[v][i]==1 && i!=parent[v]){
@@ -55,7 +56,7 @@ int treeCover(int n, int tree[][n], int v,int stor[n][2], int covered, int paren
       }
    }
    if(leaf==1){                    //node doesn't have any new edge
-       return covered;
+       return covered*vertex[v];
    }
    else if(stor[v][covered]!=-1){      //already calculated
        return stor[v][covered];
@@ -66,11 +67,11 @@ int treeCover(int n, int tree[][n], int v,int stor[n][2], int covered, int paren
        if(i!=parent[v]&& i!=v && u==1){             //not a parent
            parent[i]=v;
            if(covered==0){                 //not guarded, must set a watchman
-               sum = sum + treeCover(n,tree,i,stor,1,parent);
+               sum = sum + treeCover(n,tree,i,stor,1,parent,vertex);
            }
            else{
-               int f1=treeCover(n,tree,i,stor,1,parent);//guarded, check both
-               int f2=treeCover(n,tree,i,stor,0,parent);
+               int f1=treeCover(n,tree,i,stor,1,parent,vertex);//guarded, check both
+               int f2=treeCover(n,tree,i,stor,0,parent,vertex);
                if(f1<f2){
                   sum=sum+f1;
                }
@@ -80,11 +81,11 @@ int treeCover(int n, int tree[][n], int v,int stor[n][2], int covered, int paren
          }
       }
    }
-   stor[v][covered] = sum + covered;
+   stor[v][covered] = sum + covered*vertex[v];
     //printf("\n Stor: %d, v: %d, cover: %d \n", stor[v][covered],v,covered);
    return stor[v][covered];
 }
-void printMinCover(int n, int tree[][n]){
+void printMinCover(int n, int tree[][n], int vertex[n]){
       int parent[n];
       int stor[n][2];
       for(int i=0; i<n; i++){
@@ -92,8 +93,8 @@ void printMinCover(int n, int tree[][n]){
          stor[i][1]=-1;
          parent[i]=-1;
       }
-      int minCover1=treeCover(n, tree, 0, stor, 1,parent);
-      int minCover0=treeCover(n, tree, 0, stor, 0,parent);
+      int minCover1=treeCover(n, tree, 0, stor, 1,parent, vertex);
+      int minCover0=treeCover(n, tree, 0, stor, 0,parent, vertex);
       int cover=0;
       if(minCover1<minCover0){
          cover=minCover1;
@@ -105,12 +106,19 @@ void printMinCover(int n, int tree[][n]){
 }
 
 //to find and print minimum vertex cover
-void printVertexCover(int n, int tree[][n]) {
+void printVertexCover(int n, int tree[][n], int vertex[n]) {
    int cover[n];
    for(int i=0; i<n; i++){
       cover[i]=1;
    }
-   printf("\n Size of Vertex cover: %d \n", vertexCover(n, n, tree, 0, cover) );
+   printf("\n Size of Vertex cover: %d \n", vertexCover(2147483647, n, tree, 0, cover, vertex) );
+}
+
+//to generate random vertex weights from 1 to max
+void genVertexWeights(int n, int vertex[n], int max){
+   for(int i=0; i<n; i++){
+      vertex[i]= 1+(rand() % (max - 1 + 1));
+   }
 }
 
 
