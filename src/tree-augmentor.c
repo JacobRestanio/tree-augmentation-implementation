@@ -7,93 +7,62 @@
 
 int main() {
    srand(time(0));
-   int treetype;
-   int treesize;
-   char exit = 'y';
-   while(exit == 'y') {
-      printf("[1] Random Forest\n");
-      printf("[2] Linear Tree\n");
-      printf("[3] Star Tree\n");
-      printf("[4] Star-like Tree\n");
-      printf("[5] Caterpillar Tree\n");
-      printf("[6] Lobster Tree\n");
-      printf("Choose a tree to generate: ");
-      scanf("%d", &treetype);
-
-      printf("Enter size of tree: ");
-      scanf("%d", &treesize);
-      int tree[treesize][treesize];
-      memset(tree, 0, sizeof tree);
-
-      switch(treetype) {
-         case 1:
-            randomForestTree(treesize, tree);
-            break;
-         case 2:
-            linearTree(treesize, tree);
-            break;
-         case 3:
-            starTree(treesize, tree);
-            break;
-         case 4:
-            starlikeTree(treesize, tree);
-            break;
-         case 5:
-            caterpillarTree(treesize, tree);
-            break;
-         case 6:
-            lobsterTree(treesize, tree);
-            break;
-         default:
-            printf("invalid selection\n");
-            break;
-      }
-
-      printf("\n");
-      printTreeAdjMat(treesize, tree);
-      printf("\n");
-      //unweighted min cover using linear tree algorithm
-      int vertexWeights[treesize];
-      for(int i=0; i<treesize; i++){ //sets all to 1 for unweighted
-      	vertexWeights[i]=1;
-      }
-      clock_t t1; //begin clock time
-      t1 = clock();
-      printMinCover(treesize, tree,vertexWeights);
-      t1 = clock() - t1; // end clock time
-      double time_taken1 = ((double)t1)/CLOCKS_PER_SEC;
-      printf("It took %f seconds to execute \n", time_taken1);
-      //unweighted min cover using brute force
-      clock_t t2; //begin clock time
-      t2 = clock();
-      printVertexCover(treesize, tree, vertexWeights);
-      t2 = clock() - t2; // end clock time
-      double time_taken2 = ((double)t2)/CLOCKS_PER_SEC;
-      printf("It took %f seconds to execute \n", time_taken2);
-      //weighted min cover using linear tree algorithm
-      genVertexWeights(treesize, vertexWeights, 10); //generate random vertex weights from 1-10
-      /*print vertex weights (leaving here in case we need it)
-      printf("{ ");
-      for(int i=0; i<treesize; i++){
-      	printf(",%d ", vertexWeights[i]);
-      }
-      printf("}\n");
-      */
-      clock_t t3; //begin clock time
-      t3 = clock();
-      printMinCover(treesize, tree, vertexWeights);
-      t3 = clock() - t3; // end clock time
-      double time_taken3 = ((double)t3)/CLOCKS_PER_SEC;
-      printf("It took %f seconds to execute \n", time_taken3);
-      //weighted min cover using brute force
-      clock_t t4; //begin clock time
-      t4 = clock();
-      printVertexCover(treesize, tree, vertexWeights);
-      t4 = clock() - t4; // end clock time
-      double time_taken4 = ((double)t4)/CLOCKS_PER_SEC;
-      printf("It took %f seconds to execute \n", time_taken4);
-      printf("Continue? [y/n]: ");
-      scanf(" %c", &exit);
-      printf("\n");
+   int treesize[]={100, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000}; //the different sizes of trees tested for. should be able to change this without having to change any other code
+   
+   int numAlgorithms=2; //number of algorithms we have implemented
+   int treeSizeLen=sizeof(treesize)/sizeof(treesize[0]);
+   int timeSize=treeSizeLen*numAlgorithms;
+   //double times[6][timeSize]; //array of times for each tree type(6 as of now) and each tree size * number of algorithms
+	double (*times)[timeSize] =malloc(sizeof(double[6][timeSize]));
+   for(int n=0; n<treeSizeLen; n++){
+   	for(int treetype=1; treetype<=6; treetype++){
+		   int (*tree)[treesize[n]] =malloc(sizeof(int[treesize[n]][treesize[n]]));
+		   memset(tree, 0, sizeof tree);
+		   switch(treetype) {
+		      case 1:
+		         randomForestTree(treesize[n], tree);
+		         break;
+		      case 2:
+		         linearTree(treesize[n], tree);
+		         break;
+		      case 3:
+		         starTree(treesize[n], tree);
+		         break;
+		      case 4:
+		         starlikeTree(treesize[n], tree);
+		         break;
+		      case 5:
+		         caterpillarTree(treesize[n], tree);
+		         break;
+		      case 6:
+		         lobsterTree(treesize[n], tree);
+		         break;
+		      default:
+		         printf("invalid selection\n");
+		         break;
+		   }
+		   //unweighted min cover using linear tree algorithm
+		   int (*vertexWeights)=malloc(sizeof(int[treesize[n]]));
+		   for(int i=0; i<treesize[n]; i++){ //sets all to 1 for unweighted
+		   	vertexWeights[i]=1;
+		   }
+		   clock_t t1; //begin clock time
+		   t1 = clock();
+		   printMinCover(treesize[n], tree,vertexWeights);
+		   t1 = clock() - t1; // end clock time
+		   double time_taken1 = ((double)t1)/CLOCKS_PER_SEC;
+		   times[treetype-1][numAlgorithms*n]=time_taken1; //sets time taken for treetype, treesize, algorithm 1
+		   printf("It took %f seconds to execute \n", time_taken1);
+		   //weighted min cover using linear tree algorithm
+		   genVertexWeights(treesize[n], vertexWeights, 10); //generate random vertex weights from 1-10
+		   clock_t t2; //begin clock time
+		   t2 = clock();
+		   printMinCover(treesize[n], tree, vertexWeights);
+		   t2 = clock() - t2; // end clock time
+		   double time_taken2 = ((double)t2)/CLOCKS_PER_SEC;
+		   times[treetype-1][numAlgorithms*n+1]=time_taken2; //sets time taken for treetype, treesize, algorithm 2
+		   printf("It took %f seconds to execute \n", time_taken2);
+		}     
    }
+   genPlot(numAlgorithms,treeSizeLen,timeSize, times, treesize); //generate Latex plots
 }

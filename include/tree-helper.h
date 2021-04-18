@@ -9,4 +9,5 @@ void printVertexCover(int n, int tree[][n], int vertex[n]);
 void printMinCover(int n, int tree[][n], int vertex[n]);
 int treeCover(int n, int tree[][n], int v,int stor[n][2], int covered, int vertex[n]);
 void genVertexWeights(int n, int vertex[n], int max);
+void genPlot(int numAlgorithms, int size, int timeSize, double times[][timeSize], int treeSize[]);
 #endif

@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 /* prints an adjacency matrix
    n is the number of nodes in the tree
@@ -120,5 +121,67 @@ void genVertexWeights(int n, int vertex[n], int max){
       vertex[i]= 1+(rand() % (max - 1 + 1));
    }
 }
+//to generate Latex for the plot
+void genPlot(int numAlgorithms, int size, int timeSize, double times[][timeSize], int treeSize[]){
+	FILE *fp;
+	char typeName[20];
+	int treetype=1;
+	fp=fopen("results/plots.txt", "w+");
+	for(int treetype=1; treetype<=6; treetype++){
+			switch(treetype) {
+		      case 1:
+		         strcpy(typeName, "Random Forest Graph");
+		         break;
+		      case 2:
+		         strcpy(typeName, "Linear Tree");
+		         break;
+		      case 3:
+		      	strcpy(typeName, "Star Tree");
+		         break;
+		      case 4:
+		      	strcpy(typeName, "Starlike Tree");
+		         break;
+		      case 5:
+		      	strcpy(typeName, "Caterpillar Tree");
+		         break;
+		      case 6:
+		      	strcpy(typeName, "Lobster Tree");
+		         break;
+		      default:
+		         printf("Error, invalid type\n");
+		         break;
+		   }
+		fprintf(fp,"\\begin{figure} \n");
+		fprintf(fp,"\\begin{tikzpicture} \n");
+		fprintf(fp,"\\begin{axis}[ \n");
+		fprintf(fp,"xlabel={n}, \n");
+		fprintf(fp,"ylabel={time(s)}, \n");
+		fprintf(fp,"xmin=100, xmax=10000,  \n");
+		fprintf(fp,"ymin=0, ymax=1.1,\n");
+		fprintf(fp,"ymajorgrids=true, \n");
+		fprintf(fp,"xmajorgrids=true, \n");
+		fprintf(fp,"grid style=dashed, \n");
+		fprintf(fp,"legend style={at={(0.0,.91)},anchor=west} \n");
+		fprintf(fp,"] \n");
+		fprintf(fp,"\\addplot[blue, mark=diamond*] table [x=a, y=e, col sep=comma] { \n");
+		fprintf(fp,"a,e \n");
+		for(int n=0; n<size; n++){
+			fprintf(fp, "%d, %f \n",treeSize[n], times[treetype-1][numAlgorithms*n]);
+		}
+		fprintf(fp,"};\n");
+		fprintf(fp,"\\addplot[red, mark=square*] table [x=a, y=i, col sep=comma] { \n");
+		fprintf(fp,"a,i \n");
+		for(int n=0; n<size; n++){
+			fprintf(fp, "%d, %f \n", treeSize[n], times[treetype-1][numAlgorithms*n+1]);
+		}
+		fprintf(fp,"};\n");
+		fprintf(fp,"\\legend{Unweighted Vertex Cover,Weighted Vertex Cover}\n");
+		fprintf(fp,"\\end{axis} \n");
+		fprintf(fp,"\\end{tikzpicture} \n");
+		fprintf(fp,"\\caption{%s} \n", typeName);
+		fprintf(fp,"\\end{figure} \n");
+	}
 
-
+	fclose(fp);
+	
+}
