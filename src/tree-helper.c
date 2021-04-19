@@ -14,6 +14,18 @@ void printTreeAdjMat(int n, int tree[][n]) {
    }
 }
 
+/* prints an adjacency matrix with formatting
+   n is the number of nodes in the tree
+   tree is the adjacency matrix of size n x n */
+void printTreeAdjMatWithPadding(int n, int tree[][n], int padding) {
+   for(int i=0; i<n; i++) {
+      for(int j=0; j<n; j++) {
+        printf("%0*d ", padding ,tree[i][j]);
+      }
+      printf("\n");
+   }
+}
+
 int vertexCover(int min, int n, int tree[][n], int r, int cover[n], int vertex[n])
 {
    //if(cur>=min)
@@ -184,4 +196,28 @@ void genPlot(int numAlgorithms, int size, int timeSize, double times[][timeSize]
 
 	fclose(fp);
 	
+}
+
+/* Generates random edge weights from 1 to max for edges in a edge matrix */
+void genEdgeWeights(int n, int edges[][n], int edgeWeights[][n], int max) {
+   for(int i = 0; i < n; i++) {
+      for(int j = 0; j < n; j++) {
+         if(i > j && edges[i][j] == 1) {
+            edgeWeights[i][j] = 1 + (rand() % (max - 1 + 1));
+            edgeWeights[j][i] = edgeWeights[i][j];
+         }
+      }
+   }
+}
+
+/* Currently this creates an adjacency matrix of all possible edges for the tree
+   basically a worst-case scenario, need to make sure this is acceptable */
+void createEdgeSet(int n, int tree[][n], int edgeSet[][n]) {
+   for(int i = 0; i < n; i++) {
+      for(int j = 0; j < n; j++) {
+         if(i != j && tree[i][j] != 1) {
+            edgeSet[i][j] = 1;
+         }
+      }
+   }
 }
