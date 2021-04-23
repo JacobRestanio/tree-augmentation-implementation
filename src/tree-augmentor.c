@@ -5,6 +5,7 @@
 #include <sys/resource.h>
 #include "../include/tree-generator.h"
 #include "../include/tree-helper.h"
+#include "../include/tree-greedy.h"
 
 /* Temporary Function to some debugging info */
 void printInfo(int n, int tree[][n], int edgeSet[][n], int edgeWeights[][n]) {
@@ -97,6 +98,10 @@ int main() {
          int (*edgeWeights)[treesize[n]] = malloc(sizeof(int[treesize[n]][treesize[n]]));
          memset(edgeWeights, 0, sizeof(edgeWeights[0][0])*treesize[n]*treesize[n]);
          genEdgeWeights(treesize[n], edgeSet, edgeWeights, 9);
+         
+         //call greedy algorithm
+         int augment=greedyHeuristic(treesize[n], tree, edgeSet);
+         printf("Greedy Algorithm returned %d \n", augment);
          
          long mem2 = getMemUse();
          printf("Memory Usage: %ld\n", mem2 - mem1);

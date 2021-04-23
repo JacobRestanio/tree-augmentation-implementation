@@ -7,10 +7,10 @@ LDIR=../lib
 
 LIBS=-lm
 
-_DEPS = tree-generator.h tree-helper.h
+_DEPS = tree-greedy.h tree-check-connected.h tree-generator.h tree-helper.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-_OBJ = tree-augmentor.o tree-generator.o tree-helper.o 
+_OBJ = tree-augmentor.o tree-generator.o tree-helper.o tree-greedy.o tree-check-connected.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 
