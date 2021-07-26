@@ -8,7 +8,7 @@
 #include "../include/tree-greedy.h"
 
 /* Temporary Function to some debugging info */
-/* Some change */
+/* Some change but in a different branch */
 void printInfo(int n, int tree[][n], int edgeSet[][n], int edgeWeights[][n]) {
    printf("TREE\n");
    printTreeAdjMat(n, tree);
