@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <sys/resource.h>
+#include "../include/fredrickson.h"
 #include "../include/tree-generator.h"
 #include "../include/tree-helper.h"
 #include "../include/tree-greedy.h"
@@ -100,12 +101,18 @@ int main() {
          memset(edgeWeights, 0, sizeof(edgeWeights[0][0])*treesize[n]*treesize[n]);
          genEdgeWeights(treesize[n], edgeSet, edgeWeights, 9);
          
-         //call greedy algorithm
+         // call greedy algorithm
          int augment=greedyHeuristic(treesize[n], tree, edgeSet);
-         printf("Greedy Algorithm returned %d \n", augment);
+         printf("Greedy Algorithm returned %d \n\n", augment);
          
+         // print memory information
          long mem2 = getMemUse();
-         printf("Memory Usage: %ld\n", mem2 - mem1);
+         printf("Memory Usage: %ld\n\n", mem2 - mem1);
+         
+         // fredrickson algorithms
+         int fredrick = fredrickson(treesize[n], tree);
+         
+         // print tree information
          printInfo(treesize[n], tree, edgeSet, edgeWeights);
          
          /* every call to malloc needs a corresponding call to free */
