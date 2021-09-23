@@ -92,33 +92,42 @@ int main() {
 /*		   printf("It took %f seconds to execute \n", time_taken2);*/
 
          /* allocate, initialize, and create edge set */
-         int (*edgeSet)[treesize[n]] = malloc(sizeof(int[treesize[n]][treesize[n]]));
-         memset(edgeSet, 0, sizeof(edgeSet[0][0])*treesize[n]*treesize[n]);
-         createEdgeSet(treesize[n], tree, edgeSet);
+/*         int (*edgeSet)[treesize[n]] = malloc(sizeof(int[treesize[n]][treesize[n]]));*/
+/*         memset(edgeSet, 0, sizeof(edgeSet[0][0])*treesize[n]*treesize[n]);*/
+/*         createEdgeSet(treesize[n], tree, edgeSet);*/
          
          /* allocate, initialize, and generate edge weights */
-         int (*edgeWeights)[treesize[n]] = malloc(sizeof(int[treesize[n]][treesize[n]]));
-         memset(edgeWeights, 0, sizeof(edgeWeights[0][0])*treesize[n]*treesize[n]);
-         genEdgeWeights(treesize[n], edgeSet, edgeWeights, 9);
+/*         int (*edgeWeights)[treesize[n]] = malloc(sizeof(int[treesize[n]][treesize[n]]));*/
+/*         memset(edgeWeights, 0, sizeof(edgeWeights[0][0])*treesize[n]*treesize[n]);*/
+/*         genEdgeWeights(treesize[n], edgeSet, edgeWeights, 9);*/
          
          // call greedy algorithm
-         int augment=greedyHeuristic(treesize[n], tree, edgeSet);
-         printf("Greedy Algorithm returned %d \n\n", augment);
+/*         int augment=greedyHeuristic(treesize[n], tree, edgeSet);*/
+/*         printf("Greedy Algorithm returned %d \n\n", augment);*/
          
          // print memory information
-         long mem2 = getMemUse();
-         printf("Memory Usage: %ld\n\n", mem2 - mem1);
+/*         long mem2 = getMemUse();*/
+/*         printf("Memory Usage: %ld\n\n", mem2 - mem1);*/
          
-         // fredrickson algorithms
+         // print the tree
+         printf("TREE\n");
+         printTreeAdjMat(treesize[n], tree);
+         printf("\n");
+         
+         //fredrickson algorithm
          int fredrick = fredrickson(treesize[n], tree);
          
+         printf("2-EDGE CONNECTED GRAPH\n");
+         printTreeAdjMat(treesize[n], tree);
+         printf("_______________________\n\n");
+         
          // print tree information
-         printInfo(treesize[n], tree, edgeSet, edgeWeights);
+/*         printInfo(treesize[n], tree, edgeSet, edgeWeights);*/
          
          /* every call to malloc needs a corresponding call to free */
          free(tree);
-         free(edgeSet);
-         free(edgeWeights);
+/*         free(edgeSet);*/
+/*         free(edgeWeights);*/
 		}     
    }
 /*   commented out for future use */ 

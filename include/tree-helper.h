@@ -34,4 +34,9 @@ void createEdgeSet(int n, int tree[][n], int edgeSet[][n]);
    copyMatrix is the matrix to be copied to */
 void copyMatrix(int n, int originalMatrix[][n], int copyMatrix[][n]);
 
+/* Creates an adjacency matrix with a zero diagonal and one everywhere else
+   n is the number of nodes in the graph
+   completeDirectedGraph is the adjacency matrix of a graph of size n x n */
+void createCompleteDirectedTree(int n, int completeDirectedGraph[][n]);
+
 #endif
