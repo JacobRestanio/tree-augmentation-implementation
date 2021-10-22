@@ -30,7 +30,7 @@ long getMemUse() {
 
 int main() {
    srand(time(0));
-   int treesize[]={10}; //the different sizes of trees tested for. should be able to change this without having to change any other code
+   int treesize[]={10, 100, 1000, 10000}; //the different sizes of trees tested for. should be able to change this without having to change any other code
    
    int numAlgorithms=1; //number of algorithms we have implemented
    int treeSizeLen=sizeof(treesize)/sizeof(treesize[0]);
@@ -46,21 +46,27 @@ int main() {
 		   memset(tree, 0, sizeof(tree[0][0])*treesize[n]*treesize[n]);
 		   switch(treetype) {
 		      case 1:
+		         printf("RANDOM FOREST: Size = %i\n\n", treesize[n]);
 		         randomForestTree(treesize[n], tree);
 		         break;
 		      case 2:
+		         printf("LINEAR TREE: Size = %i\n\n", treesize[n]);
 		         linearTree(treesize[n], tree);
 		         break;
 		      case 3:
+		         printf("STAR TREE: Size = %i\n\n", treesize[n]);
 		         starTree(treesize[n], tree);
 		         break;
 		      case 4:
+		         printf("STARLIKE TREE: Size = %i\n\n", treesize[n]);
 		         starlikeTree(treesize[n], tree);
 		         break;
 		      case 5:
+		         printf("CATERPILLAR TREE: Size = %i\n\n", treesize[n]);
 		         caterpillarTree(treesize[n], tree);
 		         break;
 		      case 6:
+		         printf("LOBSTER TREE: Size = %i\n\n", treesize[n]);
 		         lobsterTree(treesize[n], tree);
 		         break;
 		      default:
@@ -92,33 +98,32 @@ int main() {
 /*		   printf("It took %f seconds to execute \n", time_taken2);*/
 
          /* allocate, initialize, and create edge set */
-/*         int (*edgeSet)[treesize[n]] = malloc(sizeof(int[treesize[n]][treesize[n]]));*/
-/*         memset(edgeSet, 0, sizeof(edgeSet[0][0])*treesize[n]*treesize[n]);*/
-/*         createEdgeSet(treesize[n], tree, edgeSet);*/
+         int (*edgeSet)[treesize[n]] = malloc(sizeof(int[treesize[n]][treesize[n]]));
+         memset(edgeSet, 0, sizeof(edgeSet[0][0])*treesize[n]*treesize[n]);
+         createEdgeSet(treesize[n], tree, edgeSet);
          
          /* allocate, initialize, and generate edge weights */
 /*         int (*edgeWeights)[treesize[n]] = malloc(sizeof(int[treesize[n]][treesize[n]]));*/
 /*         memset(edgeWeights, 0, sizeof(edgeWeights[0][0])*treesize[n]*treesize[n]);*/
 /*         genEdgeWeights(treesize[n], edgeSet, edgeWeights, 9);*/
          
-         // call greedy algorithm
-/*         int augment=greedyHeuristic(treesize[n], tree, edgeSet);*/
-/*         printf("Greedy Algorithm returned %d \n\n", augment);*/
-         
          // print memory information
 /*         long mem2 = getMemUse();*/
 /*         printf("Memory Usage: %ld\n\n", mem2 - mem1);*/
          
-         // print the tree
-         printf("TREE\n");
-         printTreeAdjMat(treesize[n], tree);
-         printf("\n");
+/*         // print the tree*/
+/*         printf("TREE\n");*/
+/*         printTreeAdjMat(treesize[n], tree);*/
+/*         printf("\n");*/
+         
+         // call greedy algorithm
+         int greedy = greedyHeuristic(treesize[n], tree, edgeSet);
+         printf("Greedy Algorithm returned %d \n", greedy);
          
          //fredrickson algorithm
          int fredrick = fredrickson(treesize[n], tree);
+         printf("Fredrickson Algorithm returned %i \n", fredrick);
          
-         printf("2-EDGE CONNECTED GRAPH\n");
-         printTreeAdjMat(treesize[n], tree);
          printf("_______________________\n\n");
          
          // print tree information
@@ -126,7 +131,7 @@ int main() {
          
          /* every call to malloc needs a corresponding call to free */
          free(tree);
-/*         free(edgeSet);*/
+         free(edgeSet);
 /*         free(edgeWeights);*/
 		}     
    }
