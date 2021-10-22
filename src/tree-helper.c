@@ -221,3 +221,25 @@ void createEdgeSet(int n, int tree[][n], int edgeSet[][n]) {
       }
    }
 }
+   
+/* Copies originalMatrix to copiedMatrix */
+void copyMatrix(int n, int originalMatrix[][n], int copyMatrix[][n]) {
+   for (int i = 0; i < n; i++) {
+      for (int j = 0; j < n; j++) {
+         copyMatrix[i][j] = originalMatrix[i][j];
+      }
+   }
+}
+   
+void createCompleteDirectedTree(int n, int completeDirectedGraph[][n]) {
+   for (int i = 0; i < n; i++) {
+      for (int j = 0; j < n; j++) {
+         if(i != j) {
+            completeDirectedGraph[i][j] = 1;
+         } else {
+            completeDirectedGraph[i][j] = 0;
+         }
+      }
+   }
+}
+
