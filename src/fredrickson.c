@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "../include/tree-helper.h"
 
 #define INF 8
@@ -151,9 +152,6 @@ void edmondsAlgorithm(int size, int weightedTree[][size], int arborescence[][siz
          edgeSource[j] = minimumIncomingEdge;
       }
    }
-   printf("ARBORESCENCE\n");
-   printTreeAdjMat(size, arborescence);
-   printf("\n");
    
    // check if there are cycles present in the current solution
    int cycles[size][size];
@@ -163,9 +161,6 @@ void edmondsAlgorithm(int size, int weightedTree[][size], int arborescence[][siz
       }
    }
    findCycle(size, arborescence, cycles);
-   printf("STRONGLY CONNECTED COMPONENTS\n");
-   printTreeAdjMat(size, cycles);
-   printf("\n");
    
    // find cycle by finding first strongly connected component of size greater than one
    int numscc = 0;
@@ -249,14 +244,6 @@ void edmondsAlgorithm(int size, int weightedTree[][size], int arborescence[][siz
          }
       }
       
-      printf("CONTRACTED WEIGHTED GRAPH\n");
-      printTreeAdjMat(conSize, contractedWeightedGraph);
-      printf("\n");
-      
-      printf("CONTRACT TRACE\n");
-      printTreeAdjMat(conSize, contractTrace);
-      printf("\n");
-      
       edmondsAlgorithm(conSize, contractedWeightedGraph, contractedArborescence, root);
       // remove edges from the original arborescence that are not in the cycle
       for (int j = 0; j < size; j++) {
@@ -283,54 +270,33 @@ void edmondsAlgorithm(int size, int weightedTree[][size], int arborescence[][siz
             }
          }
       }
-      
-      printf("EXPANDED ARBORESCENCE\n");
-      printTreeAdjMat(size, arborescence);
-      printf("\n");
    }
 }
 
-void twoEdgeConnect(int size, int tree[][size], int arborescence[][size]) {
+int twoEdgeConnect(int size, int tree[][size], int arborescence[][size], int edges[][size]) {
+   int e = 0;
    for (int i = 0; i < size; i++) {
       for (int j = 0; j < size; j++) {
-         if (arborescence[i][j] == 1) {
-            tree[i][j] = 1;
-            tree[j][i] = 1;
+         if (arborescence[i][j] == 1 && tree[i][j] == 0) {
+            e++;
+            edges[i][j] = 1;
+            edges[j][i] = 1;
          }
       }
    }
+   return e;
 }
 
 int fredrickson(int size, int tree[][size]) {
-   // create complete directed graph
-   // set diagonal to 0 and nondiagonal to 1
-   int complete_graph[size][size];
-   for (int i = 0; i < size; i++) {
-      for (int j = 0; j < size; j++) {
-         if (i == j) {
-            complete_graph[i][j] = 0;
-         } else {
-            complete_graph[i][j] = 1;
-         }
-      }
-   }
-   
    // create a directed tree from leaf node
    int root = findLeaf(size, tree);
    int directedTree[size][size];
    copyMatrix(size, tree, directedTree);
    directTree(size, directedTree, root, -1);
-   printf("DIRECTED TREE\n");
-   printTreeAdjMat(size, directedTree);
-   printf("\n");
    
    int weightedTree[size][size];
    createCompleteDirectedTree(size, weightedTree);
-   
    setWeights(size, directedTree, weightedTree, root);
-   printf("WEIGHTED GRAPH\n");
-   printTreeAdjMat(size, weightedTree);
-   printf("\n");
    
    int arborescence[size][size];
    for (int i = 0; i < size; i++) {
@@ -339,7 +305,26 @@ int fredrickson(int size, int tree[][size]) {
       }
    }
    edmondsAlgorithm(size, weightedTree, arborescence, root);
-   twoEdgeConnect(size, tree, arborescence);
    
-   return 1;
+   int (*edges)[size] = malloc(sizeof(int[size][size]));
+   memset(edges, 0, sizeof(int[size][size]));
+   int e = twoEdgeConnect(size, tree, arborescence, edges);
+   
+     /* combine tree and edges into a single graph */
+/*   int (*graph)[size] = malloc(sizeof(int[size][size]));*/
+/*   memset(graph, 0, sizeof(int[size][size]));*/
+/*   for (int i = 0; i < size; i++) {*/
+/*      for (int j = 0; j < size; j++) {*/
+/*         if (tree[i][j] == 1 || edges[i][j] == 1) {*/
+/*            graph[i][j] = 1;*/
+/*         }*/
+/*      }*/
+/*   }*/
+/*   printf("FREDRICKSON 2-EDGE CONNECTED GRAPH\n");*/
+/*   printTreeAdjMat(size, graph);*/
+/*   printf("\n");*/
+
+/*   free(graph);*/
+   free(edges);
+   return e;
 }
