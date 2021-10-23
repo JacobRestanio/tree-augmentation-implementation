@@ -28,9 +28,12 @@ long getMemUse() {
    return usage.ru_maxrss;
 }
 
-int main() {
+int main(int argc, char *argv[]) {
    srand(time(0));
-   int treesize[]={10, 100}; //the different sizes of trees tested for. should be able to change this without having to change any other code
+   int treesize[argc-1];
+   for (int i = 1; i < argc; i++) {
+      treesize[i-1] = atoi(argv[i]);
+   }
    
    int numAlgorithms=1; //number of algorithms we have implemented
    int treeSizeLen=sizeof(treesize)/sizeof(treesize[0]);
