@@ -30,13 +30,11 @@ long getMemUse() {
 
 int main() {
    srand(time(0));
-   int treesize[]={10, 100, 1000, 10000}; //the different sizes of trees tested for. should be able to change this without having to change any other code
+   int treesize[]={10, 100}; //the different sizes of trees tested for. should be able to change this without having to change any other code
    
    int numAlgorithms=1; //number of algorithms we have implemented
    int treeSizeLen=sizeof(treesize)/sizeof(treesize[0]);
-   int timeSize=treeSizeLen*numAlgorithms;
-   //double times[6][timeSize]; //array of times for each tree type(6 as of now) and each tree size * number of algorithms
-	double (*times)[timeSize] =malloc(sizeof(double[6][timeSize]));
+
    for(int n=0; n<treeSizeLen; n++){
    	for(int treetype=1; treetype<=6; treetype++){
    	   long mem1 = getMemUse();
