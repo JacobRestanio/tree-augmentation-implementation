@@ -7,6 +7,7 @@
 #include "../include/tree-generator.h"
 #include "../include/tree-helper.h"
 #include "../include/tree-greedy.h"
+#include "../include/graph.h"
 
 /* Temporary Function to some debugging info */
 /* Some change but in a different branch */
@@ -20,122 +21,137 @@ void printInfo(int n, int tree[][n], int edgeSet[][n], int edgeWeights[][n]) {
    printf("___________________________________\n\n");
 }
 
-/* Still inconsistent, might look into Valgrind, which is 3rd party 
-   The compiler might still be doing some efficiency things */
-long getMemUse() {
-   struct rusage usage;
-   getrusage(RUSAGE_SELF, &usage);
-   return usage.ru_maxrss;
-}
-
 int main(int argc, char *argv[]) {
    srand(time(0));
-   int treesize[argc-1];
-   for (int i = 1; i < argc; i++) {
+   int iterations = atoi(argv[argc-1]);
+   int treesize[argc-2];
+   for (int i = 1; i < argc - 1; i++) {
       treesize[i-1] = atoi(argv[i]);
    }
-   
-   int numAlgorithms=1; //number of algorithms we have implemented
+
+   int numAlgorithms=2; //number of algorithms we have implemented
    int treeSizeLen=sizeof(treesize)/sizeof(treesize[0]);
 
-   for(int n=0; n<treeSizeLen; n++){
-   	for(int treetype=1; treetype<=6; treetype++){
-   	   long mem1 = getMemUse();
-   	   
-   	   /* allocate, initialize, then create a tree of a certain type */
-		   int (*tree)[treesize[n]] =malloc(sizeof(int[treesize[n]][treesize[n]]));
-		   memset(tree, 0, sizeof(tree[0][0])*treesize[n]*treesize[n]);
-		   switch(treetype) {
-		      case 1:
-		         printf("RANDOM FOREST: Size = %i\n\n", treesize[n]);
-		         randomForestTree(treesize[n], tree);
-		         break;
-		      case 2:
-		         printf("LINEAR TREE: Size = %i\n\n", treesize[n]);
-		         linearTree(treesize[n], tree);
-		         break;
-		      case 3:
-		         printf("STAR TREE: Size = %i\n\n", treesize[n]);
-		         starTree(treesize[n], tree);
-		         break;
-		      case 4:
-		         printf("STARLIKE TREE: Size = %i\n\n", treesize[n]);
-		         starlikeTree(treesize[n], tree);
-		         break;
-		      case 5:
-		         printf("CATERPILLAR TREE: Size = %i\n\n", treesize[n]);
-		         caterpillarTree(treesize[n], tree);
-		         break;
-		      case 6:
-		         printf("LOBSTER TREE: Size = %i\n\n", treesize[n]);
-		         lobsterTree(treesize[n], tree);
-		         break;
-		      default:
-		         printf("invalid selection\n");
-		         break;
-		   }
-/*		   commented out for repurposing later    */
-
-/*		   //unweighted min cover using linear tree algorithm*/
-/*		   int (*vertexWeights)=malloc(sizeof(int[treesize[n]]));*/
-/*		   for(int i=0; i<treesize[n]; i++){ //sets all to 1 for unweighted*/
-/*		   	vertexWeights[i]=1;*/
-/*		   }*/
-/*		   clock_t t1; //begin clock time*/
-/*		   t1 = clock();*/
-/*		   printMinCover(treesize[n], tree,vertexWeights);*/
-/*		   t1 = clock() - t1; // end clock time*/
-/*		   double time_taken1 = ((double)t1)/CLOCKS_PER_SEC;*/
-/*		   times[treetype-1][numAlgorithms*n]=time_taken1; //sets time taken for treetype, treesize, algorithm 1*/
-/*		   printf("It took %f seconds to execute \n", time_taken1);*/
-/*		   //weighted min cover using linear tree algorithm*/
-/*		   genVertexWeights(treesize[n], vertexWeights, 10); //generate random vertex weights from 1-10*/
-/*		   clock_t t2; //begin clock time*/
-/*		   t2 = clock();*/
-/*		   printMinCover(treesize[n], tree, vertexWeights);*/
-/*		   t2 = clock() - t2; // end clock time*/
-/*		   double time_taken2 = ((double)t2)/CLOCKS_PER_SEC;*/
-/*		   times[treetype-1][numAlgorithms*n+1]=time_taken2; //sets time taken for treetype, treesize, algorithm 2*/
-/*		   printf("It took %f seconds to execute \n", time_taken2);*/
-
-         /* allocate, initialize, and create edge set */
-         int (*edgeSet)[treesize[n]] = malloc(sizeof(int[treesize[n]][treesize[n]]));
-         memset(edgeSet, 0, sizeof(edgeSet[0][0])*treesize[n]*treesize[n]);
-         createEdgeSet(treesize[n], tree, edgeSet);
-         
-         /* allocate, initialize, and generate edge weights */
-/*         int (*edgeWeights)[treesize[n]] = malloc(sizeof(int[treesize[n]][treesize[n]]));*/
-/*         memset(edgeWeights, 0, sizeof(edgeWeights[0][0])*treesize[n]*treesize[n]);*/
-/*         genEdgeWeights(treesize[n], edgeSet, edgeWeights, 9);*/
-         
-         // print memory information
-/*         long mem2 = getMemUse();*/
-/*         printf("Memory Usage: %ld\n\n", mem2 - mem1);*/
-         
-/*         // print the tree*/
-/*         printf("TREE\n");*/
-/*         printTreeAdjMat(treesize[n], tree);*/
-/*         printf("\n");*/
-         
-         // call greedy algorithm
-         int greedy = greedyHeuristic(treesize[n], tree, edgeSet);
-         printf("Greedy Algorithm returned %d \n", greedy);
-         
-         //fredrickson algorithm
-         int fredrick = fredrickson(treesize[n], tree);
-         printf("Fredrickson Algorithm returned %i \n", fredrick);
-         
-         printf("_______________________\n\n");
-         
-         // print tree information
-/*         printInfo(treesize[n], tree, edgeSet, edgeWeights);*/
-         
-         /* every call to malloc needs a corresponding call to free */
-         free(tree);
-         free(edgeSet);
-/*         free(edgeWeights);*/
-		}     
+   /* Create a 3-dimensional array to keep average times */
+   float ***averagedTimes = malloc(sizeof(float **)*numAlgorithms);
+   for (int i = 0; i < numAlgorithms; i++) {
+      averagedTimes[i] = malloc(sizeof(float *)*treeSizeLen);
+      for (int j = 0; j < treeSizeLen; j++) {
+         averagedTimes[i][j] = malloc(sizeof(float[6]));
+         memset(averagedTimes[i][j], 0, sizeof(float[6]));
+      }
    }
-/*   commented out for future use */ 
+
+    for(int n=0; n < treeSizeLen; n++){
+      for(int treetype = 0; treetype < 6; treetype++){
+        for(int i = 0; i < iterations; i++) {
+
+      	   /* allocate, initialize, then create a tree of a certain type */
+		      graph* g = NULL;
+		      switch(treetype) {
+		         case 0:
+		            printf("RANDOM FOREST: Size = %i\n\n", treesize[n]);
+		            g = randomForestTree(treesize[n]);
+		            break;
+		         case 1:
+		            printf("LINEAR TREE: Size = %i\n\n", treesize[n]);
+		            g = linearTree(treesize[n]);
+		            break;
+		         case 2:
+		            printf("STAR TREE: Size = %i\n\n", treesize[n]);
+		            g = starTree(treesize[n]);
+		            break;
+		         case 3:
+		            printf("STARLIKE TREE: Size = %i\n\n", treesize[n]);
+		            g = starlikeTree(treesize[n]);
+		            break;
+		         case 4:
+		            printf("CATERPILLAR TREE: Size = %i\n\n", treesize[n]);
+		            g = caterpillarTree(treesize[n]);
+		            break;
+		         case 5:
+		            printf("LOBSTER TREE: Size = %i\n\n", treesize[n]);
+		            g = lobsterTree(treesize[n]);
+		            break;
+		         default:
+		            printf("invalid selection\n");
+		            break;
+		      }
+
+          graph_print(g);
+          graph_free(g);
+
+            // /* allocate, initialize, and create edge set */
+            // int (*edgeSet)[treesize[n]] = malloc(sizeof(int[treesize[n]][treesize[n]]));
+            // memset(edgeSet, 0, sizeof(edgeSet[0][0])*treesize[n]*treesize[n]);
+            // createEdgeSet(treesize[n], tree, edgeSet);
+            //
+            // /* ______________________GREEDY ALGORITHM_______________________*/
+            //
+            // /* begin clock */
+            // clock_t time = clock();
+            //
+            // /* call greedy algorithm */
+            // int greedy = greedyHeuristic(treesize[n], tree, edgeSet);
+            // printf("Greedy Algorithm returned %d \n", greedy);
+            //
+            // /* end clock */
+            // time = clock() - time;
+            //
+            // /* average time for algorithm on specific tree */
+            // /* FIX */
+            // if (i > 0) {
+            //    averagedTimes[0][n][treetype] = (i * averagedTimes[0][n][treetype] + time) / (i + 1);
+            // } else {
+            //    averagedTimes[0][n][treetype] = time;
+            // }
+            //
+            // /* ____________________FREDRICKSON ALGORITHM____________________ */
+            //
+            // /* begin clock */
+            // time = clock();
+            //
+            // /* fredrickson algorithm */
+            // int fredrick = fredrickson(treesize[n], tree);
+            // printf("Fredrickson Algorithm returned %i \n", fredrick);
+            //
+            // /* end clock */
+            // time = clock() - time;
+            //
+            // /* average time for algorithm on specific tree */
+            // if (i > 0) {
+            //    averagedTimes[1][n][treetype] = (i * averagedTimes[1][n][treetype] + time) / (i + 1);
+            // } else {
+            //    averagedTimes[1][n][treetype] = time;
+            // }
+            //
+            // printf("_______________________\n\n");
+            //
+            // /* every call to malloc needs a corresponding call to free */
+            // free(tree);
+            // free(edgeSet);
+		   }
+     }
+   }
+   /* print the average times for the algorithms */
+   // for (int i = 0; i < numAlgorithms; i++) {
+   //    for (int j = 0; j < treeSizeLen; j++) {
+   //       for (int k = 0; k < 6; k++) {
+   //          printf("%.3lf\t\t", 1000 * averagedTimes[i][j][k] / CLOCKS_PER_SEC);
+   //       }
+   //       printf("\n");
+   //    }
+   // }
+
+   /* free the memory used by averaged times */
+   for (int i = 0; i < numAlgorithms; i++) {
+      for (int j = 0; j < treeSizeLen; j++) {
+         free(averagedTimes[i][j]);
+      }
+      free(averagedTimes[i]);
+   }
+   free(averagedTimes);
+
+/*   commented out for future use */
 /*   genPlot(numAlgorithms,treeSizeLen,timeSize, times, treesize); //generate Latex plots*/
 }
