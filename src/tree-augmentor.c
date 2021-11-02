@@ -78,7 +78,6 @@ int main(int argc, char *argv[]) {
 		            break;
 		      }
 
-          graph_print(g);
           graph_free(g);
 
             // /* allocate, initialize, and create edge set */

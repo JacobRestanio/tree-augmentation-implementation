@@ -2,10 +2,10 @@
 #include <stdlib.h>
 #include "../../include/graph.h"
 
-struct Edge {
+typedef struct Edge {
   int v;
   struct Edge* next;
-};
+} edge;
 
 typedef struct EdgeSet {
   int degree;

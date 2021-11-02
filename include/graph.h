@@ -1,7 +1,9 @@
 #ifndef GRAPH_H
 #define GRAPH_H
 
-typedef struct Edge edge;
+/* the struct edge:
+   int v: the label of the destination vertex
+   edge* next: a pointer to the next edge */
 typedef struct DirectedGraph directedgraph;
 typedef struct Graph graph;
 
