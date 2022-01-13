@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "../../include/stack.h"
 #include "../../include/graph.h"
+#include "../../include/fibonacci-heap.h"
 
 int main() {
   printf("\n\n");
@@ -114,4 +115,74 @@ int main() {
 
   printf("Freeing graph\n");
   graph_free(g);
+
+  printf("\n\n");
+  printf("Creating Fibonacci Heap\n");
+  fib_heap* h = fib_heap_create();
+
+  printf("Print empty fibonacci heap\n");
+  fib_heap_print(h);
+  printf("Heap size (should be 0): %i\n", fib_heap_size(h));
+
+  printf("Insert new keys (1, 2, 3, 4, 5)\n");
+  fib_heap_insertion(h, 5);
+  fib_heap_print(h);
+  printf("Heap size (should be 1): %i\n", fib_heap_size(h));
+  printf("\n");
+  fib_heap_insertion(h, 2);
+  fib_heap_print(h);
+  printf("Heap size (should be 2): %i\n", fib_heap_size(h));
+  printf("\n");
+  fib_heap_insertion(h, 3);
+  fib_heap_print(h);
+  printf("Heap size (should be 3): %i\n", fib_heap_size(h));
+  printf("\n");
+  fib_heap_insertion(h, 4);
+  fib_heap_print(h);
+  printf("Heap size (should be 4): %i\n", fib_heap_size(h));
+  printf("\n");
+  fib_heap_insertion(h, 1);
+  fib_heap_print(h);
+  printf("Heap size (should be 5): %i\n", fib_heap_size(h));
+  printf("\n");
+
+  printf("Create another Fibonacci heap\n");
+  fib_heap* hh = fib_heap_create();
+
+  printf("Insert new keys (6, 7, 8, 9, 10)\n");
+  fib_heap_insertion(hh, 6);
+  fib_heap_insertion(hh, 7);
+  fib_heap_insertion(hh, 8);
+  fib_heap_insertion(hh, 9);
+  fib_heap_insertion(hh, 10);
+
+  printf("Union the two heaps\n");
+  h = fib_heap_union(h, hh);
+
+  printf("Heap size (should be 10): %i\n", fib_heap_size(h));
+
+  printf("Print the unioned heap\n");
+  fib_heap_print(h);
+
+  printf("Extract Minimum Value\n");
+  printf("Minimum value: %i\n", fib_heap_extract_min(h));
+  printf("Heap Size (should be 9): %i\n", fib_heap_size(h));
+
+  printf("Extract Minimum Value:\n");
+  printf("Minimum value: %i\n", fib_heap_extract_min(h));
+  printf("Minimum value: %i\n", fib_heap_extract_min(h));
+
+  printf("\nUnion two empty fibonacci heaps\n");
+  h = fib_heap_create();
+  hh = fib_heap_create();
+  h = fib_heap_union(h, hh);
+  fib_heap_print(h);
+
+  printf("\nUnion two fibonacci heaps of size 1\n");
+  h = fib_heap_create();
+  hh = fib_heap_create();
+  fib_heap_insertion(h, 2);
+  fib_heap_insertion(hh, 1);
+  h = fib_heap_union(h, hh);
+  fib_heap_print(h);
 }
