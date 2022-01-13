@@ -89,7 +89,11 @@ int main(int argc, char *argv[]) {
 
           /* ______________________GREEDY ALGORITHM_______________________ */
           int num_edges = greedyHeuristic(treesize[n], tree, edgeSet);
-          printf("%i\n", num_edges);
+          printf("Greedy Algorithm: %i\n", num_edges);
+
+          /* ____________________FREDRICKSON ALGORITHM_______________________ */
+          num_edges = fredrickson(treesize[n], tree);
+          printf("Fredrickson Algorithm: %i\n", num_edges);
 
           graph_free(edgeSet);
           graph_free(tree);

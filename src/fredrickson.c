@@ -2,11 +2,12 @@
 #include <stdio.h>
 #include <string.h>
 #include "../include/tree-helper.h"
+#include "../include/graph.h"
 
 #define INF 8
 
 /* Finds the first vertex that is a leaf (1-edge connected) */
-int findLeaf(int n, int tree[][n]) {
+int findLeaf(int n, graph* tree) {
    // we need a variable to count the number of edges in each vertex
    int edges;
    for (int i = 0; i < n; i++) {
@@ -14,7 +15,7 @@ int findLeaf(int n, int tree[][n]) {
       edges = 0;
       // count the number of edges from vertex i
       for (int j = 0; j < n; j++) {
-         if (tree[i][j] > 0) {
+         if (graph_is_edge(tree, i, j)) {
             edges++;
          }
       }
@@ -30,7 +31,7 @@ int findLeaf(int n, int tree[][n]) {
 
 /* Recursive function to direct a tree toward the root taken to be the node,
    the first call to this function should set previousNode to -1 */
-void directTree(int n, int tree[][n], int node, int previousNode) {
+void directTree(int n, graph* tree, directedgraph* directedTree, int node, int previousNode) {
    // check to see if this is the first time the function was called
    // this allows us to know we are at the 'root node'
    // which does not necessarily need to be the 0 node
@@ -38,10 +39,10 @@ void directTree(int n, int tree[][n], int node, int previousNode) {
       // check to see what nodes are connected to the root node
       // since this is the root, there are no outgoing edges
       for (int j = 0; j < n; j++) {
-         if (tree[node][j] == 1) {
-            tree[node][j] = 0;
+         if (graph_is_edge(tree, node, j)) {
+            directedgraph_add_edge(directedTree, j, node);
             // recursively call directTree with the root node as the previous node
-            directTree(n, tree, j, node);
+            directTree(n, tree, directedTree, j, node);
          }
       }
    // this is not the root case, meaning there was an outgoing edge towards the root
@@ -50,33 +51,34 @@ void directTree(int n, int tree[][n], int node, int previousNode) {
       for (int j = 0; j < n; j++) {
          // ignore the edge to the previous node, as
          // it is the outgoing edge towards the root
-         if (tree[node][j] == 1 && j != previousNode) {
-            tree[node][j] = 0;
+         if (graph_is_edge(tree, node, j) && j != previousNode) {
+            directedgraph_add_edge(directedTree, j, node);
             // recurse on the next node that is an incoming
             // edge with this node as the previous node
-            directTree(n, tree, j, node);
+            directTree(n, tree, directedTree, j, node);
          }
       }
    }
 }
 
 /* Sets the weights of the graph that will be used when finding a minimum arborescence */
-void setWeights(int n, int directedTree[][n], int weightedTree[][n], int root) {
+void setWeights(int n, directedgraph* directedTree, directedgraph* weightedTree, int root) {
    for (int i = 0; i < n; i++) {
       for (int j = 0; j < n; j++) {
+         directedgraph_add_weighted_edge(weightedTree, i, j, 1);
          // set the edge weight for edges common to directTree to 0
-         if (directedTree[i][j] == 1) {
-            weightedTree[i][j] = 0;
+         if (directedgraph_is_successor(directedTree, i, j)) {
+            directedgraph_add_weighted_edge(weightedTree, i, j, 0);
          }
          // set edge weight for edges that go to the root to infinity
          if (j == root && i != j) {
-            weightedTree[i][j] = INF;
+            directedgraph_add_weighted_edge(weightedTree, i, j, INF);
          }
       }
    }
 }
 
-void strongConnect(int n, int i, int arborescence[][n], int cycles[][n], int stack[n], int onStack[n], int vIndex[n], int vLink[n], int* stackIndex, int* index, int* cycle) {
+void strongConnect(int n, int i, directedgraph* arborescence, directedgraph* cycles, int stack[n], int onStack[n], int vIndex[n], int vLink[n], int* stackIndex, int* index, int* cycle) {
    vIndex[i] = *index;
    vLink[i] = *index;
    *index = *index + 1;
@@ -84,9 +86,9 @@ void strongConnect(int n, int i, int arborescence[][n], int cycles[][n], int sta
    *stackIndex = *stackIndex + 1;
    onStack[i] = 1;
    int w;
-   
+
    for (int j = 0; j < n; j++) {
-      if (arborescence[i][j] == 1) {
+      if (directedgraph_is_successor(arborescence, i, j)) {
          if (vIndex[j] == -1) {
             strongConnect(n, j, arborescence, cycles, stack, onStack, vIndex, vLink, stackIndex, index, cycle);
             vLink[i] = (vLink[i] <= vLink[j]) ? vLink[i] : vLink[j];
@@ -95,20 +97,20 @@ void strongConnect(int n, int i, int arborescence[][n], int cycles[][n], int sta
          }
       }
    }
-   
+
    if (vLink[i] == vIndex[i]) {
       do {
          *stackIndex = *stackIndex - 1;
          w = stack[*stackIndex];
          stack[*stackIndex] = 0;
          onStack[w] = 0;
-         cycles[*cycle][w] = 1;
+         directedgraph_add_edge(cycles, *cycle, w);
       } while (w != i);
       *cycle = *cycle + 1;
    }
 }
 
-void findCycle(int n, int arborescence[][n], int cycles[][n]) {
+void findCycle(int n, directedgraph* arborescence, directedgraph* cycles) {
    int stack[n];
    int onStack[n];
    int vIndex[n];
@@ -122,7 +124,7 @@ void findCycle(int n, int arborescence[][n], int cycles[][n]) {
    int stackIndex = 0;
    int index = 0;
    int cycle = 0;
-   
+
    for (int i = 0; i < n; i++) {
       if (vIndex[i] == -1) {
          strongConnect(n, i, arborescence, cycles, stack, onStack, vIndex, vLink, &stackIndex, &index, &cycle);
@@ -131,7 +133,7 @@ void findCycle(int n, int arborescence[][n], int cycles[][n]) {
 }
 
 /* Algorithm to find the minimum arborescence */
-void edmondsAlgorithm(int n, int weightedTree[][n], int arborescence[][n], int root) {
+void edmondsAlgorithm(int n, directedgraph* weightedTree, directedgraph* arborescence, int root) {
    // we need to keep track of node that the incoming edge originates from
    int edgeSource[n];
    for (int i = 0; i < n; i++) {
@@ -143,25 +145,24 @@ void edmondsAlgorithm(int n, int weightedTree[][n], int arborescence[][n], int r
          int minimumIncomingEdgeWeight = INF;
          int minimumIncomingEdge = -1;
          for (int i = 0; i < n; i++) {
-            if (i != j && weightedTree[i][j] < minimumIncomingEdgeWeight) {
-               minimumIncomingEdgeWeight = weightedTree[i][j];
+            if (i != j && directedgraph_get_edge_cost(weightedTree, i, j) < minimumIncomingEdgeWeight) {
+               minimumIncomingEdgeWeight = directedgraph_get_edge_cost(weightedTree, i, j);
                minimumIncomingEdge = i;
             }
          }
-         arborescence[minimumIncomingEdge][j] = 1;
+         directedgraph_add_edge(arborescence, minimumIncomingEdge, j);
          edgeSource[j] = minimumIncomingEdge;
       }
    }
-   
+
    // check if there are cycles present in the current solution
-   int (*cycles)[n] = malloc(sizeof(int[n][n]));
-   memset(cycles, 0, sizeof(int[n][n]));
+   directedgraph* cycles = directedgraph_create(n);
    findCycle(n, arborescence, cycles);
-   
+
 /*   printf("Strongly Connected Components\n");*/
 /*   printTreeAdjMat(n, cycles);*/
 /*   printf("\n");*/
-   
+
    // find cycle by finding first strongly connected component of n greater than one
    int numscc = 0;
    int cycle = -1;
@@ -172,7 +173,7 @@ void edmondsAlgorithm(int n, int weightedTree[][n], int arborescence[][n], int r
    for (int i = 0; i < n; i++) {
       numscc = 0;
       for (int j = 0; j < n; j++) {
-         if (cycles[i][j] == 1) {
+         if (directedgraph_is_successor(cycles, i, j)) {
             numscc++;
          }
       }
@@ -186,7 +187,7 @@ void edmondsAlgorithm(int n, int weightedTree[][n], int arborescence[][n], int r
       int conSize = n - numscc + 1;
       int count = 0;
       for (int j = 0; j < n; j++) {
-         if (cycles[cycle][j] == 1) {
+         if (directedgraph_is_successor(cycles, cycle, j)) {
             cycleNodes[j] = conSize - 1;
          } else {
             cycleNodes[j] = count;
@@ -194,17 +195,17 @@ void edmondsAlgorithm(int n, int weightedTree[][n], int arborescence[][n], int r
          }
       }
       root = cycleNodes[root];
-      int (*contractedWeightedGraph)[conSize] = malloc(sizeof(int[conSize][conSize]));
-      int (*contractTrace)[conSize] = malloc(sizeof(int[conSize][conSize]));
+      directedgraph* contractedWeightedGraph = directedgraph_create(conSize);
+      directedgraph* contractTrace = directedgraph_create(conSize);
       for (int i = 0; i < conSize; i++) {
          for (int j = 0; j < conSize; j++) {
-            contractedWeightedGraph[i][j] = INF;
-            contractTrace[i][j] = -1;
+            directedgraph_add_weighted_edge(contractedWeightedGraph, i, j, INF);
+            directedgraph_add_weighted_edge(contractTrace, i, j, -1);
          }
       }
       for (int i = 0; i < n; i++) {
          for (int j = 0; j < n; j++) {
-            if(i != j && weightedTree[i][j] < INF) {
+            if(i != j && directedgraph_get_edge_cost(weightedTree, i, j) < INF) {
                int icycle = 0;
                int jcycle = 0;
                if (cycleNodes[i] == conSize - 1) {
@@ -215,29 +216,29 @@ void edmondsAlgorithm(int n, int weightedTree[][n], int arborescence[][n], int r
                }
                // check if (i,j) is an edge coming into the cycle
                if (icycle == 0 && jcycle == 1) {
-                  int newEdgeWeight = weightedTree[i][j] - weightedTree[edgeSource[j]][j];
-                  if (newEdgeWeight < contractedWeightedGraph[cycleNodes[i]][cycleNodes[j]]) {
-                     contractedWeightedGraph[cycleNodes[i]][cycleNodes[j]] = newEdgeWeight;
-                     contractTrace[cycleNodes[i]][cycleNodes[j]] = i;
-                     contractTrace[cycleNodes[j]][cycleNodes[i]] = j;
-                  } 
+                  int newEdgeWeight = directedgraph_get_edge_cost(weightedTree, i, j) - directedgraph_get_edge_cost(weightedTree, edgeSource[j], j);
+                  if (newEdgeWeight < directedgraph_get_edge_cost(contractedWeightedGraph, cycleNodes[i], cycleNodes[j])) {
+                     directedgraph_set_edge_cost(contractedWeightedGraph, cycleNodes[i], cycleNodes[j], newEdgeWeight);
+                     directedgraph_set_edge_cost(contractTrace, cycleNodes[i], cycleNodes[j], i);
+                     directedgraph_set_edge_cost(contractTrace, cycleNodes[j], cycleNodes[i], j);
+                  }
                // check if (i,j) is an edge going out of the cycle
                } else if (icycle == 1 && jcycle == 0) {
-                  if (weightedTree[i][j] < contractedWeightedGraph[cycleNodes[i]][cycleNodes[j]]) {
-                     contractedWeightedGraph[cycleNodes[i]][cycleNodes[j]] = weightedTree[i][j];
-                     contractTrace[cycleNodes[i]][cycleNodes[j]] = i;
-                     contractTrace[cycleNodes[j]][cycleNodes[i]] = j;
+                  if (directedgraph_get_edge_cost(weightedTree, i, j) < directedgraph_get_edge_cost(contractedWeightedGraph, cycleNodes[i], cycleNodes[j])) {
+                     directedgraph_set_edge_cost(contractedWeightedGraph, cycleNodes[i], cycleNodes[j], directedgraph_get_edge_cost(weightedTree, i, j));
+                     directedgraph_set_edge_cost(contractTrace, cycleNodes[i], cycleNodes[j], i);
+                     directedgraph_set_edge_cost(contractTrace, cycleNodes[j], cycleNodes[i], j);
                   }
                // check if (i,j) is an edge unrelated to the cycle
                } else if (icycle == 0 && jcycle == 0) {
-                  contractedWeightedGraph[cycleNodes[i]][cycleNodes[j]] = weightedTree[i][j];
-                  contractTrace[cycleNodes[i]][cycleNodes[j]] = i;
-                  contractTrace[cycleNodes[j]][cycleNodes[i]] = j;
+                  directedgraph_set_edge_cost(contractedWeightedGraph, cycleNodes[i], cycleNodes[j], directedgraph_get_edge_cost(weightedTree, i, j));
+                  directedgraph_set_edge_cost(contractTrace, cycleNodes[i], cycleNodes[j], i);
+                  directedgraph_set_edge_cost(contractTrace, cycleNodes[j], cycleNodes[i], j);
                }
             }
          }
       }
-      
+
 /*      printf("Contracted Weighted Graph\n");*/
 /*      printTreeAdjMat(conSize, contractedWeightedGraph);*/
 /*      printf("\n");*/
@@ -245,21 +246,20 @@ void edmondsAlgorithm(int n, int weightedTree[][n], int arborescence[][n], int r
 /*      printf("Contract Trace\n");*/
 /*      printTreeAdjMat(conSize, contractTrace);*/
 /*      printf("\n");*/
-      
-      int (*contractedArborescence)[conSize] = malloc(sizeof(int[conSize][conSize]));
-      memset(contractedArborescence, 0, sizeof(int[conSize][conSize]));
-      
+
+      directedgraph* contractedArborescence = directedgraph_create(conSize);
+
       edmondsAlgorithm(conSize, contractedWeightedGraph, contractedArborescence, root);
-      
+
 /*      printf("Contracted Arborescence\n");*/
 /*      printTreeAdjMat(conSize, contractedArborescence);*/
 /*      printf("\n");*/
-      
+
       // remove edges from the original arborescence that are not in the cycle
       for (int j = 0; j < n; j++) {
          if (cycleNodes[j] != conSize - 1) {
             for (int i = 0; i < n; i++) {
-               arborescence[i][j] = 0;
+               directedgraph_remove_edge(arborescence, i, j);
             }
          }
       }
@@ -268,64 +268,56 @@ void edmondsAlgorithm(int n, int weightedTree[][n], int arborescence[][n], int r
       for (int i = 0; i < conSize; i++) {
          for (int j = 0; j < conSize; j++) {
             // find the new incoming edge to our contracted vertex
-            if (j == conSize - 1 && contractedArborescence[i][j] == 1) {
-               originVertex = contractTrace[i][j];
-               destinationVertex = contractTrace[j][i];
+            if (j == conSize - 1 && directedgraph_is_successor(contractedArborescence, i, j)) {
+               originVertex = directedgraph_get_edge_cost(contractTrace, i, j);
+               destinationVertex = directedgraph_get_edge_cost(contractTrace, j, i);
                // add that edge to the original arborescence and remove the previous edge
-               arborescence[originVertex][destinationVertex] = 1;
-               arborescence[edgeSource[destinationVertex]][destinationVertex] = 0;
+               directedgraph_add_edge(arborescence, originVertex, destinationVertex);
+               directedgraph_remove_edge(arborescence, edgeSource[destinationVertex], destinationVertex);
             // add the edges from the contracted arborescence to the original arborescence
-            } else if (contractedArborescence[i][j] == 1) {
-               arborescence[contractTrace[i][j]][contractTrace[j][i]] = 1;
+         } else if (directedgraph_is_successor(contractedArborescence, i, j)) {
+               directedgraph_add_edge(arborescence, directedgraph_get_edge_cost(contractTrace, i, j), directedgraph_get_edge_cost(contractTrace, j, i));
             }
          }
       }
-      
+
 /*      printf("Expanded Arborescence\n");*/
 /*      printTreeAdjMat(n, arborescence);*/
 /*      printf("\n");*/
-      
-      free(contractedWeightedGraph);
-      free(contractTrace);
-      free(contractedArborescence);
+
+      directedgraph_free(contractedWeightedGraph);
+      directedgraph_free(contractTrace);
+      directedgraph_free(contractedArborescence);
    }
-   free(cycles);
+   directedgraph_free(cycles);
 }
 
-int twoEdgeConnect(int n, int tree[][n], int arborescence[][n], int edges[][n]) {
+int twoEdgeConnect(int n, graph* tree, directedgraph* arborescence) {
    int e = 0;
    for (int i = 0; i < n; i++) {
       for (int j = 0; j < n; j++) {
-         if (arborescence[i][j] == 1 && tree[i][j] == 0) {
+         if (directedgraph_is_successor(arborescence, i, j) && !graph_is_edge(tree, i, j)) {
             e++;
-            edges[i][j] = 1;
-            edges[j][i] = 1;
          }
       }
    }
    return e;
 }
 
-int fredrickson(int n, int tree[][n]) {
+int fredrickson(int n, graph* tree) {
    // create a directed tree from leaf node
    int root = findLeaf(n, tree);
-   int (*directedTree)[n] = malloc(sizeof(int[n][n]));
-   memcpy(directedTree, tree, sizeof(int[n][n]));
-   directTree(n, directedTree, root, -1);
-   
-   int (*weightedTree)[n] = malloc(sizeof(int[n][n]));
-   memset(weightedTree, 0, sizeof(int[n][n]));
-   createCompleteDirectedTree(n, weightedTree);
+   directedgraph* directedTree = directedgraph_create(n);
+   directTree(n, tree, directedTree, root, -1);
+
+   directedgraph* weightedTree = directedgraph_create(n);
    setWeights(n, directedTree, weightedTree, root);
-   
-   int (*arborescence)[n] = malloc(sizeof(int[n][n]));
-   memset(arborescence, 0, sizeof(int[n][n]));
+
+   directedgraph* arborescence = directedgraph_create(n);
    edmondsAlgorithm(n, weightedTree, arborescence, root);
-   
-   int (*edges)[n] = malloc(sizeof(int[n][n]));
-   memset(edges, 0, sizeof(int[n][n]));
-   int e = twoEdgeConnect(n, tree, arborescence, edges);
-   
+
+   int e = twoEdgeConnect(n, tree, arborescence);
+
      /* combine tree and edges into a single graph */
 /*   int (*graph)[n] = malloc(sizeof(int[n][n]));*/
 /*   memset(graph, 0, sizeof(int[n][n]));*/
@@ -341,9 +333,8 @@ int fredrickson(int n, int tree[][n]) {
 /*   printf("\n");*/
 
 /*   free(graph);*/
-   free(directedTree);
-   free(weightedTree);
-   free(arborescence);
-   free(edges);
+   directedgraph_free(directedTree);
+   directedgraph_free(weightedTree);
+   directedgraph_free(arborescence);
    return e;
 }

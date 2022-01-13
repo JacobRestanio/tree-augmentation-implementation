@@ -13,7 +13,13 @@ int directedgraph_is_successor(directedgraph* g, int source, int destination);
 
 int directedgraph_is_predecessor(directedgraph* g, int destination, int source);
 
+int directedgraph_get_edge_cost(directedgraph* g, int source, int destination);
+
+void directedgraph_set_edge_cost(directedgraph* g, int source, int destination, int cost);
+
 void directedgraph_add_edge(directedgraph* g, int source, int destination);
+
+void directedgraph_add_weighted_edge(directedgraph* g, int source, int destination, int cost);
 
 void directedgraph_remove_edge(directedgraph* g, int source, int destination);
 

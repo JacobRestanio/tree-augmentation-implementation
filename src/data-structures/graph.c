@@ -4,6 +4,7 @@
 
 typedef struct Edge {
   int v;
+  int cost;
   struct Edge* next;
 } edge;
 
@@ -136,6 +137,42 @@ int directedgraph_is_predecessor(directedgraph* g, int destination, int source) 
   return 0;
 }
 
+int directedgraph_get_edge_cost(directedgraph* g, int source, int destination) {
+   if (source >= g->vertices || destination >= g->vertices) {
+      return -1;
+   }
+   edge* curr = g->successors[source].next;
+   for (int i = 0; i < g->successors[source].degree; i++) {
+      if (curr->v == destination) {
+         return curr->cost;
+      }
+      curr = curr->next;
+   }
+   return -1;
+}
+
+void directedgraph_set_edge_cost(directedgraph* g, int source, int destination, int cost) {
+   if (source >= g->vertices || destination >= g->vertices) {
+      return;
+   }
+   edge* curr = g->successors[source].next;
+   for (int i = 0; i < g->successors[source].degree; i++) {
+      if (curr->v == destination) {
+         curr->cost = cost;
+         break;
+      }
+      curr = curr->next;
+   }
+   curr = g->predecessors[destination].next;
+   for (int i = 0; i < g->predecessors[destination].degree; i++) {
+      if (curr->v == source) {
+         curr->cost = cost;
+      }
+      curr = curr->next;
+      break;
+   }
+}
+
 void directedgraph_add_edge(directedgraph* g, int source, int destination) {
   if (source >= g->vertices || destination >= g->vertices) {
     return;
@@ -146,11 +183,36 @@ void directedgraph_add_edge(directedgraph* g, int source, int destination) {
 
   edge* dest = malloc(sizeof(*dest));
   dest->v = destination;
+  dest->cost = 1;
   dest->next = NULL;
   _add_edge(&(g->successors[source]), dest);
 
   edge* srce = malloc(sizeof(*srce));
   srce->v = source;
+  srce->cost = 1;
+  srce->next = NULL;
+  _add_edge(&(g->predecessors[destination]), srce);
+
+  g->edges++;
+}
+
+void directedgraph_add_weighted_edge(directedgraph* g, int source, int destination, int cost) {
+  if (source >= g->vertices || destination >= g->vertices) {
+    return;
+  }
+  if (directedgraph_is_successor(g, source, destination)) {
+    return;
+  }
+
+  edge* dest = malloc(sizeof(*dest));
+  dest->v = destination;
+  dest->cost = cost;
+  dest->next = NULL;
+  _add_edge(&(g->successors[source]), dest);
+
+  edge* srce = malloc(sizeof(*srce));
+  srce->v = source;
+  srce->cost = cost;
   srce->next = NULL;
   _add_edge(&(g->predecessors[destination]), srce);
 
@@ -255,11 +317,13 @@ void graph_add_edge(graph* g, int u, int v) {
 
   edge* e1 = malloc(sizeof(*e1));
   e1->v = v;
+  e1->cost = 1;
   e1->next = NULL;
   _add_edge(&(g->edgeSet[u]), e1);
 
   edge* e2 = malloc(sizeof(*e2));
   e2->v = u;
+  e2->cost = 1;
   e2->next = NULL;
   _add_edge(&(g->edgeSet[v]), e2);
 
