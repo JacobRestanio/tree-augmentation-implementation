@@ -1,18 +1,19 @@
 #ifndef FREDRICKSON_H
 #define FREDRICKSON_H
+#include "graph.h"
 
-int findLeaf(int size, int tree[][size]);
+int findLeaf(int size, graph* tree);
 
-void directTree(int size, int tree[][size], int node, int previousNode);
+void directTree(int size, graph* tree, directedgraph* directedTree, int node, int previousNode);
 
-void setWeights(int size, int directedTree[][size], int weightedTree[][size], int root);
+void setWeights(int size, directedgraph* directedTree, directedgraph* weightedTree, int root);
 
-void strongConnect(int size, int i, int arborescence[][size], int cycles[][size], int stack[size], int onStack[size], int vIndex[size], int vLink[size], int* stackIndex, int* index, int* cycle);
+void strongConnect(int size, int i, directedgraph* arborescence, directedgraph* cycles, int stack[size], int onStack[size], int vIndex[size], int vLink[size], int* stackIndex, int* index, int* cycle);
 
-void findCycle(int size, int arborescence[][size], int cycles[][size]);
+void findCycle(int size, directedgraph* arborescence, directedgraph* cycles);
 
-void edmondsAlgorithm(int size, int weightedTree[][size], int arborescence[][size], int root);
+void edmondsAlgorithm(int size, directedgraph* weightedTree, directedgraph* arborescence, int root);
 
-int fredrickson(int size, int tree[][size]);
+int fredrickson(int size, graph* tree);
 
 #endif

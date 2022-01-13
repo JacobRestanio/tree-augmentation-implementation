@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "../include/graph.h"
 
 /* prints an adjacency matrix
    n is the number of nodes in the tree
@@ -195,7 +196,7 @@ void genPlot(int numAlgorithms, int size, int timeSize, double times[][timeSize]
 	}
 
 	fclose(fp);
-	
+
 }
 
 /* Generates random edge weights from 1 to max for edges in a edge matrix */
@@ -212,16 +213,16 @@ void genEdgeWeights(int n, int edges[][n], int edgeWeights[][n], int max) {
 
 /* Currently this creates an adjacency matrix of all possible edges for the tree
    basically a worst-case scenario, need to make sure this is acceptable */
-void createEdgeSet(int n, int tree[][n], int edgeSet[][n]) {
+void createEdgeSet(int n, graph* tree, graph* edgeSet) {
    for(int i = 0; i < n; i++) {
       for(int j = 0; j < n; j++) {
-         if(i != j && tree[i][j] != 1) {
-            edgeSet[i][j] = 1;
+         if(i != j && !graph_is_edge(tree, i, j)) {
+            graph_add_edge(edgeSet, i, j);
          }
       }
    }
 }
-   
+
 /* Copies originalMatrix to copiedMatrix */
 void copyMatrix(int n, int originalMatrix[][n], int copyMatrix[][n]) {
    for (int i = 0; i < n; i++) {
@@ -230,7 +231,7 @@ void copyMatrix(int n, int originalMatrix[][n], int copyMatrix[][n]) {
       }
    }
 }
-   
+
 void createCompleteDirectedTree(int n, int completeDirectedGraph[][n]) {
    for (int i = 0; i < n; i++) {
       for (int j = 0; j < n; j++) {
@@ -242,4 +243,3 @@ void createCompleteDirectedTree(int n, int completeDirectedGraph[][n]) {
       }
    }
 }
-

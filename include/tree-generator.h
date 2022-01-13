@@ -1,34 +1,35 @@
 #ifndef TREE_GENERATOR_H
 #define TREE_GENERATOR_H
+#include "./graph.h"
 
 /* generate a linear tree
    n is the number of nodes
    tree is the adjacency matrix of size n x n */
-void linearTree(int n, int tree[][n]);
+graph* linearTree(int n);
 
 /* generate a star tree
    n is the number of nodes
    tree is the adjacency matrix of size n x n */
-void starTree(int n, int tree[][n]);
+graph* starTree(int n);
 
 /* generates a star-like tree
    n is the number of nodes
    tree is the adjacency matrix of size n x n */
-void starlikeTree(int n, int tree[][n]);
+graph* starlikeTree(int n);
 
 /* generates a caterpillar tree
    n is the number of nodes
    tree is the adjacency matrix of size n x n */
-void caterpillarTree(int n, int tree[][n]);
+graph* caterpillarTree(int n);
 
 /* generates a lobster tree
    n is the number of nodes
    tree is the adjacency matrix of size n x n */
-void lobsterTree(int n, int tree[][n]);
+graph* lobsterTree(int n);
 
 /* generate a random forest
    n is the number of nodes
    tree is the adjacency matrix of size n x n */
-void randomForestTree(int n, int tree[][n]);
+graph* randomForestTree(int n);
 
 #endif

@@ -1,5 +1,6 @@
 #ifndef TREE_HELPER_H
 #define TREE_HELPER_H
+#include "graph.h"
 
 /* prints an adjacency matrix
    n is the number of nodes in the tree
@@ -26,7 +27,7 @@ void genEdgeWeights(int n, int edges[][n], int edgeWeights[][n], int max);
    n is the number of nodes in the tree
    tree is the adjacency matrix of a tree of size n x n
    edgeSet is the adjacency matrix of the edge set for tree augmentation of size n x n */
-void createEdgeSet(int n, int tree[][n], int edgeSet[][n]);
+void createEdgeSet(int n, graph* tree, graph* edgeSet);
 
 /* Copies an adjacency matrix to another matrix of the same size
    n is the size of the adjacency matrix
