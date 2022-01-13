@@ -47,39 +47,54 @@ int main(int argc, char *argv[]) {
         for(int i = 0; i < iterations; i++) {
 
       	   /* allocate, initialize, then create a tree of a certain type */
-		      graph* g = NULL;
+		      graph* tree = NULL;
 		      switch(treetype) {
 		         case 0:
-		            printf("RANDOM FOREST: Size = %i\n\n", treesize[n]);
-		            g = randomForestTree(treesize[n]);
+		            printf("\nRANDOM FOREST: Size = %i\n\n", treesize[n]);
+		            tree = randomForestTree(treesize[n]);
 		            break;
 		         case 1:
-		            printf("LINEAR TREE: Size = %i\n\n", treesize[n]);
-		            g = linearTree(treesize[n]);
+		            printf("\nLINEAR TREE: Size = %i\n\n", treesize[n]);
+		            tree = linearTree(treesize[n]);
 		            break;
 		         case 2:
-		            printf("STAR TREE: Size = %i\n\n", treesize[n]);
-		            g = starTree(treesize[n]);
+		            tree = starTree(treesize[n]);
+                printf("\nSTAR TREE: Size = %i\n\n", treesize[n]);
 		            break;
 		         case 3:
-		            printf("STARLIKE TREE: Size = %i\n\n", treesize[n]);
-		            g = starlikeTree(treesize[n]);
+		            printf("\nSTARLIKE TREE: Size = %i\n\n", treesize[n]);
+		            tree = starlikeTree(treesize[n]);
 		            break;
 		         case 4:
-		            printf("CATERPILLAR TREE: Size = %i\n\n", treesize[n]);
-		            g = caterpillarTree(treesize[n]);
+		            printf("\nCATERPILLAR TREE: Size = %i\n\n", treesize[n]);
+		            tree = caterpillarTree(treesize[n]);
 		            break;
 		         case 5:
-		            printf("LOBSTER TREE: Size = %i\n\n", treesize[n]);
-		            g = lobsterTree(treesize[n]);
+		            printf("\nLOBSTER TREE: Size = %i\n\n", treesize[n]);
+		            tree = lobsterTree(treesize[n]);
 		            break;
 		         default:
-		            printf("invalid selection\n");
+		            printf("\ninvalid selection\n\n");
 		            break;
 		      }
 
-          graph_free(g);
+          // printf("TREE:\n");
+          // graph_print(tree);
 
+          /* Create an Edge Set based off tree */
+          graph* edgeSet = graph_create(treesize[n]);
+          createEdgeSet(treesize[n], tree, edgeSet);
+          // printf("EDGESET:\n");
+          // graph_print(edgeSet);
+
+          /* ______________________GREEDY ALGORITHM_______________________ */
+          int num_edges = greedyHeuristic(treesize[n], tree, edgeSet);
+          printf("%i\n", num_edges);
+
+          graph_free(edgeSet);
+          graph_free(tree);
+
+            /* PREVIOUS TREE ADJACENCY IMPLEMENTATION */
             // /* allocate, initialize, and create edge set */
             // int (*edgeSet)[treesize[n]] = malloc(sizeof(int[treesize[n]][treesize[n]]));
             // memset(edgeSet, 0, sizeof(edgeSet[0][0])*treesize[n]*treesize[n]);

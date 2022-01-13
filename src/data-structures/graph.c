@@ -36,6 +36,7 @@ void _add_edge(edgeset* es, edge* e) {
           e->next = curr;
         } else {
           es->next = e;
+          e->next = curr;
         }
         break;
       }

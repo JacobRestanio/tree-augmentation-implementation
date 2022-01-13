@@ -1,9 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "../include/graph.h"
 
 /* returns 0 if there exists a bridge in the graph, otherwise returns 1 */
-int checkBridgeConnected(int n, int v, int tree[][n], int edges[][n], int arrival[], int visited[], int parent, int* depPtr) {
+int checkBridgeConnected(int n, int v, graph* tree, graph* edges, int arrival[], int visited[], int parent, int* depPtr) {
   /* set the arrival of the current node */
   arrival[v] = ++(*depPtr);
   /* mark the node as visited */
@@ -13,7 +14,7 @@ int checkBridgeConnected(int n, int v, int tree[][n], int edges[][n], int arriva
   int bfs;
   /* we need to check all the edges coming out from our current node */
   for (int j = 0; j < n; j++) {
-    if (tree[v][j] == 1 || edges[v][j] == 1) {
+    if (graph_is_edge(tree, v, j) || graph_is_edge(edges, v, j)) {
       /* if we find an edge to a node that has not been visited, recurse on the node */
       if (visited[j] == 0) {
         bfs = checkBridgeConnected(n, j, tree, edges, arrival, visited, v, depPtr);
@@ -37,7 +38,7 @@ int checkBridgeConnected(int n, int v, int tree[][n], int edges[][n], int arriva
 }
 
 /* returns 1 if the graph is 2-edge connected, 0 otherwise */
-int checkConnected(int n, int tree[][n], int edges[][n]) {
+int checkConnected(int n, graph* tree, graph* edges) {
   /* perform DFS on graph rooted at node 0
 	   we need to make sure no bridges exist in our graph */
 	int r = 0;
