@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include "../include/tree-check-connected.h"
 #include "../include/tree-helper.h"
 #include "../include/graph.h"
 

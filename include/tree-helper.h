@@ -40,4 +40,10 @@ void copyMatrix(int n, int originalMatrix[][n], int copyMatrix[][n]);
    completeDirectedGraph is the adjacency matrix of a graph of size n x n */
 void createCompleteDirectedTree(int n, int completeDirectedGraph[][n]);
 
+/* checks whether there exists a bridge connected component in the graph */
+int checkBridgeConnected(int n, int v, graph* tree, graph* edges, int arrival[], int visited[], int parent, int* dep);
+
+/* returns 1 if the graph is 2-edge connected, 0 otherwise */
+int checkConnected(int n, graph* tree, graph* edges);
+
 #endif
