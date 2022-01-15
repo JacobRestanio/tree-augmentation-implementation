@@ -249,6 +249,23 @@ void directedgraph_print(directedgraph* g) {
   printf("\n");
 }
 
+void directedgraph_print_weights(directedgraph* g) {
+   printf("Printing Directed Graph:\n");
+   for (int i = 0; i < g->vertices; i++) {
+     printf("%i -> ", i);
+     if (g->successors[i].next) {
+       edge* curr = g->successors[i].next;
+       printf("%i -> ", curr->v);
+       while(curr->next) {
+         curr = curr->next;
+         printf("%i (%i)-> ", curr->v, curr->cost);
+       }
+     }
+     printf("\n");
+   }
+   printf("\n");
+}
+
 void directedgraph_free(directedgraph* g) {
   for (int i = 0; i < g->vertices; i++) {
     edge* last = NULL;

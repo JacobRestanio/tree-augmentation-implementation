@@ -84,6 +84,11 @@ void directedgraph_remove_edge(directedgraph* g, int source, int destination);
    NOTE: probably don't want to do this for large graphs */
 void directedgraph_print(directedgraph* g);
 
+/* Prints a directed graph to console including edge costs
+   directedgraph* g: the directed graph to be printed
+   NOTE: probably don't want to do this for large graphs */
+void directedgraph_print_weights(directedgraph* g);
+
 /* Frees the memory of a directed graph
    directedgraph* g: the directed graph to be freed */
 void directedgraph_free(directedgraph* g);
