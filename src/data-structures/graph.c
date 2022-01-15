@@ -256,10 +256,10 @@ void directedgraph_print_weights(directedgraph* g) {
      printf("%i -> ", i);
      if (g->successors[i].next) {
        edge* curr = g->successors[i].next;
-       printf("%i -> ", curr->v);
+       printf("%i (%i) -> ", curr->v, curr->cost);
        while(curr->next) {
          curr = curr->next;
-         printf("%i (%i)-> ", curr->v, curr->cost);
+         printf("%i (%i) -> ", curr->v, curr->cost);
        }
      }
      printf("\n");
