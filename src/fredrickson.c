@@ -63,16 +63,19 @@ void directTree(int n, graph* tree, directedgraph* directedTree, int node, int p
 
 /* Sets the weights of the graph that will be used when finding a minimum arborescence */
 void setWeights(int n, directedgraph* directedTree, directedgraph* weightedTree, int root) {
-   for (int i = 0; i < n; i++) {
-      for (int j = 0; j < n; j++) {
-         directedgraph_add_weighted_edge(weightedTree, i, j, 1);
-         // set the edge weight for edges common to directTree to 0
-         if (directedgraph_is_successor(directedTree, i, j)) {
-            directedgraph_add_weighted_edge(weightedTree, i, j, 0);
-         }
-         // set edge weight for edges that go to the root to infinity
-         if (j == root && i != j) {
-            directedgraph_add_weighted_edge(weightedTree, i, j, INF);
+   for (int source = 0; source < n; source++) {
+      for (int destination = 0; destination < n; destination++) {
+         /* Don't add an edge from source to destination if they are the same */
+         if (source == destination) {
+         /* If the destination is the root, the edge cost should be INF */
+         } else if (destination == root) {
+            directedgraph_add_weighted_edge(weightedTree, source, destination, INF);
+         /* If the edge is in the directedTree, the edge cost should be 0 */
+         } else if (directedgraph_is_successor(directedTree, source, destination)) {
+            directedgraph_add_weighted_edge(weightedTree, source, destination, 0);
+         /* Otherwise, the edge cost should be 1 */
+         } else {
+            directedgraph_add_weighted_edge(weightedTree, source, destination, 1);
          }
       }
    }
@@ -159,10 +162,6 @@ void edmondsAlgorithm(int n, directedgraph* weightedTree, directedgraph* arbores
    directedgraph* cycles = directedgraph_create(n);
    findCycle(n, arborescence, cycles);
 
-/*   printf("Strongly Connected Components\n");*/
-/*   printTreeAdjMat(n, cycles);*/
-/*   printf("\n");*/
-
    // find cycle by finding first strongly connected component of n greater than one
    int numscc = 0;
    int cycle = -1;
@@ -239,21 +238,9 @@ void edmondsAlgorithm(int n, directedgraph* weightedTree, directedgraph* arbores
          }
       }
 
-/*      printf("Contracted Weighted Graph\n");*/
-/*      printTreeAdjMat(conSize, contractedWeightedGraph);*/
-/*      printf("\n");*/
-
-/*      printf("Contract Trace\n");*/
-/*      printTreeAdjMat(conSize, contractTrace);*/
-/*      printf("\n");*/
-
       directedgraph* contractedArborescence = directedgraph_create(conSize);
 
       edmondsAlgorithm(conSize, contractedWeightedGraph, contractedArborescence, root);
-
-/*      printf("Contracted Arborescence\n");*/
-/*      printTreeAdjMat(conSize, contractedArborescence);*/
-/*      printf("\n");*/
 
       // remove edges from the original arborescence that are not in the cycle
       for (int j = 0; j < n; j++) {
@@ -281,10 +268,6 @@ void edmondsAlgorithm(int n, directedgraph* weightedTree, directedgraph* arbores
          }
       }
 
-/*      printf("Expanded Arborescence\n");*/
-/*      printTreeAdjMat(n, arborescence);*/
-/*      printf("\n");*/
-
       directedgraph_free(contractedWeightedGraph);
       directedgraph_free(contractTrace);
       directedgraph_free(contractedArborescence);
@@ -310,29 +293,20 @@ int fredrickson(int n, graph* tree) {
    directedgraph* directedTree = directedgraph_create(n);
    directTree(n, tree, directedTree, root, -1);
 
+   printf("Directed Tree:\n");
+   directedgraph_print(directedTree);
+
    directedgraph* weightedTree = directedgraph_create(n);
    setWeights(n, directedTree, weightedTree, root);
+
+   printf("Weighted Graph:\n");
+   directedgraph_print_weights(weightedTree);
 
    directedgraph* arborescence = directedgraph_create(n);
    edmondsAlgorithm(n, weightedTree, arborescence, root);
 
    int e = twoEdgeConnect(n, tree, arborescence);
 
-     /* combine tree and edges into a single graph */
-/*   int (*graph)[n] = malloc(sizeof(int[n][n]));*/
-/*   memset(graph, 0, sizeof(int[n][n]));*/
-/*   for (int i = 0; i < n; i++) {*/
-/*      for (int j = 0; j < n; j++) {*/
-/*         if (tree[i][j] == 1 || edges[i][j] == 1) {*/
-/*            graph[i][j] = 1;*/
-/*         }*/
-/*      }*/
-/*   }*/
-/*   printf("FREDRICKSON 2-EDGE CONNECTED GRAPH\n");*/
-/*   printTreeAdjMat(n, graph);*/
-/*   printf("\n");*/
-
-/*   free(graph);*/
    directedgraph_free(directedTree);
    directedgraph_free(weightedTree);
    directedgraph_free(arborescence);
