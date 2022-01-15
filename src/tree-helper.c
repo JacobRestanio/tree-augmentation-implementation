@@ -244,7 +244,7 @@ void createCompleteDirectedTree(int n, int completeDirectedGraph[][n]) {
 }
 
 /* returns 0 if there exists a bridge in the graph, otherwise returns 1 */
-int checkBridgeConnected(int n, int v, graph* tree, graph* edges, int arrival[], int visited[], int parent, int* depPtr) {
+int _checkBridgeConnected(int n, int v, graph* tree, graph* edges, int arrival[], int visited[], int parent, int* depPtr) {
   /* set the arrival of the current node */
   arrival[v] = ++(*depPtr);
   /* mark the node as visited */
@@ -257,7 +257,7 @@ int checkBridgeConnected(int n, int v, graph* tree, graph* edges, int arrival[],
     if (graph_is_edge(tree, v, j) || graph_is_edge(edges, v, j)) {
       /* if we find an edge to a node that has not been visited, recurse on the node */
       if (visited[j] == 0) {
-        bfs = checkBridgeConnected(n, j, tree, edges, arrival, visited, v, depPtr);
+        bfs = _checkBridgeConnected(n, j, tree, edges, arrival, visited, v, depPtr);
         /* if we find a bridge we can return */
         if (bfs == 0) {
           return 0;
@@ -291,7 +291,7 @@ int checkConnected(int n, graph* tree, graph* edges) {
 	  arrival[i] = 0;
 	  visited[i] = 0;
 	}
-	int check = checkBridgeConnected(n, r, tree, edges, arrival, visited, parent, depPtr);
+	int check = _checkBridgeConnected(n, r, tree, edges, arrival, visited, parent, depPtr);
 
 	return (check > 0) ? check : 0;
 }
