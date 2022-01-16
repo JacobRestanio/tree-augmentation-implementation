@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../../include/graph.h"
+#include "../../include/stack.h"
 
 typedef struct Edge {
   int v;
@@ -25,6 +26,11 @@ struct Graph {
   int edges;
   edgeset* edgeSet;
 };
+
+typedef struct AdjList {
+   int v;
+   struct AdjList* next;
+} adjlist;
 
 void _add_edge(edgeset* es, edge* e) {
   edge* last = NULL;
@@ -233,6 +239,19 @@ void directedgraph_remove_edge(directedgraph* g, int source, int destination) {
   g->edges--;
 }
 
+void directedgraph_remove_predecessors(directedgraph* g, int destination) {
+   if (destination >= g->vertices) {
+      return;
+   }
+
+   while (g->predecessors[destination].next) {
+      edge* e = g->predecessors[destination].next;
+      _remove_edge(&(g->successors[e->v]), destination);
+      _remove_edge(&(g->predecessors[destination]), e->v);
+      g->edges--;
+   }
+}
+
 void directedgraph_print(directedgraph* g) {
   printf("Printing Directed Graph:\n");
   for (int i = 0; i < g->vertices; i++) {
@@ -394,4 +413,95 @@ void graph_free(graph* g) {
   }
   free(g->edgeSet);
   free(g);
+}
+
+adjlist* adjlist_create(int v) {
+   adjlist* adj = malloc(sizeof(*adj));
+   adj->v = v;
+   adj->next = NULL;
+
+   return adj;
+}
+
+adjlist* adjlist_get_next(adjlist* adj) {
+   return adj->next;
+}
+
+int adjlist_get_value(adjlist* adj) {
+   return adj->v;
+}
+
+void adjlist_set_value(adjlist* adj, int v) {
+   adj->v = v;
+}
+
+void adjlist_add_element(adjlist* adj, int v) {
+   adjlist* a = adjlist_create(v);
+   adjlist* curr = adj;
+   while(curr->next) {
+      curr = curr->next;
+   }
+   curr->next = a;
+}
+
+void adjlist_print(adjlist* adj) {
+   adjlist* curr = adj;
+   while(curr) {
+      printf("%i -> ", curr->v);
+      curr = curr->next;
+   }
+   printf("\n\n");
+}
+
+void adjlist_free(adjlist* adj) {
+   adjlist* curr = adj;
+   adjlist* last = NULL;
+   while(curr) {
+      last = curr;
+      curr = curr->next;
+      free(last);
+   }
+}
+
+int _find_cycle(directedgraph* dg, stack* path, int visited[dg->vertices], int inpath[dg->vertices], int node) {
+   int pathStart;
+   visited[node] = 1;
+   inpath[node] = 1;
+   stack_push(path, node);
+   edge* curr = dg->successors[node].next;
+   while (curr) {
+      if (inpath[curr->v]) {
+         return curr->v;
+      } else if (!visited[curr->v]) {
+         if ((pathStart = _find_cycle(dg, path, visited, inpath, curr->v)) > -1) {
+            return pathStart;
+         }
+      }
+      curr = curr->next;
+   }
+   inpath[node] = 0;
+   stack_pop(path);
+   return -1;
+}
+
+adjlist* adjlist_find_cycle_in_directedgraph(directedgraph* dg, int root) {
+   stack* path = stack_create(dg->vertices);
+   int inpath[dg->vertices];
+   int visited[dg->vertices];
+   int pathStart;
+   for (int i = 0; i < dg->vertices; i++) {
+      inpath[i] = 0;
+      visited[i] = 0;
+   }
+
+   pathStart = _find_cycle(dg, path, visited, inpath, root);
+   if (pathStart == -1) {
+      return NULL;
+   }
+   adjlist* cycle = adjlist_create(stack_pop(path));
+   while (stack_peek(path) != pathStart) {
+      adjlist_add_element(cycle, stack_pop(path));
+   }
+   adjlist_add_element(cycle, pathStart);
+   return cycle;
 }

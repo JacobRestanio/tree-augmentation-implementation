@@ -22,6 +22,11 @@ typedef struct DirectedGraph directedgraph;
    edgeset* edgeSet: edges in the graph (can be indexed) */
 typedef struct Graph graph;
 
+/* the struct AdjList:
+   int v: the label of the element in the AdjList
+   adjlist* next: a pointer to the next element in the list */
+typedef struct AdjList adjlist;
+
 /* Allocates memory for and initializes a DirectedGraph struct
    int v: the number of vertices in the directed graph
    RETURNS: a directedgraph* with no edges */
@@ -79,6 +84,8 @@ void directedgraph_add_weighted_edge(directedgraph* g, int source, int destinati
    MODIFES: g by removing an edge */
 void directedgraph_remove_edge(directedgraph* g, int source, int destination);
 
+void directedgraph_remove_predecessors(directedgraph* g, int destination);
+
 /* Prints a directed graph to console
    directedgraph* g: the directed graph to be printed
    NOTE: probably don't want to do this for large graphs */
@@ -127,5 +134,21 @@ void graph_print(graph* g);
 /* Frees the memory of a graph
    graph* g: the directed graph to be freed */
 void graph_free(graph* g);
+
+adjlist* adjlist_create(int v);
+
+adjlist* adjlist_get_next(adjlist* adj);
+
+int adjlist_get_value(adjlist* adj);
+
+void adjlist_set_value(adjlist* adj, int v);
+
+void adjlist_add_element(adjlist* adj, int v);
+
+void adjlist_print(adjlist* adj);
+
+void adjlist_free(adjlist* adj);
+
+adjlist* adjlist_find_cycle_in_directedgraph(directedgraph* dg, int root);
 
 #endif
