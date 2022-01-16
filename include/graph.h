@@ -4,10 +4,12 @@
 /* the struct Edge:
    int v: the label of the destination vertex
    edge* next: a pointer to the next edge */
+typedef struct Edge edge;
 
 /* the struct EdgeSet:
    int degree: the degree of the vertex
    edge* next: a pointer to the first edge */
+typedef struct EdgeSet edgeset;
 
 /* the struct DirectedGraph:
    int vertices: the number of vertices in the graph
