@@ -49,9 +49,13 @@ int vertex_get_visited(vertex* vs);
 
 int vertex_get_inpath(vertex* vs);
 
+int vertex_get_minimum_incoming_edge(vertex* vs);
+
 void vertex_set_visited(vertex* vs, int visited);
 
 void vertex_set_inpath(vertex* vs, int inpath);
+
+void vertex_set_minimum_incoming_edge(vertex* vs, int e);
 
 vertex* directedgraph_get_successors(directedgraph* dg);
 

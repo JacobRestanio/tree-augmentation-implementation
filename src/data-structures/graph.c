@@ -14,6 +14,7 @@ typedef struct Vertex {
   int degree;
   int visited;
   int inpath;
+  int minimumIncomingEdge;
   edge* nextEdge;
   struct Vertex* nextVertex;
 } vertex;
@@ -168,12 +169,20 @@ int vertex_get_inpath(vertex* vs) {
    return vs->inpath;
 }
 
+int vertex_get_minimum_incoming_edge(vertex* vs) {
+   return vs->minimumIncomingEdge;
+}
+
 void vertex_set_visited(vertex* vs, int visited) {
    vs->visited = visited;
 }
 
 void vertex_set_inpath(vertex* vs, int inpath) {
    vs->inpath = inpath;
+}
+
+void vertex_set_minimum_incoming_edge(vertex* vs, int e) {
+   vs->minimumIncomingEdge = e;
 }
 
 vertex* directedgraph_get_successors(directedgraph* dg) {
@@ -199,6 +208,7 @@ directedgraph* directedgraph_create(int v) {
       ess->degree = 0;
       ess->visited = 0;
       ess->inpath = 0;
+      ess->minimumIncomingEdge = -1;
       ess->nextEdge = NULL;
       ess->nextVertex = NULL;
       g->successors = ess;
@@ -209,6 +219,7 @@ directedgraph* directedgraph_create(int v) {
       esp->degree = 0;
       esp->visited = 0;
       esp->inpath = 0;
+      esp->minimumIncomingEdge = -1;
       esp->nextEdge = NULL;
       esp->nextVertex = NULL;
       g->predecessors = esp;
@@ -220,6 +231,7 @@ directedgraph* directedgraph_create(int v) {
       ess->degree = 0;
       ess->visited = 0;
       ess->inpath = 0;
+      ess->minimumIncomingEdge = -1;
       ess->nextEdge = NULL;
       ess->nextVertex = NULL;
       lastSuccessor->nextVertex = ess;
@@ -230,6 +242,7 @@ directedgraph* directedgraph_create(int v) {
       esp->degree = 0;
       esp->visited = 0;
       esp->inpath = 0;
+      esp->minimumIncomingEdge = -1;
       esp->nextEdge = NULL;
       esp->nextVertex = NULL;
       lastPredecessor->nextVertex = esp;
@@ -686,6 +699,7 @@ graph* graph_create(int v) {
      vs->degree = 0;
      vs->visited = 0;
      vs->inpath = 0;
+     vs->minimumIncomingEdge = -1;
      vs->nextEdge = NULL;
      vs->nextVertex = NULL;
      g->vertexSet = vs;
@@ -697,6 +711,7 @@ graph* graph_create(int v) {
      vs->degree = 0;
      vs->visited = 0;
      vs->inpath = 0;
+     vs->minimumIncomingEdge = -1;
      vs->nextEdge = NULL;
      vs->nextVertex = NULL;
      prevVertex->nextVertex = vs;
