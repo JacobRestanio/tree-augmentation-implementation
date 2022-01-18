@@ -29,6 +29,34 @@ typedef struct Graph graph;
    adjlist* next: a pointer to the next element in the list */
 typedef struct AdjList adjlist;
 
+edge* edge_get_next(edge* e);
+
+int edge_get_value(edge* e);
+
+int edge_get_cost(edge* e);
+
+void edge_set_cost(edge* e, int cost);
+
+edge* vertex_get_edges(vertex* vs);
+
+vertex* vertex_get_next(vertex* vs);
+
+int vertex_get_value(vertex* vs);
+
+int vertex_get_degree(vertex* vs);
+
+int vertex_get_visited(vertex* vs);
+
+int vertex_get_inpath(vertex* vs);
+
+void vertex_set_visited(vertex* vs, int visited);
+
+void vertex_set_inpath(vertex* vs, int inpath);
+
+vertex* directedgraph_get_successors(directedgraph* dg);
+
+vertex* directedgraph_get_predecessors(directedgraph* dg);
+
 /* Allocates memory for and initializes a DirectedGraph struct
    int v: the number of vertices in the directed graph
    RETURNS: a directedgraph* with no edges */

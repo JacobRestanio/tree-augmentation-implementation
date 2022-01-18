@@ -36,7 +36,7 @@ typedef struct AdjList {
    struct AdjList* next;
 } adjlist;
 
-// This was done in a pretty dumb fashion, could be rewritten to be simple
+// This was done in a pretty convoluted fashion, could be rewritten to be simpler
 void _add_edge(vertex* vs, edge* e) {
   edge* last = NULL;
   edge* curr = vs->nextEdge;
@@ -126,6 +126,62 @@ void _remove_vertex(vertex* vs, int value) {
       prevVertex = currVertex;
       currVertex = currVertex->nextVertex;
    }
+}
+
+edge* edge_get_next(edge* e) {
+   return e->next;
+}
+
+int edge_get_value(edge* e) {
+   return e->value;
+}
+
+int edge_get_cost(edge* e) {
+   return e->cost;
+}
+
+void edge_set_cost(edge* e, int cost) {
+   e->cost = cost;
+}
+
+edge* vertex_get_edges(vertex* vs) {
+   return vs->nextEdge;
+}
+
+vertex* vertex_get_next(vertex* vs) {
+   return vs->nextVertex;
+}
+
+int vertex_get_value(vertex* vs) {
+   return vs->value;
+}
+
+int vertex_get_degree(vertex* vs) {
+   return vs->degree;
+}
+
+int vertex_get_visited(vertex* vs) {
+   return vs->visited;
+}
+
+int vertex_get_inpath(vertex* vs) {
+   return vs->inpath;
+}
+
+void vertex_set_visited(vertex* vs, int visited) {
+   vs->visited = visited;
+}
+
+void vertex_set_inpath(vertex* vs, int inpath) {
+   vs->inpath = inpath;
+}
+
+vertex* directedgraph_get_successors(directedgraph* dg) {
+   return dg->successors;
+}
+
+vertex* directedgraph_get_predecessors(directedgraph* dg) {
+   return dg->predecessors;
 }
 
 directedgraph* directedgraph_create(int v) {
