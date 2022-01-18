@@ -53,14 +53,36 @@ int main() {
   directedgraph_add_edge(dg, 5, 3);
   directedgraph_add_edge(dg, 3, 5);
 
+  printf("Print graph:\n");
+  directedgraph_print(dg);
+
+  printf("Removing vertices 0, 2, 4:\n");
+  directedgraph_print(dg);
+
+  printf("Adding vertices 0, 2, 5\n");
+  directedgraph_add_vertex(dg, 0);
+  directedgraph_add_vertex(dg, 2);
+  directedgraph_add_vertex(dg, 5);
+
+  printf("Adding edges (0,1) (0,2) (0,3) (1,3) (5,3) (3,5)\n");
+  directedgraph_add_edge(dg, 0, 1);
+  directedgraph_add_edge(dg, 0, 1);
+  directedgraph_add_edge(dg, 0, 2);
+  directedgraph_add_edge(dg, 0, 3);
+  directedgraph_add_edge(dg, 1, 3);
+  directedgraph_add_edge(dg, 2, 4);
+  directedgraph_add_edge(dg, 3, 4);
+  directedgraph_add_edge(dg, 5, 3);
+  directedgraph_add_edge(dg, 3, 5);
+
   printf("Check if 2 is a successor of 0: %i\n", directedgraph_is_successor(dg, 0, 2));
   printf("Check if 0 is a predecessor of 2: %i\n", directedgraph_is_predecessor(dg, 2, 0));
 
   printf("Print graph:\n");
   directedgraph_print(dg);
 
-  printf("Finding a cycle in the directed graph rooted at 0:\n");
-  adjlist_print(adjlist_find_cycle_in_directedgraph(dg, 0));
+  printf("Finding a cycle in the directed graph rooted:\n");
+  adjlist_print(adjlist_find_cycle_in_directedgraph(dg));
 
   printf("Removing all predecessors of edge 4\n");
   directedgraph_remove_predecessors(dg, 4);
@@ -79,45 +101,46 @@ int main() {
   printf("Freeing graph\n");
   directedgraph_free(dg);
 
-  // printf("\n\n");
-  // printf("Creating Graph\n");
-  // graph* g = graph_create(10);
-  //
-  // printf("Print empty graph:\n");
-  // graph_print(g);
-  //
-  // printf("Adding edges (0,3) (0,6) (0,5) (1,3) (2,4) (3,4)\n");
-  // graph_add_edge(g, 0, 3);
-  // graph_add_edge(g, 0, 6);
-  // graph_add_edge(g, 0, 5);
-  // graph_add_edge(g, 1, 3);
-  // graph_add_edge(g, 2, 4);
-  // graph_add_edge(g, 3, 4);
-  // graph_add_edge(g, 5, 3);
-  // graph_add_edge(g, 3, 5);
-  //
-  // printf("Check if edge (0,2) is in the graph: %i\n", graph_is_edge(g, 0, 2));
-  // printf("Check if edge (2,0) is in the graph: %i\n", graph_is_edge(g, 0, 2));
-  //
-  // printf("Print graph:\n");
-  // graph_print(g);
-  //
-  // printf("Removing edges (0,2) (2,4)\n");
-  // graph_remove_edge(g, 0, 2);
-  // graph_remove_edge(g, 0, 2);
-  // graph_remove_edge(g, 2, 4);
-  // graph_remove_edge(g, 1, 4);
-  // graph_remove_edge(g, 3, 5);
-  // graph_remove_edge(g, 5, 3);
-  //
-  // printf("Check if (2,0) is in the graph: %i\n", graph_is_edge(g, 0, 2));
-  // printf("Check if (0,2) is in the graph: %i\n", graph_is_edge(g, 2, 0));
-  //
-  // printf("Print graph:\n");
-  // graph_print(g);
-  //
-  // printf("Freeing graph\n");
-  // graph_free(g);
+  printf("\n\n");
+  printf("Creating Graph\n");
+  graph* g = graph_create(10);
+
+  printf("Print empty graph:\n");
+  graph_print(g);
+
+  printf("Adding edges (0,2) (0,3) (0,6) (0,5) (1,3) (2,4) (3,4)\n");
+  graph_add_edge(g, 0, 2);
+  graph_add_edge(g, 0, 3);
+  graph_add_edge(g, 0, 6);
+  graph_add_edge(g, 0, 5);
+  graph_add_edge(g, 1, 3);
+  graph_add_edge(g, 2, 4);
+  graph_add_edge(g, 3, 4);
+  graph_add_edge(g, 5, 3);
+  graph_add_edge(g, 3, 5);
+
+  printf("Check if edge (0,2) is in the graph: %i\n", graph_is_edge(g, 0, 2));
+  printf("Check if edge (2,0) is in the graph: %i\n", graph_is_edge(g, 0, 2));
+
+  printf("Print graph:\n");
+  graph_print(g);
+
+  printf("Removing edges (0,2) (2,4)\n");
+  graph_remove_edge(g, 0, 2);
+  graph_remove_edge(g, 0, 2);
+  graph_remove_edge(g, 2, 4);
+  graph_remove_edge(g, 1, 4);
+  graph_remove_edge(g, 3, 5);
+  graph_remove_edge(g, 5, 3);
+
+  printf("Check if (2,0) is in the graph: %i\n", graph_is_edge(g, 0, 2));
+  printf("Check if (0,2) is in the graph: %i\n", graph_is_edge(g, 2, 0));
+
+  printf("Print graph:\n");
+  graph_print(g);
+
+  printf("Freeing graph\n");
+  graph_free(g);
 
   // printf("\n\n");
   // printf("Creating Fibonacci Heap\n");

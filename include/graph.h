@@ -6,22 +6,22 @@
    edge* next: a pointer to the next edge */
 typedef struct Edge edge;
 
-/* the struct EdgeSet:
+/* the struct Vertex:
    int degree: the degree of the vertex
    edge* next: a pointer to the first edge */
-typedef struct EdgeSet edgeset;
+typedef struct Vertex vertex;
 
 /* the struct DirectedGraph:
    int vertices: the number of vertices in the graph
    int edges: the number of edges in the graph
-   edgeset* successors: edges in the graph from source to destination (can be indexed)
-   edgeset* predecessors: edges in the graph from destination to source (can be indexed) */
+   vertex* successors: edges in the graph from source to destination (can be indexed)
+   vertex* predecessors: edges in the graph from destination to source (can be indexed) */
 typedef struct DirectedGraph directedgraph;
 
 /* the struct Graph:
    int vertices: the number of vertices in the graph
    int edges: the number of edges in the graph
-   edgeset* edgeSet: edges in the graph (can be indexed) */
+   vertex* edgeSet: edges in the graph (can be indexed) */
 typedef struct Graph graph;
 
 /* the struct AdjList:
@@ -71,6 +71,8 @@ void directedgraph_set_edge_cost(directedgraph* g, int source, int destination, 
    MODIFES: g by adding a new edge */
 void directedgraph_add_edge(directedgraph* g, int source, int destination);
 
+void directedgraph_add_vertex(directedgraph* g, int v);
+
 /* Adds an edge to a directed graph with cost
    directedgraph* g: the directed graph to add the edge to
    int source: the source vertex
@@ -86,12 +88,16 @@ void directedgraph_add_weighted_edge(directedgraph* g, int source, int destinati
    MODIFES: g by removing an edge */
 void directedgraph_remove_edge(directedgraph* g, int source, int destination);
 
+void directedgraph_remove_vertex(directedgraph* g, int v);
+
 void directedgraph_remove_predecessors(directedgraph* g, int destination);
 
 /* Prints a directed graph to console
    directedgraph* g: the directed graph to be printed
    NOTE: probably don't want to do this for large graphs */
 void directedgraph_print(directedgraph* g);
+
+void directedgraph_print_predecessors(directedgraph* g);
 
 /* Prints a directed graph to console including edge costs
    directedgraph* g: the directed graph to be printed
@@ -151,6 +157,6 @@ void adjlist_print(adjlist* adj);
 
 void adjlist_free(adjlist* adj);
 
-adjlist* adjlist_find_cycle_in_directedgraph(directedgraph* dg, int root);
+adjlist* adjlist_find_cycle_in_directedgraph(directedgraph* dg);
 
 #endif
