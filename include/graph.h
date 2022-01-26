@@ -171,6 +171,15 @@ void graph_remove_edge(graph* g, int u, int v);
    NOTE: probably don't want to do this for large graphs */
 void graph_print(graph* g);
 
+/* Prints a graph to console so that it may be visualized with csacademy's graph visualizer
+   graph* g: the graph to be printed
+   NOTE: probably don't want to do this for large graphs */
+void graph_print_csacademy(graph* g);
+
+/* Creates a graph from csacademy's output format
+   char* text: output text with linebreaks */
+graph* graph_construct_csacademy(char* text, int vertices);
+
 /* Frees the memory of a graph
    graph* g: the directed graph to be freed */
 void graph_free(graph* g);

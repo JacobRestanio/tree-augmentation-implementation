@@ -799,6 +799,7 @@ void graph_remove_edge(graph* g, int u, int v) {
   g->edges--;
 }
 
+
 void graph_print(graph* g) {
    printf("Printing Graph:\n");
    vertex* currVertex = g->vertexSet;
@@ -813,6 +814,77 @@ void graph_print(graph* g) {
       currVertex = currVertex->nextVertex;
    }
    printf("\n");
+}
+
+//prints the format for CSAcademy's graph visualizer.
+void graph_print_csacademy(graph* g){
+   vertex* currVertex = g->vertexSet;
+   while (currVertex) {
+      //printf("%i -> ", currVertex->value);
+      edge* currEdge = currVertex->nextEdge;
+      while(currEdge) {
+         printf("%i %i\n", currVertex->value, currEdge->value);
+         currEdge = currEdge->next;
+      }
+      currVertex = currVertex->nextVertex;
+   }
+   printf("\n");
+}
+
+ const char* t = "0\n1\n2\n3\n0 1\n1 2\n2 3";
+
+/* Creates a graph from csacademy's output format
+   char* text: output text with linebreaks as '\n' */
+graph* graph_construct_csacademy(char* text, int vertices){
+   if(!text)
+      return NULL;
+
+   graph* out = graph_create(vertices);
+
+   int e1 = -1;
+   int e2 = -1;
+   char space = 0;
+   int i;
+
+   for(i = 0; text[i]; i++){
+      char c = text[i];
+      if(c == '\n'){ //new line. add any complete edge and reset.
+         if(e1 >= 0 && e2 >= 0){
+            graph_add_edge(out, e1, e2);
+         }
+         e2 = e1 = -1;
+         space = 0;
+         continue;
+      }
+
+      if(c == ' '){
+         space++;
+         continue;
+      }
+
+      int* e = space ? &e2 : &e1; //select the edge that we are reading
+
+      if(c >= '0' && c<='9'){  //adjust value of the selected edge
+         if(*e > 0){
+            *e *= 10;
+            *e += c - '0';
+         }
+         else
+            *e = c - '0';
+      }
+      else{
+         printf("graph_construct_csacademy: invalid text");
+         return out;
+      }
+   }
+
+   if(!text[i]){
+      if(e1 >= 0 && e2 >= 0){
+            graph_add_edge(out, e1, e2);
+         }
+   }
+
+   return out;
 }
 
 void graph_free(graph* g) {
