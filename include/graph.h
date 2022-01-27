@@ -35,7 +35,11 @@ int edge_get_value(edge* e);
 
 int edge_get_cost(edge* e);
 
+edge* edge_get_corresponding_edge(edge* e);
+
 void edge_set_cost(edge* e, int cost);
+
+void edge_set_corresponding_edge(edge* e, edge* ce);
 
 edge* vertex_get_edges(vertex* vs);
 
@@ -49,17 +53,21 @@ int vertex_get_visited(vertex* vs);
 
 int vertex_get_inpath(vertex* vs);
 
-int vertex_get_minimum_incoming_edge(vertex* vs);
+edge* vertex_get_minimum_incoming_edge(vertex* vs);
 
 void vertex_set_visited(vertex* vs, int visited);
 
 void vertex_set_inpath(vertex* vs, int inpath);
 
-void vertex_set_minimum_incoming_edge(vertex* vs, int e);
+void vertex_set_minimum_incoming_edge(vertex* vs, edge* e);
 
-vertex* directedgraph_get_successors(directedgraph* dg);
+vertex* directedgraph_get_vertex_successors(directedgraph* dg, int v);
 
-vertex* directedgraph_get_predecessors(directedgraph* dg);
+vertex* directedgraph_get_vertex_predecessors(directedgraph* dg, int v);
+
+vertex* directedgraph_get_vertex_successors_list(directedgraph* dg);
+
+vertex* directedgraph_get_vertex_predecessors_list(directedgraph* dg);
 
 /* Allocates memory for and initializes a DirectedGraph struct
    int v: the number of vertices in the directed graph
@@ -67,78 +75,88 @@ vertex* directedgraph_get_predecessors(directedgraph* dg);
 directedgraph* directedgraph_create(int v);
 
 /* Checks if an edge exists from source to destination in a directed graph
-   directedgraph* g: the directed graph to check for edge
+   directedgraph* dg: the directed graph to check for edge
    int source: the source vertex
    int destination: the destination vertex
    RETURNS: returns 1 if the edge exists, 0 if not */
-int directedgraph_is_successor(directedgraph* g, int source, int destination);
+int directedgraph_is_successor(directedgraph* dg, int source, int destination);
 
 /* Checks if an edge exists to destination from source in a directed graph
-   directedgraph* g: the directed graph to check for edge
+   directedgraph* dg: the directed graph to check for edge
    int destination: the destination vertex
    int source: the source vertex
    RETURNS: 1 if the edge exists, 0 if not */
-int directedgraph_is_predecessor(directedgraph* g, int destination, int source);
+int directedgraph_is_predecessor(directedgraph* dg, int destination, int source);
 
 /* Returns the cost of an edge if it exists
-   directedgraph* g: the directed graph to get edge cost
+   directedgraph* dg: the directed graph to get edge cost
    int source: the source vertex
    int destination: the destination vertex
    RETURNS: cost of the edge if it exists, -1 if not
    NOTE: returning -1 isn't optimal, since sometimes we use negative edge costs */
-int directedgraph_get_edge_cost(directedgraph* g, int source, int destination);
+int directedgraph_get_edge_cost(directedgraph* dg, int source, int destination);
+
+int directedgraph_get_number_of_vertices(directedgraph* dg);
+
+int directedgraph_get_number_of_edges(directedgraph* dg);
+
+int directedgraph_get_greatest_vertex(directedgraph* dg);
 
 /* Finds the specified edge and sets its edge cost
-   directedgraph* g: the directed graph to get edge cost
+   directedgraph* dg: the directed graph to get edge cost
    int source: the source vertex
    int destination: the destination vertex
    int cost: the cost to set the edge
    MODIFIES: edge in g to new cost if the edge exists */
-void directedgraph_set_edge_cost(directedgraph* g, int source, int destination, int cost);
+void directedgraph_set_edge_cost(directedgraph* dg, int source, int destination, int cost);
 
 /* Adds an edge to a directed graph with unit cost
-   directedgraph* g: the directed graph to add the edge to
+   directedgraph* dg: the directed graph to add the edge to
    int source: the source vertex
    int destination: the destination vertex
    MODIFES: g by adding a new edge */
-void directedgraph_add_edge(directedgraph* g, int source, int destination);
+void directedgraph_add_edge(directedgraph* dg, int source, int destination);
 
-void directedgraph_add_vertex(directedgraph* g, int v);
+void directedgraph_add_vertex(directedgraph* dg, int v);
 
 /* Adds an edge to a directed graph with cost
-   directedgraph* g: the directed graph to add the edge to
+   directedgraph* dg: the directed graph to add the edge to
    int source: the source vertex
    int destination: the destination vertex
    int cost: the cost of the edge
    MODIFIES: g by adding a new edge with associated cost */
-void directedgraph_add_weighted_edge(directedgraph* g, int source, int destination, int cost);
+void directedgraph_add_weighted_edge(directedgraph* dg, int source, int destination, int cost);
+
+void directedgraph_add_corresponding_weighted_edge(directedgraph* dg, int source, int destination, edge* correspondingEdge, int cost);
 
 /* Removes an edge from a directed graph
-   directedgraph* g: the directed graph to remove the edge from
+   directedgraph* dg: the directed graph to remove the edge from
    int source: the source vertex
    int destination: the destination vertex
    MODIFES: g by removing an edge */
-void directedgraph_remove_edge(directedgraph* g, int source, int destination);
+void directedgraph_remove_edge(directedgraph* dg, int source, int destination);
 
-void directedgraph_remove_vertex(directedgraph* g, int v);
+void directedgraph_remove_vertex(directedgraph* dg, int v);
 
-void directedgraph_remove_predecessors(directedgraph* g, int destination);
+void directedgraph_remove_predecessors(directedgraph* dg, int destination);
+
+directedgraph* directedgraph_create_copy(directedgraph* dg);
 
 /* Prints a directed graph to console
-   directedgraph* g: the directed graph to be printed
+   directedgraph* dg: the directed graph to be printed
    NOTE: probably don't want to do this for large graphs */
-void directedgraph_print(directedgraph* g);
+void directedgraph_print(directedgraph* dg);
 
-void directedgraph_print_predecessors(directedgraph* g);
+void directedgraph_print_predecessors(directedgraph* dg);
 
 /* Prints a directed graph to console including edge costs
-   directedgraph* g: the directed graph to be printed
+   directedgraph* dg: the directed graph to be printed
    NOTE: probably don't want to do this for large graphs */
-void directedgraph_print_weights(directedgraph* g);
+void directedgraph_print_weights(directedgraph* dg);
 
 /* Frees the memory of a directed graph
-   directedgraph* g: the directed graph to be freed */
-void directedgraph_free(directedgraph* g);
+   directedgraph* dg: the directed graph to be freed */
+void directedgraph_free(directedgraph* dg);
 
 /* Allocates memory for and initializes a Graph struct
    int v: the number of vertices in the graph
@@ -182,6 +200,8 @@ adjlist* adjlist_get_next(adjlist* adj);
 int adjlist_get_value(adjlist* adj);
 
 void adjlist_set_value(adjlist* adj, int v);
+
+int adjlist_is_element(adjlist* adj, int v);
 
 void adjlist_add_element(adjlist* adj, int v);
 

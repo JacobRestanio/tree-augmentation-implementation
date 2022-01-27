@@ -6,6 +6,7 @@
 typedef struct Edge {
   int value;
   int cost;
+  struct Edge* correspondingEdge;
   struct Edge* next;
 } edge;
 
@@ -14,7 +15,7 @@ typedef struct Vertex {
   int degree;
   int visited;
   int inpath;
-  int minimumIncomingEdge;
+  edge* minimumIncomingEdge;
   edge* nextEdge;
   struct Vertex* nextVertex;
 } vertex;
@@ -141,8 +142,16 @@ int edge_get_cost(edge* e) {
    return e->cost;
 }
 
+edge* edge_get_corresponding_edge(edge* e) {
+   return e->correspondingEdge;
+}
+
 void edge_set_cost(edge* e, int cost) {
    e->cost = cost;
+}
+
+void edge_set_corresponding_edge(edge* e, edge* ce) {
+   e->correspondingEdge = ce;
 }
 
 edge* vertex_get_edges(vertex* vs) {
@@ -169,7 +178,7 @@ int vertex_get_inpath(vertex* vs) {
    return vs->inpath;
 }
 
-int vertex_get_minimum_incoming_edge(vertex* vs) {
+edge* vertex_get_minimum_incoming_edge(vertex* vs) {
    return vs->minimumIncomingEdge;
 }
 
@@ -181,15 +190,37 @@ void vertex_set_inpath(vertex* vs, int inpath) {
    vs->inpath = inpath;
 }
 
-void vertex_set_minimum_incoming_edge(vertex* vs, int e) {
+void vertex_set_minimum_incoming_edge(vertex* vs, edge* e) {
    vs->minimumIncomingEdge = e;
 }
 
-vertex* directedgraph_get_successors(directedgraph* dg) {
+vertex* directedgraph_get_vertex_successors(directedgraph* dg, int v) {
+   vertex* currSuccessorVertex = dg->successors;
+   while (currSuccessorVertex) {
+      if (currSuccessorVertex->value == v) {
+         return currSuccessorVertex;
+      }
+      currSuccessorVertex = currSuccessorVertex->nextVertex;
+   }
+   return NULL;
+}
+
+vertex* directedgraph_get_vertex_predecessors(directedgraph* dg, int v) {
+   vertex* currPredecessorVertex = dg->predecessors;
+   while (currPredecessorVertex) {
+      if (currPredecessorVertex->value == v) {
+         return currPredecessorVertex;
+      }
+      currPredecessorVertex = currPredecessorVertex->nextVertex;
+   }
+   return NULL;
+}
+
+vertex* directedgraph_get_vertex_successors_list(directedgraph* dg) {
    return dg->successors;
 }
 
-vertex* directedgraph_get_predecessors(directedgraph* dg) {
+vertex* directedgraph_get_vertex_predecessors_list(directedgraph* dg) {
    return dg->predecessors;
 }
 
@@ -208,7 +239,7 @@ directedgraph* directedgraph_create(int v) {
       ess->degree = 0;
       ess->visited = 0;
       ess->inpath = 0;
-      ess->minimumIncomingEdge = -1;
+      ess->minimumIncomingEdge = NULL;
       ess->nextEdge = NULL;
       ess->nextVertex = NULL;
       g->successors = ess;
@@ -219,7 +250,7 @@ directedgraph* directedgraph_create(int v) {
       esp->degree = 0;
       esp->visited = 0;
       esp->inpath = 0;
-      esp->minimumIncomingEdge = -1;
+      esp->minimumIncomingEdge = NULL;
       esp->nextEdge = NULL;
       esp->nextVertex = NULL;
       g->predecessors = esp;
@@ -231,7 +262,7 @@ directedgraph* directedgraph_create(int v) {
       ess->degree = 0;
       ess->visited = 0;
       ess->inpath = 0;
-      ess->minimumIncomingEdge = -1;
+      ess->minimumIncomingEdge = NULL;
       ess->nextEdge = NULL;
       ess->nextVertex = NULL;
       lastSuccessor->nextVertex = ess;
@@ -242,7 +273,7 @@ directedgraph* directedgraph_create(int v) {
       esp->degree = 0;
       esp->visited = 0;
       esp->inpath = 0;
-      esp->minimumIncomingEdge = -1;
+      esp->minimumIncomingEdge = NULL;
       esp->nextEdge = NULL;
       esp->nextVertex = NULL;
       lastPredecessor->nextVertex = esp;
@@ -326,6 +357,22 @@ int directedgraph_get_edge_cost(directedgraph* g, int source, int destination) {
    return -1;
 }
 
+int directedgraph_get_number_of_vertices(directedgraph* dg) {
+   return dg->vertices;
+}
+
+int directedgraph_get_number_of_edges(directedgraph* dg) {
+   return dg->edges;
+}
+
+int directedgraph_get_greatest_vertex(directedgraph* dg) {
+   vertex* currVertex = dg->successors;
+   while (currVertex->nextVertex) {
+      currVertex = currVertex->nextVertex;
+   }
+   return currVertex->value;
+}
+
 void directedgraph_set_edge_cost(directedgraph* g, int source, int destination, int cost) {
    // Set edge cost in list of successors
    vertex* currSuccessorVertex = g->successors;
@@ -396,12 +443,14 @@ void directedgraph_add_edge(directedgraph* g, int source, int destination) {
    edge* dest = malloc(sizeof(*dest));
    dest->value = destination;
    dest->cost = 1;
+   dest->correspondingEdge = NULL;
    dest->next = NULL;
    _add_edge(currSuccessorVertex, dest);
 
    edge* srce = malloc(sizeof(*srce));
    srce->value = source;
    srce->cost = 1;
+   srce->correspondingEdge = NULL;
    srce->next = NULL;
    _add_edge(currPredecessorVertex, srce);
 
@@ -416,28 +465,37 @@ void directedgraph_add_vertex(directedgraph* g, int v) {
    vertex* ness = malloc(sizeof(*ness));
    ness->value = v;
    ness->degree = 0;
+   ness->visited = 0;
+   ness->inpath = 0;
+   ness->minimumIncomingEdge = NULL;
    ness->nextEdge = NULL;
    ness->nextVertex = NULL;
 
    vertex* nesp = malloc(sizeof(*nesp));
    nesp->value = v;
    nesp->degree = 0;
+   nesp->visited = 0;
+   nesp->inpath = 0;
+   nesp->minimumIncomingEdge = NULL;
    nesp->nextEdge = NULL;
    nesp->nextVertex = NULL;
 
-   _add_vertex(g->successors, ness);
-   _add_vertex(g->predecessors, nesp);
+   if (g->vertices) {
+      _add_vertex(g->successors, ness);
+      _add_vertex(g->predecessors, nesp);
 
-   if (v < g->successors->value) {
+      if (v < g->successors->value) {
+         g->successors = ness;
+         g->predecessors = nesp;
+      }
+   } else {
       g->successors = ness;
       g->predecessors = nesp;
    }
+   g->vertices++;
 }
 
 void directedgraph_add_weighted_edge(directedgraph* g, int source, int destination, int cost) {
-   if (directedgraph_is_successor(g, source, destination)) {
-      return;
-   }
    vertex* currSuccessorVertex = g->successors;
    while (currSuccessorVertex) {
       if (currSuccessorVertex->value == source) {
@@ -459,6 +517,28 @@ void directedgraph_add_weighted_edge(directedgraph* g, int source, int destinati
       return;
    }
 
+   if (directedgraph_is_successor(g, source, destination)) {
+      edge* currSuccessorEdge = currSuccessorVertex->nextEdge;
+      edge* currPredecessorEdge = currPredecessorVertex->nextEdge;
+      while (currSuccessorEdge) {
+         if (currSuccessorEdge->value == destination) {
+            if (cost < currSuccessorEdge->cost) {
+               currSuccessorEdge->cost = cost;
+            }
+         }
+         currSuccessorEdge = currSuccessorEdge->next;
+      }
+      while (currPredecessorEdge) {
+         if (currPredecessorEdge->value == source) {
+            if (cost < currPredecessorEdge->cost) {
+               currPredecessorEdge->cost = cost;
+            }
+         }
+         currPredecessorEdge = currPredecessorEdge->next;
+      }
+      return;
+   }
+
    edge* dest = malloc(sizeof(*dest));
    dest->value = destination;
    dest->cost = cost;
@@ -472,6 +552,67 @@ void directedgraph_add_weighted_edge(directedgraph* g, int source, int destinati
    _add_edge(currPredecessorVertex, srce);
 
    g->edges++;
+}
+
+void directedgraph_add_corresponding_weighted_edge(directedgraph* dg, int source, int destination, edge* correspondingEdge, int cost) {
+   vertex* currSuccessorVertex = dg->successors;
+   while (currSuccessorVertex) {
+      if (currSuccessorVertex->value == source) {
+         break;
+      }
+      currSuccessorVertex = currSuccessorVertex->nextVertex;
+   }
+   if (!currSuccessorVertex) {
+      return;
+   }
+   vertex* currPredecessorVertex = dg->predecessors;
+   while (currPredecessorVertex) {
+      if (currPredecessorVertex->value == destination) {
+         break;
+      }
+      currPredecessorVertex = currPredecessorVertex->nextVertex;
+   }
+   if (!currPredecessorVertex) {
+      return;
+   }
+
+   if (directedgraph_is_successor(dg, source, destination)) {
+      edge* currSuccessorEdge = currSuccessorVertex->nextEdge;
+      edge* currPredecessorEdge = currPredecessorVertex->nextEdge;
+      while (currSuccessorEdge) {
+         if (currSuccessorEdge->value == destination) {
+            if (cost < currSuccessorEdge->cost) {
+               currSuccessorEdge->cost = cost;
+            }
+         }
+         currSuccessorEdge = currSuccessorEdge->next;
+      }
+      while (currPredecessorEdge) {
+         if (currPredecessorEdge->value == source) {
+            if (cost < currPredecessorEdge->cost) {
+               currPredecessorEdge->cost = cost;
+            }
+         }
+         currPredecessorEdge = currPredecessorEdge->next;
+      }
+      return;
+   }
+
+   edge* dest = malloc(sizeof(*dest));
+   dest->value = destination;
+   dest->cost = cost;
+   dest->correspondingEdge = correspondingEdge;
+   dest->next = NULL;
+   _add_edge(currSuccessorVertex, dest);
+
+   edge* srce = malloc(sizeof(*srce));
+   srce->value = source;
+   srce->cost = cost;
+   srce->correspondingEdge = correspondingEdge;
+   srce->next = NULL;
+   _add_edge(currPredecessorVertex, srce);
+
+   dg->edges++;
 }
 
 void directedgraph_remove_edge(directedgraph* g, int source, int destination) {
@@ -533,7 +674,6 @@ void directedgraph_remove_edges_from_vertex(directedgraph* g, int v) {
          }
          currPredecessorVertex = currPredecessorVertex->nextVertex;
       }
-      printf("Removing edge (%i, %i)\n", currSuccessorVertex->value, currPredecessorVertex->value);
       _remove_edge(currPredecessorVertex, v);
       _remove_edge(currSuccessorVertex, e->value);
 
@@ -549,7 +689,6 @@ void directedgraph_remove_edges_from_vertex(directedgraph* g, int v) {
          }
          currSuccessorVertex = currSuccessorVertex->nextVertex;
       }
-      printf("Removing edge (%i, %i)\n", currPredecessorVertex->value, e->value);
       _remove_edge(currSuccessorVertex, v);
       _remove_edge(currPredecessorVertex, e->value);
 
@@ -604,6 +743,26 @@ void directedgraph_remove_predecessors(directedgraph* g, int destination) {
 
       g->edges--;
    }
+}
+
+directedgraph* directedgraph_create_copy(directedgraph* dg) {
+   directedgraph* ndg = directedgraph_create(0);
+   vertex* currVertex = dg->successors;
+   edge* currEdge;
+   while (currVertex) {
+      directedgraph_add_vertex(ndg, currVertex->value);
+      currVertex = currVertex->nextVertex;
+   }
+   currVertex = dg->successors;
+   while (currVertex) {
+      currEdge = currVertex->nextEdge;
+      while (currEdge) {
+         directedgraph_add_weighted_edge(ndg, currVertex->value, currEdge->value, currEdge->cost);
+         currEdge = currEdge->next;
+      }
+      currVertex = currVertex->nextVertex;
+   }
+   return ndg;
 }
 
 void directedgraph_print(directedgraph* g) {
@@ -699,7 +858,7 @@ graph* graph_create(int v) {
      vs->degree = 0;
      vs->visited = 0;
      vs->inpath = 0;
-     vs->minimumIncomingEdge = -1;
+     vs->minimumIncomingEdge = NULL;
      vs->nextEdge = NULL;
      vs->nextVertex = NULL;
      g->vertexSet = vs;
@@ -711,7 +870,7 @@ graph* graph_create(int v) {
      vs->degree = 0;
      vs->visited = 0;
      vs->inpath = 0;
-     vs->minimumIncomingEdge = -1;
+     vs->minimumIncomingEdge = NULL;
      vs->nextEdge = NULL;
      vs->nextVertex = NULL;
      prevVertex->nextVertex = vs;
@@ -755,6 +914,7 @@ void graph_add_edge(graph* g, int u, int v) {
   edge* e1 = malloc(sizeof(*e1));
   e1->value = v;
   e1->cost = 1;
+  e1->correspondingEdge = NULL;
   e1->next = NULL;
   _add_edge(currSourceVertex, e1);
 
@@ -769,6 +929,7 @@ void graph_add_edge(graph* g, int u, int v) {
   edge* e2 = malloc(sizeof(*e2));
   e2->value = u;
   e2->cost = 1;
+  e2->correspondingEdge = NULL;
   e2->next = NULL;
   _add_edge(currDestinationVertex, e2);
 
@@ -851,6 +1012,17 @@ int adjlist_get_value(adjlist* adj) {
 
 void adjlist_set_value(adjlist* adj, int v) {
    adj->value = v;
+}
+
+int adjlist_is_element(adjlist* adj, int v) {
+   adjlist* curr = adj;
+   while(curr) {
+      if (curr->value == v) {
+         return 1;
+      }
+      curr = curr->next;
+   }
+   return 0;
 }
 
 void adjlist_add_element(adjlist* adj, int v) {
