@@ -22,34 +22,10 @@ void directTree(int size, graph* tree, directedgraph* directedTree, int node, in
 /* Sets the weights of the graph that will be used when finding a minimum arborescence
    size is the number of nodes in the graph
    directedTree is a tree with all edges directed toward a root node (see directTree())
-   weightedTree is a directed graph with no edges
+   weightedGraph is an size x size matrix
    root is the node the directed tree is rooted at
    MODIFIES: weightedTree */
-void setWeights(int size, directedgraph* directedTree, directedgraph* weightedTree, int root);
-
-/* Finds strongly connected components in a directed graph
-   size is the number of nodes in the graph
-   i is ... (not sure)
-   arborescence is a directed graph to find strongly connected components on
-   cycles contains current cycles found in arborescence
-   stack is for order of nodes visited
-   onStack shows if a node is currently somewhere on stack
-   vIndex is ... (not sure)
-   vLink is ... (not sure)
-   stackIndex is current value of stack
-   index is current index
-   cycle is ... (not sure)
-   MODIFIES: cycles, stack, onStack, vIndex, vLink, stackIndex, index, cycle
-   NOTE: could replace multiple variables with stack data structure
-   NOTE: this code needs reworked, source of errors */
-void strongConnect(int size, int i, directedgraph* arborescence, directedgraph* cycles, int stack[size], int onStack[size], int vIndex[size], int vLink[size], int* stackIndex, int* index, int* cycle);
-
-/* Wrapper function for strongConnect to initialize variables
-   size is the number of nodes in the graph
-   arborescence is a directed graph to find cycles in
-   cycles is an empty directed graph
-   MODIFIES: cycles */
-void findCycle(int size, directedgraph* arborescence, directedgraph* cycles);
+void setEdgeWeights(int size, directedgraph* directedTree, directedgraph* edgeWeights, int root);
 
 /* Edmonds Algorithm finds a minimum cost arborescence
    size is the number of nodes in the graph
@@ -57,7 +33,7 @@ void findCycle(int size, directedgraph* arborescence, directedgraph* cycles);
    arborescence is a directed graph with no edges
    root is the root of weightedTree
    MODIFIES: arborescence */
-void edmondsAlgorithm(int size, directedgraph* weightedTree, directedgraph* arborescence, int root);
+void edmondsAlgorithm(directedgraph* edgeWeights, directedgraph* arborescence, int root);
 
 /* Frederickson algorithm finds a 2-factor approximate solution to the tree augmentation problem
    size is the number of nodes in the graph
