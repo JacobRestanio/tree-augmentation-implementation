@@ -880,6 +880,10 @@ graph* graph_create(int v) {
   return g;
 }
 
+int graph_get_number_of_vertices(graph* g) {
+   return g->vertices;
+}
+
 int graph_is_edge(graph* g, int u, int v) {
    vertex* currVertex = g->vertexSet;
    while (currVertex) {

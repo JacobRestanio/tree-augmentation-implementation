@@ -170,6 +170,8 @@ graph* graph_create(int v);
    RETURNS: 1 if the edge exists, 0 if not */
 int graph_is_edge(graph* g, int u, int v);
 
+int graph_get_number_of_vertices(graph* g);
+
 /* Adds an edge to a graph with unit cost from vertex u to vertex v
    graph* g: the graph to add the edge to
    int u: a vertex
