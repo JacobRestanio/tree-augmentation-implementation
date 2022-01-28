@@ -145,6 +145,8 @@ void directedgraph_free(directedgraph* g);
    RETURNS: a graph* with no edges */
 graph* graph_create(int v);
 
+
+//be careful?? kind of slow.
 /* Checks if an edge exists from vertex u to vertex v in a graph
    graph* g: a graph to add the edge to
    int u: a vertex

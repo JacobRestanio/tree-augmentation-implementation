@@ -48,6 +48,33 @@ increasing the size of E
 int nagamochi(int size, graph* tree, double aproxFactor);
 
 
+/* PAGE 92*/
+// bindingEdge
+/* B1 B2 B3 B4*/
+
+int isLfClosed(graph* tree, vertex* root, edge* edgeset);
+
+// leaf()
+
+// fringe()
+
+/* child */
+// ch()
+
+/* parent*/
+// p()
+
+/* descendants */
+// D()
+
+// imposed subgraph
+
+/************************************************/
+
+
+/* PAGE 93*/
+//A3()
+
 /* PAGE 88
 Case 1: There is an l-closed leaf tree T[D(v)]: Let Fleaf be the set of all leaf edges
 in T[D(v)], and Eleaf be the set of edges in E connecting two leaf vertices in T[D(v)].
@@ -91,36 +118,8 @@ described as follows.
 /* PAGE 90*/
 //proc4()
 
-/* PAGE 93*/
-//A3()
-
 /* PAGE 94 */
 //cover()
-
-
-////////////////////
-
-
-/* PAGE 92*/
-// bindingEdge
-/* B1 B2 B3 B4*/
-
-// isLClosed()
-
-// leaf()
-
-// fringe()
-
-/* child */
-// ch()
-
-/* parent*/
-// p()
-
-/* descendants */
-// D()
-
-// imposed subgraph
 
 
 
