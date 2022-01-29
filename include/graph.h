@@ -1,151 +1,108 @@
 #ifndef GRAPH_H
 #define GRAPH_H
 
+//note to self: when you make the edgeset you can't store the edges as a list the way you normally would.
+//              you will have to either copy the vertices or create a container.
 
-/*
+
+//add null pointer catches
+
+////////////////////
+//EDGE
+////////////////////
 typedef struct Edge {
-  int value;
-  int cost;
-  struct Edge* next;
+   int thisVertex;
+   int otherVertex;
+
+   struct Edge* next;
+   struct Edge* twin;
 } edge;
 
+edge* edge_create(int thisVertex, int otherVertex){
+   edge* e = malloc(sizeof(*e));
+   e->thisVertex = thisVertex;
+   e->otherVertex = otherVertex;
+   e->next = NULL;
+   e->twin = NULL;
+}
+
+///////////////////////
+//VERTEX
+///////////////////////
 typedef struct Vertex {
   int value;
+  int mergeValue;
+  int parent; //used only if the graph is a tree
   int degree;
-  edge* nextEdge;
-  struct Vertex* nextVertex;
+
+  edge* edge;
 } vertex;
 
-
-struct Graph {
-  int vertices;
-  int edges;
-  vertex* vertexSet;
-};
-
-typedef struct AdjList {
-   int value;
-   struct AdjList* next;
-} adjlist;
-*/
+vertex* vertex_create(int v);
 
 
-/* the struct Edge:
-   int v: the label of the destination vertex
-   edge* next: a pointer to the next edge */
-typedef struct Edge edge;
+/////////////////////
+//GRAPH
+/////////////////////
+typedef struct Graph;
 
-/* the struct Vertex:
-   int degree: the degree of the vertex
-   edge* next: a pointer to the first edge */
-typedef struct Vertex vertex;
 
-/* the struct DirectedGraph:
-   int vertices: the number of vertices in the graph
-   int edges: the number of edges in the graph
-   vertex* successors: edges in the graph from source to destination (can be indexed)
-   vertex* predecessors: edges in the graph from destination to source (can be indexed) */
-typedef struct DirectedGraph directedgraph;
-
-/* the struct Graph:
-   int vertices: the number of vertices in the graph
-   int edges: the number of edges in the graph
-   vertex* edgeSet: edges in the graph (can be indexed) */
-typedef struct Graph graph;
-
-/* the struct AdjList:
-   int v: the label of the element in the AdjList
-   adjlist* next: a pointer to the next element in the list */
-typedef struct AdjList adjlist;
-
-edge* edge_get_next(edge* e);
-
-int edge_get_value(edge* e);
-
-int edge_get_cost(edge* e);
-
-void edge_set_cost(edge* e, int cost);
-
-edge* vertex_get_edges(vertex* vs);
-
-vertex* vertex_get_next(vertex* vs);
-
-int vertex_get_value(vertex* vs);
-
-int vertex_get_degree(vertex* vs);
-
-int vertex_get_visited(vertex* vs);
-
-int vertex_get_inpath(vertex* vs);
-
-int vertex_get_minimum_incoming_edge(vertex* vs);
-
-void vertex_set_visited(vertex* vs, int visited);
-
-void vertex_set_inpath(vertex* vs, int inpath);
-
-void vertex_set_minimum_incoming_edge(vertex* vs, int e);
-
-/* Allocates memory for and initializes a Graph struct
-   int v: the number of vertices in the graph
-   RETURNS: a graph* with no edges */
 graph* graph_create(int v);
+}
 
 
-//be careful?? kind of slow.
-/* Checks if an edge exists from vertex u to vertex v in a graph
-   graph* g: a graph to add the edge to
-   int u: a vertex
-   int v: another vertex
-   RETURNS: 1 if the edge exists, 0 if not */
-int graph_is_edge(graph* g, int u, int v);
+///////////////////////////
+//TREE
+///////////////////////////
 
-/* Adds an edge to a graph with unit cost from vertex u to vertex v
-   graph* g: the graph to add the edge to
-   int u: a vertex
-   int v: another vertex
-   MODIFIES: g by adding a new edge */
-void graph_add_edge(graph* g, int u, int v);
 
-/* Removes an edge from a graph from vertex u to vertex v
-   graph* g: the graph to remove the edge from
-   int u: a vertex
-   int v: a vertex
-   MODIFIES: g by removing an edge */
-void graph_remove_edge(graph* g, int u, int v);
+//you should probably only do this if the graph is actually a tree.
+void set_root(graph* tree, int v);
 
-/* Prints a graph to console
-   graph* g: the graph to be printed
-   NOTE: probably don't want to do this for large graphs */
+void generate_parents(graph* tree, int v);
+
+
+////////////////////
+
+int value(graph* g, int v);
+
+
+void add_new_edge(graph* g, int v1, int v2);
+
+////////////////////////////////////////////////NOTE:: CAN GO FROM O(E) -> O(1) IF WE KEEP TRACK OF LAST EDGE IN THE LIST.
+//how should we handle vertex->parent? 
+//V1 SUBSUMES V2
+//if you are doing this, you may want to do it on another graph too.
+void merge_vertices(graph* g, int v1, int v2);
+
+//true value is not correct.
+
+//twin nonsense?
+//returns null if no match.
+edge* find_edge(graph* g, int v1, int v2);
+
+int remove_edge(graph* g, int v1, int v2);
+
+//frees the whole list
+void edge_free(edge* e);
+
+//also frees any edges and their twins.
+void vertex_free(vertex* v);
+
+
+void graph_free(graph* g);
+}
+
+
+//////////////////////////
+//PRINT
+//////////////////////////
+
+//prints the format for CSAcademy's graph visualizer.
 void graph_print(graph* g);
 
-/* Prints a graph to console so that it may be visualized with csacademy's graph visualizer
-   graph* g: the graph to be printed
-   NOTE: probably don't want to do this for large graphs */
-void graph_print_csacademy(graph* g);
-
 /* Creates a graph from csacademy's output format
-   char* text: output text with linebreaks */
-graph* graph_construct_csacademy(char* text, int vertices);
-
-/* Frees the memory of a graph
-   graph* g: the directed graph to be freed */
-void graph_free(graph* g);
-
-adjlist* adjlist_create(int v);
-
-adjlist* adjlist_get_next(adjlist* adj);
-
-int adjlist_get_value(adjlist* adj);
-
-void adjlist_set_value(adjlist* adj, int v);
-
-void adjlist_add_element(adjlist* adj, int v);
-
-void adjlist_print(adjlist* adj);
-
-void adjlist_free(adjlist* adj);
-
-adjlist* adjlist_find_cycle_in_directedgraph(directedgraph* dg);
+   char* text: output text with linebreaks as '\n' */
+graph* graph_create_text(char* text, int vertex_count);
 
 #endif

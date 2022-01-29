@@ -3,304 +3,254 @@
 #include "../../include/graph.h"
 #include "../../include/stack.h"
 
+
+//note to self: when you make the edgeset you can't store the edges as a list the way you normally would.
+//              you will have to either copy the vertices or create a container.
+
+
+//add null pointer catches
+
+////////////////////
+//EDGE
+////////////////////
 typedef struct Edge {
-  int value;
-  int cost;
-  struct Edge* next;
+   int thisVertex;
+   int otherVertex;
+
+   struct Edge* next;
+   struct Edge* twin;
 } edge;
 
+edge* edge_create(int thisVertex, int otherVertex){
+   edge* e = malloc(sizeof(*e));
+   e->thisVertex = thisVertex;
+   e->otherVertex = otherVertex;
+   e->next = NULL;
+   e->twin = NULL;
+}
+
+///////////////////////
+//VERTEX
+///////////////////////
 typedef struct Vertex {
   int value;
+  int mergeValue;
+  int parent; //used only if the graph is a tree
   int degree;
-  edge* nextEdge;
-  struct Vertex* nextVertex;
+
+  edge* edge;
 } vertex;
 
+vertex* vertex_create(int v){
+   vertex* vs = malloc(sizeof(*vs));
+   vs->value = v;
+   vs->mergeValue = v;
+   vs->parent = 0;
+   vs->degree = 0;
 
-struct Graph {
-  int vertices;
+   vs->edge = NULL;
+}
+
+
+/////////////////////
+//GRAPH
+/////////////////////
+typedef struct Graph {
+  int vertex_count;
   int edges;
-  vertex* root;
-  vertex* vertexSet;
-};
+  
+  vertex* root; //used only if the graph is a tree
+  vertex** vert;
+} graph;
 
-typedef struct AdjList {
-   int value;
-   struct AdjList* next;
-} adjlist;
-
-// This was done in a pretty convoluted fashion, could be rewritten to be simpler
-void _add_edge(vertex* vs, edge* e) {
-  edge* last = NULL;
-  edge* curr = vs->nextEdge;
-  if (curr) {
-    while (curr->next) {
-      if (curr->value > e->value) {
-        if (last) {
-          last->next = e;
-          e->next = curr;
-        } else {
-          vs->nextEdge = e;
-          e->next = curr;
-        }
-        break;
-      }
-      last = curr;
-      curr = curr->next;
-    }
-    if (!curr->next && curr->value > e->value) {
-      if (last) {
-        last->next = e;
-        e->next = curr;
-      } else {
-        vs->nextEdge = e;
-        e->next = curr;
-      }
-    } else if (!curr->next) {
-      curr->next = e;
-    }
-  } else {
-    vs->nextEdge = e;
-  }
-  vs->degree++;
-}
-
-void _remove_edge(vertex* vs, int e) {
-   edge* last = NULL;
-   edge* curr = vs->nextEdge;
-
-   while (curr) {
-      if (curr->value == e) {
-         if (last) {
-            last->next = curr->next;
-         } else {
-            vs->nextEdge = curr->next;
-         }
-         free(curr);
-         vs->degree--;
-         break;
-      }
-      last = curr;
-      curr = curr->next;
-   }
-}
-
-void _add_vertex(vertex* vs, vertex* nvs) {
-   vertex* curr = vs;
-   vertex* last = NULL;
-   while (curr) {
-      if (curr->value < nvs->value) {
-         last = curr;
-         curr = curr->nextVertex;
-      } else {
-         if (last) {
-            last->nextVertex = nvs;
-         }
-         nvs->nextVertex = curr;
-         break;
-      }
-   }
-   if (!curr) {
-      last->nextVertex = nvs;
-   }
-}
-
-void _remove_vertex(vertex* vs, int value) {
-   vertex* currVertex = vs;
-   vertex* prevVertex = NULL;
-   while (currVertex) {
-      if (currVertex->value == value) {
-         if (prevVertex) {
-            prevVertex->nextVertex = currVertex->nextVertex;
-         }
-         free(currVertex);
-         break;
-      }
-      prevVertex = currVertex;
-      currVertex = currVertex->nextVertex;
-   }
-}
-
-edge* edge_get_next(edge* e) {
-   return e->next;
-}
-
-int edge_get_value(edge* e) {
-   return e->value;
-}
-
-int edge_get_cost(edge* e) {
-   return e->cost;
-}
-
-void edge_set_cost(edge* e, int cost) {
-   e->cost = cost;
-}
-
-edge* vertex_get_edges(vertex* vs) {
-   return vs->nextEdge;
-}
-
-vertex* vertex_get_next(vertex* vs) {
-   return vs->nextVertex;
-}
-
-int vertex_get_value(vertex* vs) {
-   return vs->value;
-}
-
-int vertex_get_degree(vertex* vs) {
-   return vs->degree;
-}
 
 graph* graph_create(int v) {
-  graph* g = malloc(sizeof(*g));
-  g->vertexSet = NULL;
-  g->vertices = v;
-  g->edges = 0;
+   graph* g = malloc(sizeof(*g));
+   g->vertex_count = v;
+   g->edges = 0;
+   g->root = NULL;
+   g->vert = malloc(sizeof(vertex*)*(v+1)); //vertex zero is empty space.
 
-  vertex* prevVertex = NULL;
-  if (v > 0) {
-     vertex* vs = malloc(sizeof(*vs));
-     vs->value = 0;
-     vs->degree = 0;
-     vs->nextEdge = NULL;
-     vs->nextVertex = NULL;
-     g->vertexSet = vs;
-     prevVertex = vs;
- }
-  for (int i = 1; i < v; i++) {
-     vertex* vs = malloc(sizeof(*vs));
-     vs->value = i;
-     vs->degree = 0;
-     vs->nextEdge = NULL;
-     vs->nextVertex = NULL;
-     prevVertex->nextVertex = vs;
-     prevVertex = vs;
-  }
-
+   for(int i = 0; i<v; i++){
+      vertex* newVertex = vertex_create(i);
+      g->vert[i] = newVertex;
+   }
   return g;
 }
 
-int graph_is_edge(graph* g, int u, int v) {
-   vertex* currVertex = g->vertexSet;
-   while (currVertex) {
-      if (currVertex->value == u) {
-         break;
-      }
-      currVertex = currVertex->nextVertex;
+
+///////////////////////////
+//TREE
+///////////////////////////
+
+
+//you should probably only do this if the graph is actually a tree.
+void set_root(graph* tree, int v){
+   v = value(tree, v);
+   if(tree->root){ //changing the root. need to reset old parents
+
    }
-   edge* currEdge = currVertex->nextEdge;
-   while(currEdge) {
-      if (currEdge->value == v) {
-         return 1;
-      }
-      currEdge = currEdge->next;
+   else{
+      tree->root = v;
+      tree->vert[v]->parent = v; //PARENT OF ROOT IS SELF
+      generate_parents(tree,v);
    }
-   return 0;
 }
 
-void graph_add_edge(graph* g, int u, int v) {
-  if (graph_is_edge(g, u, v)) {
-    return;
-  }
+void generate_parents(graph* tree, int v){
+   v = value(tree, v);
+   vertex* parentVertex = tree->vert[v];
+   edge* e = parentVertex->edge;
+   while(e){
+      //we need to set parent and recurse
+      int childVertex = tree->vert[e->otherVertex];
 
-  vertex* currSourceVertex = g->vertexSet;
-  while (currSourceVertex) {
-     if (currSourceVertex->value == u) {
-        break;
-     }
-     currSourceVertex = currSourceVertex->nextVertex;
-  }
-
-  edge* e1 = malloc(sizeof(*e1));
-  e1->value = v;
-  e1->cost = 1;
-  e1->next = NULL;
-  _add_edge(currSourceVertex, e1);
-
-  vertex* currDestinationVertex = g->vertexSet;
-  while (currDestinationVertex) {
-     if (currDestinationVertex->value == v) {
-        break;
-     }
-     currDestinationVertex = currDestinationVertex->nextVertex;
-  }
-
-  edge* e2 = malloc(sizeof(*e2));
-  e2->value = u;
-  e2->cost = 1;
-  e2->next = NULL;
-  _add_edge(currDestinationVertex, e2);
-
-  g->edges++;
-}
-
-void graph_remove_edge(graph* g, int u, int v) {
-  if (!graph_is_edge(g, u, v)) {
-    return;
-  }
-  vertex* currSourceVertex = g->vertexSet;
-  while (currSourceVertex) {
-     if (currSourceVertex->value == u) {
-        break;
-     }
-     currSourceVertex = currSourceVertex->nextVertex;
-  }
-  vertex* currDestinationVertex = g->vertexSet;
-  while (currDestinationVertex) {
-     if (currDestinationVertex->value == v) {
-        break;
-     }
-     currDestinationVertex = currDestinationVertex->nextVertex;
-  }
-
-  _remove_edge(currSourceVertex, v);
-  _remove_edge(currDestinationVertex, u);
-  g->edges--;
-}
-
-
-void graph_print(graph* g) {
-   printf("Printing Graph:\n");
-   vertex* currVertex = g->vertexSet;
-   while (currVertex) {
-      printf("%i -> ", currVertex->value);
-      edge* currEdge = currVertex->nextEdge;
-      while(currEdge) {
-         printf("%i -> ", currEdge->value);
-         currEdge = currEdge->next;
+      if(!tree->vert[childVertex]->parent){
+         tree->vert[childVertex]->parent = v;
+         generate_parents(tree, childVertex);
       }
-      printf("\n");
-      currVertex = currVertex->nextVertex;
+      e = e->next;
    }
-   printf("\n");
 }
+
+
+////////////////////
+
+int value(graph* g, int v){ //condenses potential vertex list
+   vertex* origVertex = g->vert[v];
+   vertex* finalVertex = origVertex;
+   while(finalVertex->mergeValue != finalVertex->value){ //go to the end of the chain
+      finalVertex = g->vert[finalVertex->mergeValue];
+   }
+   vertex* curVertex = origVertex;
+   while(curVertex != finalVertex){ 
+      curVertex->mergeValue = finalVertex->value; //update all values on the chain
+   }
+   return finalVertex->value;
+}
+
+
+
+void add_new_edge(graph* g, int v1, int v2) {//Creates a new edge
+   #ifdef DEBUGPRINT
+   if(!g)
+      printf("add_edge: graph is null");
+   if(v1<0 || v2<0 || v1 > g->vertex_count || v2 > g-> vertex_count)
+      printf("add_edge: vertex value out of bounds\n");
+   #endif
+
+   edge* e1 = edge_create(v1, v2);
+   edge* e2=  edge_create(v2, v1);
+   
+   e1->next = g->vert[v1]->edge; //put the edge at the beginning of the list for each vertex
+   g->vert[v2]->edge = e1;
+   g->vert[v1]->degree++;
+
+   e2->next = g->vert[v2]->edge;
+   g->vert[v2]->edge = e2;
+
+   g->vert[v2]-> degree++;
+
+   e1->twin = e2; //point each node to its twin.
+   e2->twin = e1;
+}
+
+
+////////////////////////////////////////////////NOTE:: CAN GO FROM O(E) -> O(1) IF WE KEEP TRACK OF LAST EDGE IN THE LIST.
+//how should we handle vertex->parent? 
+//V1 SUBSUMES V2
+//if you are doing this, you may want to do it on another graph too.
+void merge_vertices(graph* g, int v1, int v2){
+   v1 = value(g, v1);
+   v2 = value(g, v2);
+
+   int big = (g->vert[v1]->degree > g->vert[v1]->degree) ? v1 : v2; //reduce how much list searching we have to do.
+   int small = v1 ^ v2 ^ big;
+
+   edge* begSmall = g->vert[small]->edge;
+   edge* endSmall = begSmall; //find end of the list
+   while(endSmall && endSmall->next){
+      endSmall = endSmall->next;
+   }
+
+   endSmall->next = g->vert[big]->edge; //combine the lists
+   g->vert[big]->edge = begSmall;
+
+   g->vert[small]->edge=NULL; //remove the edges from the smaller vertex.
+
+   g->vert[small]->mergeValue = big;
+   
+   g->vertex_count--;
+}
+
+//true value is not correct.
+
+//twin nonsense?
+//returns null if no match.
+edge* find_edge(graph* g, int v1, int v2){
+   v1 = value(g,v1);
+   v2 = value(g,v2);
+
+   edge* e = g->vert[v1];
+   while(e){
+      if(v2 == value(g,e->otherVertex)){
+         return e;
+      }
+   }
+   return NULL;
+}
+
+int remove_edge(graph* g, int v1, int v2) {
+   edge* e = find_edge(g, v1, v2);
+}
+
+//frees the whole list
+void edge_free(edge* e){
+
+}
+
+//also frees any edges and their twins.
+void vertex_free(vertex* v){
+   typedef struct Vertex {
+  int value;
+  int parent; //used only if the graph is a tree
+  int degree;
+
+  edge* edge;
+} vertex;
+}
+
+
+void graph_free(graph* g) {
+   for(int i = 0; i <= g->vertex_count; i++){
+      while(g->vert[i]->edge){
+         edge* currEdge = g->vert[i]->edge;
+         g->vert[i]->edge = currEdge->next;
+         free(currEdge);
+      }
+      free(g->vert[i]);
+   }
+   free(g->vert);
+  free(g);
+}
+
+
+//////////////////////////
+//PRINT
+//////////////////////////
 
 //prints the format for CSAcademy's graph visualizer.
-void graph_print_csacademy(graph* g){
-   vertex* currVertex = g->vertexSet;
-   while (currVertex) {
-      //printf("%i -> ", currVertex->value);
-      edge* currEdge = currVertex->nextEdge;
-      while(currEdge) {
-         printf("%i %i\n", currVertex->value, currEdge->value);
-         currEdge = currEdge->next;
-      }
-      currVertex = currVertex->nextVertex;
-   }
-   printf("\n");
-}
+void graph_print(graph* g){
 
- const char* t = "0\n1\n2\n3\n0 1\n1 2\n2 3";
+}
 
 /* Creates a graph from csacademy's output format
    char* text: output text with linebreaks as '\n' */
-graph* graph_construct_csacademy(char* text, int vertices){
+graph* graph_create_text(char* text, int vertex_count){
    if(!text)
       return NULL;
 
-   graph* out = graph_create(vertices);
+   graph* out = graph_create(vertex_count);
 
    int e1 = -1;
    int e2 = -1;
@@ -346,70 +296,4 @@ graph* graph_construct_csacademy(char* text, int vertices){
    }
 
    return out;
-}
-
-void graph_free(graph* g) {
-   vertex* currVertex = g->vertexSet;
-   vertex* prevVertex = NULL;
-   while (currVertex) {
-      edge* currEdge = currVertex->nextEdge;
-      edge* lastEdge = NULL;
-      while(currEdge) {
-         lastEdge = currEdge;
-         currEdge = currEdge->next;
-         free(lastEdge);
-      }
-      prevVertex = currVertex;
-      currVertex = currVertex->nextVertex;
-      free(prevVertex);
-   }
-  free(g);
-}
-
-adjlist* adjlist_create(int v) {
-   adjlist* adj = malloc(sizeof(*adj));
-   adj->value = v;
-   adj->next = NULL;
-
-   return adj;
-}
-
-adjlist* adjlist_get_next(adjlist* adj) {
-   return adj->next;
-}
-
-int adjlist_get_value(adjlist* adj) {
-   return adj->value;
-}
-
-void adjlist_set_value(adjlist* adj, int v) {
-   adj->value = v;
-}
-
-void adjlist_add_element(adjlist* adj, int v) {
-   adjlist* a = adjlist_create(v);
-   adjlist* curr = adj;
-   while(curr->next) {
-      curr = curr->next;
-   }
-   curr->next = a;
-}
-
-void adjlist_print(adjlist* adj) {
-   adjlist* curr = adj;
-   while(curr) {
-      printf("%i -> ", curr->value);
-      curr = curr->next;
-   }
-   printf("\n\n");
-}
-
-void adjlist_free(adjlist* adj) {
-   adjlist* curr = adj;
-   adjlist* last = NULL;
-   while(curr) {
-      last = curr;
-      curr = curr->next;
-      free(last);
-   }
 }
