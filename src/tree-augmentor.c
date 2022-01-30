@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <time.h>
 #include <sys/resource.h>
-#include "../include/fredrickson.h"
 #include "../include/tree-generator.h"
 #include "../include/tree-helper.h"
 #include "../include/tree-greedy.h"
@@ -22,27 +21,30 @@ void printInfo(int n, int tree[][n], int edgeSet[][n], int edgeWeights[][n]) {
 }
 
 int main(int argc, char *argv[]) {
-   printf("begin.\n");
    srand(time(0));
 
-   char* t = "0\n1\n2\n3\n0 1\n1 2\n2 3";
+   char* t = "1\n2\n3\n4\n1 2\n2 3\n3 4";
+
    
-   const int treesize = 25;
+   graph* g = graph_create_text(t, 4);
 
-   graph* tree = graph_construct_csacademy(t, 4);
-   graph_add_edge(tree, 0, 1);
+   graph_print(g);
 
-   graph_print_csacademy(tree);
-
-   graph* edgeSet = graph_create(treesize);
-   createEdgeSet(treesize, tree, edgeSet);
-   // printf("EDGESET:\n");
-   // graph_print(edgeSet);
+   printf("\n\n");
 
 
-   /* ______________________GREEDY ALGORITHM_______________________ */
-   int num_edges = greedyHeuristic(treesize, tree, edgeSet);
-   //printf("Greedy Algorithm: %i\n", num_edges);
 
+   
+   printf("merging:\n");
+   merge_vertices(g, 1, 4);
+   printf("merged.\n");
+   graph_print(g);
+
+   printf("\n\n");
+
+   printf("removing\n");
+   remove_edge(g,1,2);
+   printf("removed\n");
+   graph_print(g);
 
 }
