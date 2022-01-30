@@ -23,28 +23,41 @@ void printInfo(int n, int tree[][n], int edgeSet[][n], int edgeWeights[][n]) {
 int main(int argc, char *argv[]) {
    srand(time(0));
 
-   char* t = "1\n2\n3\n4\n1 2\n2 3\n3 4";
+   //test tree roots and create child thing.
+   //test degree correctness.
 
-   
-   graph* g = graph_create_text(t, 4);
+   //degree changes when adding
+   //degree changes when merging
+   //degree changes when removing
+
+   char* t = "5 2\n5 3\n3 4\n4 8\n4 10\n2 1\n1 7\n1 6\n1 9\n11 3";
+   int size = 11;
+
+
+   graph* g = graph_create_text(t,size);
 
    graph_print(g);
+
+   set_root(g,4);
+
+   for(int i = 1; i<=size; i++){
+      printf("%i\t%i\n", i, g->parents[i]);
+      fflush(stdout);
+   }
+
+   merge_vertices(g,3,5);
+
 
    printf("\n\n");
 
+   set_root(g,9);
 
+   for(int i = 1; i<=size; i++){
+      printf("%i\t%i\n", value(g,i), value(g,g->parents[value(g,i)]));
+      fflush(stdout);
+   }
 
+   //graph_print(g);
    
-   printf("merging:\n");
-   merge_vertices(g, 1, 4);
-   printf("merged.\n");
-   graph_print(g);
-
-   printf("\n\n");
-
-   printf("removing\n");
-   remove_edge(g,1,2);
-   printf("removed\n");
-   graph_print(g);
 
 }

@@ -19,7 +19,7 @@ graph* linearTree(int n) {
 graph* starTree(int n) {
   graph* g = graph_create(n);
   for (int i = 1; i < n; i++) {
-    graph_add_edge(g, 0, i);
+    graph_add_edge(g, 0+1, i+1);
   }
   return g;
 }
@@ -32,9 +32,9 @@ graph* starlikeTree(int n) {
   graph* g = graph_create(n);
   for (int i = 1; i < n; i++) {
     if (rand() % 100 < bfactor) {
-      graph_add_edge(g, 0, i);
+      graph_add_edge(g, 0+1, i+1);
     } else {
-      graph_add_edge(g, i - 1, i);
+      graph_add_edge(g, i -1 + 1, i+1);
     }
   }
   return g;
@@ -47,10 +47,10 @@ graph* caterpillarTree(int n) {
   graph* g = graph_create(n);
   int l = rand() % n + 1;
   for (int i = 0; i < l - 1; i++) {
-    graph_add_edge(g, i, i + 1);
+    graph_add_edge(g, i+1, i + 2);
   }
   for (int i = l; i < n; i++) {
-    graph_add_edge(g, rand() % l, i);
+    graph_add_edge(g, rand() % l+1, i+1);
   }
   return g;
 }
@@ -63,13 +63,13 @@ graph* lobsterTree(int n) {
   int l = rand() % n + 1;
   int l1 = rand() % (n - l + 1) + 1;
   for (int i = 0; i < l - 1; i++) {
-    graph_add_edge(g, i, i + 1);
+    graph_add_edge(g, i+1, i + 1+1);
   }
   for (int i = l; i < l + l1; i++) {
-    graph_add_edge(g, rand() % l, i);
+    graph_add_edge(g, rand() % l+1, i+1);
   }
   for (int i = l + l1; i < n; i++) {
-    graph_add_edge(g, rand() % l1 + l, i);
+    graph_add_edge(g, rand() % l1 + l+1, i+1);
   }
   return g;
 }
@@ -95,7 +95,7 @@ graph* randomForestTree(int n) {
   for (int i = 0; i < n - 2; i++) {
     for (int j = 0; j < n; j++) {
       if (degree[j] == 1) {
-        graph_add_edge(g, prufer[i], j);
+        graph_add_edge(g, prufer[i]+1, j+1);
         degree[prufer[i]]--;
         degree[j]--;
         break;
@@ -115,6 +115,6 @@ graph* randomForestTree(int n) {
       }
     }
   }
-  graph_add_edge(g, u, v);
+  graph_add_edge(g, u+1, v+1);
   return g;
 }

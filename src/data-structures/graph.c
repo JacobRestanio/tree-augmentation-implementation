@@ -1,25 +1,33 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h> //included only for memset()
 #include "../../include/graph.h"
 #include "../../include/stack.h"
 
 
-//note to self: when you make the edgeset you can't store the edges as a list the way you normally would.
-//              you will have to either copy the vertices or create a container.
+//note to self: when you make the edgeset, you can't store the edges as a list the way you normally would.
+//              you will have to either copy the edges or create a container.
 
 
-//add null pointer catches
+/*////////////items of future concern in graph.c
 
-//add debugprints
+update comments
 
-//make sure that the free() functions are correct.
+add null pointer catches
 
-//change vertex degree when merging
-//change when removing edges.
+add debugprints
 
-//set root needs a case completed
+make sure that the free() functions are correct.
 
-//remove edge has error cases that are not caught
+change vertex degree when merging
+change when removing edges.
+
+remove edge has unlikely/impossible cases that are not caught
+
+handling parents when merging trees. what if no longer a tree?
+*/
+
+
 
 ///////////EDGE/////////////
 
@@ -47,13 +55,12 @@ vertex* vertex_create(int v){
    vertex* vs = malloc(sizeof(*vs));
    vs->value = v;
    vs->mergeValue = v;
-   vs->parent = 0;
    vs->degree = 0;
 
    vs->edge = NULL;
 }
 
-//also frees any edges and their twins.
+//also frees any edges
 void vertex_free(vertex* v){
    if(v){
    edge* e = v->edge;
@@ -64,8 +71,6 @@ void vertex_free(vertex* v){
 
 
 
-
-
 ////////////GRAPH//////////////
 
 graph* graph_create(int v) {
@@ -73,13 +78,17 @@ graph* graph_create(int v) {
    g->vertex_count = v;
    g->original_vertex_count = v;
    g->edges = 0;
-   g->root = 0;
    g->vert = malloc(sizeof(vertex*)*(v+1)); //vertex zero is reserved.
 
    for(int i = 0; i<=v; i++){
       vertex* newVertex = vertex_create(i);
       g->vert[i] = newVertex;
    }
+
+
+   g->root = 0;
+   g->parents = NULL;
+
   return g;
 }
 
@@ -87,6 +96,10 @@ void graph_free(graph* g) {
    for(int i = 0; i<=g->original_vertex_count; i++){
       free(g->vert[i]);
    }
+
+   if(g->parents)
+      free(g->parents);
+
    free(g);
 }
 
@@ -193,15 +206,17 @@ int remove_edge(graph* g, int v1, int v2) {
    v1 = value(g,v1);
    v2 = value(g,v2);
 
+
    edge* ePrev = find_prev_edge(g,v1,v2);
    edge* e = NULL; //edge to remove
+
 
    //if edge is first in the list we need to change vertex->edge
    //ePrev will be null.
 
    if(ePrev == NULL){ //see if e is the first in the list.
       e = g->vert[v1]->edge;
-      if(value(g, e->otherVertex) != v2) //edge wasnt found
+      if(!e || value(g, e->otherVertex) != v2) //edge wasnt found
          return 0;
    }
    else{
@@ -238,6 +253,10 @@ int remove_edge(graph* g, int v1, int v2) {
 
    ee->next = g->vert[0]->edge;
    g->vert[0]->edge = ee->next;
+
+   g->vert[v1]->degree--;
+
+   g->vert[v2]->degree--;
    
    return 1;
 }
@@ -246,13 +265,16 @@ int remove_edge(graph* g, int v1, int v2) {
 
 ///NOTE:: CAN GO FROM O(E) -> O(1) IF WE KEEP TRACK OF LAST EDGE IN THE LIST.
 //how should we handle vertex->parent? 
-//V1 SUBSUMES V2
+//larger degree vertex subsumes smaller degree, v1 subsumes v2 if same degree
 //if you are doing this, you may want to do it on another graph too.
 void merge_vertices(graph* g, int v1, int v2){
    v1 = value(g, v1);
    v2 = value(g, v2);
 
-   int big = (g->vert[v1]->degree > g->vert[v1]->degree) ? v1 : v2; //reduce how much list searching we have to do.
+   if(v1 == v2)
+      return;
+
+   int big = (g->vert[v1]->degree >= g->vert[v2]->degree) ? v1 : v2; //reduce how much list searching we have to do.
    int small = v1 ^ v2 ^ big;
 
    edge* begSmall = g->vert[small]->edge;
@@ -267,6 +289,8 @@ void merge_vertices(graph* g, int v1, int v2){
    g->vert[small]->edge=NULL; //remove the edges from the smaller vertex.
 
    g->vert[small]->mergeValue = big;
+
+   g->vert[big]->degree += g->vert[small]->degree;
    
    g->vertex_count--;
 }
@@ -277,30 +301,50 @@ void merge_vertices(graph* g, int v1, int v2){
 
 ///////////TREE FUNCTIONS/////////////
 
-//you should probably only do this if the graph is actually a tree.
-void set_root(graph* tree, int v){
-   v = value(tree, v);
-   if(tree->root){ //changing the root. need to reset old parents
 
+//you should probably only do this if the graph is actually a tree.
+//has bug with merged graphs, unless you sanitize all vertex accesses. intended?
+void set_root(graph* t, int v){
+   v = value(t, v);
+   if(t->root){ //changing the root. need to reset old parents
+      //if there are bugs, just memset parents[] to 0;
+      //update parents for edges on the path from old root to new root.
+      int prev = v;
+      int current = v;
+      int currentParent = value(t,t->parents[current]);
+      while(current!=currentParent){
+         t->parents[current] = prev;
+
+         prev = current;
+         current = currentParent;
+         currentParent = value(t,t->parents[current]);
+      }
+      t->parents[current] = prev;
+      t->root = v;
    }
    else{
-      tree->root = v;
-      tree->vert[v]->parent = v; //PARENT OF ROOT IS SELF
-      generate_parents(tree,v);
+      if(! t->parents)
+         t->parents = malloc(sizeof(int) * (t->original_vertex_count+1));
+
+      memset(t->parents, 0, sizeof t->parents);
+
+      t->root = v;
+      t->parents[v]= v; //PARENT OF ROOT IS SELF
+      generate_parents(t,v);
    }
 }
 
-void generate_parents(graph* tree, int v){
-   v = value(tree, v);
-   vertex* parentVertex = tree->vert[v];
+void generate_parents(graph* t, int v){
+   v = value(t, v);
+   vertex* parentVertex = t->vert[v];
    edge* e = parentVertex->edge;
    while(e){
       //we need to set parent and recurse
-      int childVertex = tree->vert[e->otherVertex]->mergeValue;
+      int childVertex = value(t,e->otherVertex);
 
-      if(!tree->vert[childVertex]->parent){
-         tree->vert[childVertex]->parent = v;
-         generate_parents(tree, childVertex);
+      if(!t->parents[childVertex]){
+         t->parents[childVertex] = v;
+         generate_parents(t, childVertex);
       }
       e = e->next;
    }
