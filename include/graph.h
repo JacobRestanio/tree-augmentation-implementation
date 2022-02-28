@@ -29,6 +29,7 @@ typedef struct Vertex {
   int degree;
 
   edge* edge;
+  edge* lastedge;
 } vertex;
 
 vertex* vertex_create(int v);
@@ -47,7 +48,8 @@ typedef struct Graph {
   vertex** vert;
   
   //used only if the graph is a tree
-  int root; 
+  int root;
+  int* depths;
   int* parents;
 } graph;
 
@@ -55,7 +57,7 @@ graph* graph_create(int v);
 
 void graph_free(graph* g);
 
-
+//needs renamed
 int value(graph* g, int v); //not sure if chains merge correctly
 
 void add_new_edge(graph* g, int v1, int v2);
@@ -81,7 +83,13 @@ void merge_vertices(graph* g, int v1, int v2);
 //TREE
 void set_root(graph* tree, int v);
 
-void generate_parents(graph* tree, int v); 
+void generate_parents(graph* tree, int v);
+
+int get_parent(graph* tree, int v);
+
+int get_depth(graph* t, int v);
+
+void merge_path(graph* t, int u, int v);
 
 
 //PRINT

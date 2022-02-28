@@ -25,6 +25,9 @@ change when removing edges.
 remove edge has unlikely/impossible cases that are not caught
 
 handling parents when merging trees. what if no longer a tree?
+
+degree includes duplicate edges
+
 */
 
 
@@ -58,6 +61,7 @@ vertex* vertex_create(int v){
    vs->degree = 0;
 
    vs->edge = NULL;
+   vs->lastedge = NULL;
 }
 
 //also frees any edges
@@ -85,9 +89,9 @@ graph* graph_create(int v) {
       g->vert[i] = newVertex;
    }
 
-
    g->root = 0;
    g->parents = NULL;
+   g->depths = NULL;
 
   return g;
 }
@@ -99,6 +103,8 @@ void graph_free(graph* g) {
 
    if(g->parents)
       free(g->parents);
+   if(g->depths)
+      free(g->depths);
 
    free(g);
 }
@@ -114,14 +120,12 @@ int value(graph* g, int v){ //condenses potential vertex list so that average ca
    vertex* finalVertex = origVertex;
    while(finalVertex->mergeValue != finalVertex->value){ //go to the end of the chain
       finalVertex = g->vert[finalVertex->mergeValue];
-      fflush(stdout);
    }
    vertex* curVertex = origVertex;
    while(curVertex != finalVertex){ 
       curVertex->mergeValue = finalVertex->value; //update all values on the chain
       curVertex = g->vert[curVertex->mergeValue]; //not sure if this is correct.
    }
-   //printf("value: %i -> %i", v, finalVertex->value);
    return finalVertex->value;
 }
 
@@ -148,6 +152,13 @@ void add_new_edge(graph* g, int v1, int v2) {//Creates a new edge
    e2->next = g->vert[v2]->edge;
    g->vert[v2]->edge = e2;
    g->vert[v2]-> degree++;
+
+   if(g->vert[v1]->lastedge == NULL){ //update last edge
+      g->vert[v1]->lastedge = e1;
+   }
+   if(g->vert[v2]->lastedge == NULL){
+      g->vert[v2]->lastedge = e2;
+   }
 
    e1->twin = e2; //point each node to its twin.
    e2->twin = e1;
@@ -178,7 +189,7 @@ int graph_is_edge(graph* g, int v1, int v2){
 }
 
 
-
+//finds the edge that occurs before (v1,v2), if it exists
 //returns null if not found
 //returns null if the first edge in list is (v1,v2)
 edge* find_prev_edge(graph* g, int v1, int v2){
@@ -223,6 +234,10 @@ int remove_edge(graph* g, int v1, int v2) {
       e = ePrev->next;
    }
 
+   if(e == g->vert[v1]->lastedge)
+      g->vert[v1]->lastedge = ePrev;
+   
+
    //what if the twin is null??
 
    edge* eePrev = NULL;
@@ -247,6 +262,9 @@ int remove_edge(graph* g, int v1, int v2) {
    else{
       eePrev->next = ee->next;
    }
+
+   if(ee == g->vert[v2]->lastedge)
+      g->vert[v2]->lastedge = eePrev;
 
    e->next = g->vert[0]->edge;
    g->vert[0]->edge = e->next;
@@ -274,23 +292,15 @@ void merge_vertices(graph* g, int v1, int v2){
    if(v1 == v2)
       return;
 
-   int big = (g->vert[v1]->degree >= g->vert[v2]->degree) ? v1 : v2; //reduce how much list searching we have to do.
-   int small = v1 ^ v2 ^ big;
+   g->vert[v2]->lastedge->next = g->vert[v1]->edge; //combine the lists
+   g->vert[v1]->edge = g->vert[v2]->edge;
 
-   edge* begSmall = g->vert[small]->edge;
-   edge* endSmall = begSmall; //find end of the list
-   while(endSmall && endSmall->next){
-      endSmall = endSmall->next;
-   }
+   g->vert[v2]->edge=NULL; //remove the edges from the smaller vertex.
+   g->vert[v2]->lastedge=NULL;
 
-   endSmall->next = g->vert[big]->edge; //combine the lists
-   g->vert[big]->edge = begSmall;
+   g->vert[v2]->mergeValue = v1;
 
-   g->vert[small]->edge=NULL; //remove the edges from the smaller vertex.
-
-   g->vert[small]->mergeValue = big;
-
-   g->vert[big]->degree += g->vert[small]->degree;
+   g->vert[v1]->degree += g->vert[v2]->degree;
    
    g->vertex_count--;
 }
@@ -325,11 +335,12 @@ void set_root(graph* t, int v){
    else{
       if(! t->parents)
          t->parents = malloc(sizeof(int) * (t->original_vertex_count+1));
-
+         //t->depths = malloc(sizeof(int) * (t->original_vertex_count+1));
       memset(t->parents, 0, sizeof t->parents);
-
+      //memset(t->depths, 0, sizeof t->depths);
       t->root = v;
       t->parents[v]= v; //PARENT OF ROOT IS SELF
+      //t->depths[v] = 0;
       generate_parents(t,v);
    }
 }
@@ -344,10 +355,60 @@ void generate_parents(graph* t, int v){
 
       if(!t->parents[childVertex]){
          t->parents[childVertex] = v;
+         //t->depths[childVertex] = t->depths[v]+1;
          generate_parents(t, childVertex);
       }
       e = e->next;
    }
+}
+
+int get_parent(graph* tree, int v){
+  if (tree->parents == 0)
+    return 0;
+   v = value(tree, v);
+  return tree->parents[v];
+}
+
+
+//could maybe generate this when the tree is formed
+int get_depth(graph* t, int v){
+   v = value(t,v);
+   int d = 0;
+   while(get_parent(t,v) != v){
+      d++;
+      v = get_parent(t,v);
+   }
+   return d;
+}
+
+// u will be the remaining vertex after merging the path.
+void merge_path(graph* t, int u, int v){
+   u = value(t,u);
+   v = value(t,v);
+   
+   int u_depth = get_depth(t,u);
+   int v_depth = get_depth(t,v);
+
+   while (u!=v) {
+      if(u_depth > v_depth){     //doing this with a pointer to the deeper vertex caused bugs for some reason
+         int p = get_parent(t,u);
+         merge_vertices(t,p,u);
+         u = value(t,u);
+         u_depth--;
+      }
+      else{
+         int p = get_parent(t,v);
+         merge_vertices(t,p,v);
+         v = value(t,v);
+         v_depth--;
+      }
+      
+   }
+}
+
+//returns 1 if (u,v) covers (tu,tv);
+int covers(graph* t, int u, int v, int tu, int tv){
+
 }
 
 

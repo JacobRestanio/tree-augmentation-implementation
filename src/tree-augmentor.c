@@ -30,34 +30,26 @@ int main(int argc, char *argv[]) {
    //degree changes when merging
    //degree changes when removing
 
-   char* t = "5 2\n5 3\n3 4\n4 8\n4 10\n2 1\n1 7\n1 6\n1 9\n11 3";
-   int size = 11;
+   char* t = "1 6\n1 7\n1 2\n2 1\n2 5\n3 11\n3 4\n3 5\n4 10\n4 8\n4 3\n5 3\n5 2\n6 1\n7 1\n8 4\n9 1\n10 4\n11 3\n0\n13 3\n12 11\n12 14\n15 12\n";
+   int size = 15;
 
 
    graph* g = graph_create_text(t,size);
 
    graph_print(g);
-
-   set_root(g,4);
-
-   for(int i = 1; i<=size; i++){
-      printf("%i\t%i\n", i, g->parents[i]);
-      fflush(stdout);
-   }
-
-   merge_vertices(g,3,5);
-
-
    printf("\n\n");
 
    set_root(g,9);
 
    for(int i = 1; i<=size; i++){
-      printf("%i\t%i\n", value(g,i), value(g,g->parents[value(g,i)]));
+      printf("%i -> %i parent: %i \t depth: %i\n", i , value(g,i), get_parent(g,i), get_depth(g,i));
       fflush(stdout);
    }
 
-   //graph_print(g);
-   
+   printf("\n\n");
+
+   merge_path(g, 1, 14);
+
+   graph_print(g);
 
 }
