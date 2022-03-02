@@ -7,6 +7,9 @@
 
 //add null pointer catches
 
+
+#include "int_list.h"
+
 //EDGE
 typedef struct Edge {
    int thisVertex;
@@ -71,13 +74,17 @@ int graph_is_edge(graph* g, int v1, int v2);
 
 int remove_edge(graph* g, int v1, int v2); //degree. could be slightly improved by doubly linked edges
 
-///NOTE:: CAN GO FROM O(E) -> O(1) IF WE KEEP TRACK OF LAST EDGE IN THE LIST.
-///       IF DOUBLY LINKED, REMOVALS WOULD ALSO GO FROM O(E)->O(1).
-///       COST OF 25% EXTRA STORAGE ON EDGES
 //how should we handle vertex->parent in rooted trees?
 //V1 SUBSUMES V2
 //if you are doing this, you may want to do it on another graph too.
 void merge_vertices(graph* g, int v1, int v2);
+
+
+// Eg(X)
+edge incident(graph* g, int_ls* v);
+
+
+
 
 
 //TREE
@@ -90,6 +97,27 @@ int get_parent(graph* tree, int v);
 int get_depth(graph* t, int v);
 
 void merge_path(graph* t, int u, int v);
+
+
+
+int_ls* tree_path(graph* t, int u, int v);
+
+int_ls* children(graph* t, int u);
+
+int_ls* descendants(graph* t, int u);
+
+int lca(graph* t, int u, int v);
+
+int_ls* leaves(graph* t, int u);
+
+char is_leaf(graph* t, int u);
+
+char fringes(graph* t, int u);
+
+char is_fringe(graph* t, int u);
+
+char lf_closed(graph* t, int u);
+
 
 
 //PRINT

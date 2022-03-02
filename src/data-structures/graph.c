@@ -3,30 +3,19 @@
 #include <string.h> //included only for memset()
 #include "../../include/graph.h"
 #include "../../include/stack.h"
+#include "../../include/int_list.h"
 
 
-//note to self: when you make the edgeset, you can't store the edges as a list the way you normally would.
-//              you will have to either copy the edges or create a container.
+
 
 
 /*////////////items of future concern in graph.c
 
-update comments
-
-add null pointer catches
-
-add debugprints
-
 make sure that the free() functions are correct.
 
-change vertex degree when merging
-change when removing edges.
-
-remove edge has unlikely/impossible cases that are not caught
-
-handling parents when merging trees. what if no longer a tree?
-
 degree includes duplicate edges
+
+merging duplicate edges.
 
 */
 
@@ -381,10 +370,22 @@ int get_depth(graph* t, int v){
    return d;
 }
 
-// u will be the remaining vertex after merging the path.
+// 'u' will be the remaining vertex after merging the path.
 void merge_path(graph* t, int u, int v){
+   int_ls* path = tree_path(t, u, v);
+   while(path->next){
+      merge_vertices(t, path->value, path->next->value);
+      path = path->next;
+   }
+}
+
+
+
+int_ls* tree_path(graph* t, int u, int v){
    u = value(t,u);
    v = value(t,v);
+
+   int_ls* vs = NULL;
    
    int u_depth = get_depth(t,u);
    int v_depth = get_depth(t,v);
@@ -392,24 +393,48 @@ void merge_path(graph* t, int u, int v){
    while (u!=v) {
       if(u_depth > v_depth){     //doing this with a pointer to the deeper vertex caused bugs for some reason
          int p = get_parent(t,u);
-         merge_vertices(t,p,u);
+         vs = add_ls(vs, u);
          u = value(t,u);
          u_depth--;
       }
       else{
          int p = get_parent(t,v);
-         merge_vertices(t,p,v);
+         vs = add_ls(vs, v);
          v = value(t,v);
          v_depth--;
       }
       
    }
+    vs = add_ls(vs, u);
+    return vs;
 }
+
+int_ls* children(graph* t, int u);
+
+int_ls* descendants(graph* t, int u);
+
+int lca(graph* t, int u, int v);
+
+int_ls* leaves(graph* t, int u);
+
+char is_leaf(graph* t, int u);
+
+char fringes(graph* t, int u);
+
+char is_fringe(graph* t, int u);
+
+char lf_closed(graph* t, int u);
 
 //returns 1 if (u,v) covers (tu,tv);
-int covers(graph* t, int u, int v, int tu, int tv){
+char covers(graph* t, int u, int v, int tu, int tv){
 
 }
+
+
+
+
+
+
 
 
 /////////////PRINT/////////////

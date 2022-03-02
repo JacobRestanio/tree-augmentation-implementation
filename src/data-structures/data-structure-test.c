@@ -35,6 +35,7 @@ int main() {
   printf("Freeing stack\n");
   stack_free(s);
 
+/*
   printf("\n\n");
   printf("Creating Directed Graph\n");
   directedgraph* dg = directedgraph_create(5);
@@ -100,6 +101,8 @@ int main() {
 
   printf("Freeing graph\n");
   directedgraph_free(dg);
+
+*/
 
   printf("\n\n");
   printf("Creating Graph\n");
