@@ -8,7 +8,7 @@
 //add null pointer catches
 
 
-#include "int_list.h"
+#include "int-list.h"
 
 //EDGE
 typedef struct Edge {
@@ -80,6 +80,8 @@ int remove_edge(graph* g, int v1, int v2); //degree. could be slightly improved 
 void merge_vertices(graph* g, int v1, int v2);
 
 
+int remove_self_edges(graph* g, int v);
+
 // Eg(X)
 edge incident(graph* g, int_ls* v);
 
@@ -112,11 +114,16 @@ int_ls* leaves(graph* t, int u);
 
 char is_leaf(graph* t, int u);
 
-char fringes(graph* t, int u);
+int_ls* fringes(graph* t, int u);
 
 char is_fringe(graph* t, int u);
 
-char lf_closed(graph* t, int u);
+char lf_closed(graph* g, graph* t, int r);
+
+int remove_all_edges(graph* g, int v1, int v2);
+
+char covers(graph* t, int u, int v, int tu, int tv);
+
 
 
 

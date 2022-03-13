@@ -2,11 +2,8 @@
 #include <stdlib.h>
 #include <string.h> //included only for memset()
 #include "../../include/graph.h"
-#include "../../include/stack.h"
-#include "../../include/int_list.h"
-
-
-
+#include "../../include/int-list.h"
+#include "../../include/ptr-list.h"
 
 
 /*////////////items of future concern in graph.c
@@ -15,7 +12,7 @@ make sure that the free() functions are correct.
 
 degree includes duplicate edges
 
-merging duplicate edges.
+combine duplicate edges when merging.
 
 */
 
@@ -197,6 +194,22 @@ edge* find_prev_edge(graph* g, int v1, int v2){
    return NULL;
 }
 
+edge* find_prev_edge_se(graph* g, edge* se, int v1, int v2){
+   v1 = value(g,v1);
+   v2 = value(g,v2);
+
+   edge* ePrev = NULL;
+   edge* e = se;
+   while(e){
+      if(v2 == value(g,e->otherVertex)){
+         return ePrev;
+      }
+      ePrev = e;
+      e = e->next;
+   }
+   return NULL;
+}
+
 
 
 //will remove ONE edge. not all edges between v1 and v2
@@ -275,6 +288,12 @@ int remove_edge(graph* g, int v1, int v2) {
 //larger degree vertex subsumes smaller degree, v1 subsumes v2 if same degree
 //if you are doing this, you may want to do it on another graph too.
 void merge_vertices(graph* g, int v1, int v2){
+
+   //find all edges that are v2,v1
+   //remove them
+   //add them to an edgelist
+
+
    v1 = value(g, v1);
    v2 = value(g, v2);
 
@@ -377,6 +396,7 @@ void merge_path(graph* t, int u, int v){
       merge_vertices(t, path->value, path->next->value);
       path = path->next;
    }
+   free(path);
 }
 
 
@@ -393,41 +413,200 @@ int_ls* tree_path(graph* t, int u, int v){
    while (u!=v) {
       if(u_depth > v_depth){     //doing this with a pointer to the deeper vertex caused bugs for some reason
          int p = get_parent(t,u);
-         vs = add_ls(vs, u);
-         u = value(t,u);
+         vs = ls_add(vs, u);
+         u = value(t,p);
          u_depth--;
       }
       else{
          int p = get_parent(t,v);
-         vs = add_ls(vs, v);
-         v = value(t,v);
+         vs = ls_add(vs, v);
+         v = value(t,p);
          v_depth--;
       }
       
    }
-    vs = add_ls(vs, u);
+    vs = ls_add(vs, u);
     return vs;
 }
 
-int_ls* children(graph* t, int u);
+int_ls* children(graph* t, int u){
+   u = value(t, u);
+   edge* e = t->vert[u]->edge;
+   
+   int p = value(t, t->parents[u]);
+   int_ls* ls = NULL;
+   
+   while(e){
+      if(value(t, e->otherVertex) != p && (value(t, e->otherVertex) != value(t, e->thisVertex)))
+         ls = ls_add(ls,e->otherVertex);
+      e = e->next;
+   }
 
-int_ls* descendants(graph* t, int u);
+   return ls;
+}
 
-int lca(graph* t, int u, int v);
+// return children u + children(children u)
 
-int_ls* leaves(graph* t, int u);
 
-char is_leaf(graph* t, int u);
+int_ls* d_helper(graph* t, int u){
+   u = value(t, u);
 
-char fringes(graph* t, int u);
+   int_ls* kids = children(t, u);
+   int_ls* kids_of_kids = NULL;
 
-char is_fringe(graph* t, int u);
+   int_ls* current_kid = kids;
+   while(current_kid){
+      int_ls* currents_kids = descendants(t,current_kid->value);
+      kids_of_kids = ls_merge(kids_of_kids,currents_kids);
+      current_kid = current_kid->next;
+   }
+   return ls_merge(kids,kids_of_kids);
+}
 
-char lf_closed(graph* t, int u);
+int_ls* descendants(graph* t, int u){
+   return ls_add(d_helper(t,u), u);
+}
+
+
+int lca(graph* t, int u, int v){
+   u = value(t,u);
+   v = value(t,v);
+   
+   int u_depth = get_depth(t,u);
+   int v_depth = get_depth(t,v);
+
+   while (u!=v) {
+      if(u_depth > v_depth){     //doing this with a pointer to the deeper vertex caused bugs for some reason
+         int p = get_parent(t,u);
+         u = value(t,p);
+         u_depth--;
+      }
+      else{
+         int p = get_parent(t,v);
+         v = value(t,p);
+         v_depth--;
+      }
+   }
+    return u;
+}
+
+
+
+
+int_ls* add_leaves(graph* t, int_ls* leaves, int u){
+   u = value(t,u);
+
+   int_ls* kids = children(t, u);
+
+   if(kids == NULL){ //is leaf
+      leaves = ls_add(leaves, u);
+      return leaves;
+   }
+
+   int_ls* kids_of_kids = NULL;
+
+   int_ls* current_kid = kids;
+   while(current_kid){
+      leaves = add_leaves(t,leaves,current_kid->value);
+      current_kid = current_kid->next;
+   }
+   ls_free(kids);
+   return leaves;
+}
+
+//could be sped up by not depending on other function calls.
+int_ls* leaves(graph* t, int u){
+   int_ls* leaves = NULL;
+   return add_leaves(t, leaves, u);
+}
+
+
+char is_leaf(graph* t, int u){
+   u = value(t, u);
+
+   int_ls* has_children = children(t,u);
+   if(has_children != NULL){
+      ls_free(has_children);
+      return 0;
+   }
+   return 1;
+}
+
+int_ls* fringes(graph* t, int u){
+   u = value(t,u);
+   int_ls* d = descendants(t, u);
+   int_ls* fringes = NULL;
+
+   int_ls* cur_d = d;
+   while(cur_d){
+      if(is_fringe(t,cur_d->value)){
+         fringes = ls_add(fringes,value(t,cur_d->value));
+      }
+      cur_d = cur_d->next;
+   }
+   ls_free(d);
+   return fringes;
+}
+
+char is_fringe(graph* t, int u){
+   int_ls* kids = children(t, u);
+   int_ls* child = kids;
+   if(child == NULL)
+      return 0;
+   while(child){
+      if(!is_leaf(t,child->value)){
+         ls_free(kids);
+         return 0;
+      }
+      child = child->next;
+   }
+   ls_free(kids);
+   return 1;
+}
+
+char lf_closed_nm(graph* g, graph* t, int r){
+   int_ls* d = descendants(t,r);
+   int_ls* l = leaves(t,r);
+
+   int_ls* cur_leaf = l;
+
+   while(cur_leaf){
+      int v = value(t,cur_leaf->value);
+      edge* cur_edge = g->vert[v]->edge;
+      while(cur_edge){
+         if(!ls_contains(d,value(g,cur_edge->otherVertex))){
+            ls_free(d);
+            ls_free(l);
+            return 0;
+         }
+         cur_edge = cur_edge->next;
+      }
+      cur_leaf = cur_leaf->next;
+   }
+   ls_free(d);
+   ls_free(l);
+   return 1;
+}
+
+char lf_closed_b(graph* g, graph* t, int r){
+   return 1;
+}
+
+
+char lf_closed(graph* g, graph* t, int r){
+   return lf_closed_nm(g,t,r);
+}
 
 //returns 1 if (u,v) covers (tu,tv);
 char covers(graph* t, int u, int v, int tu, int tv){
+   u = value(t,u);
+   v = value(t,v);
+   tv = value(t,tv);
+   tu = value(t,tu);
 
+   int_ls* path = tree_path(t, u, v);
+   char covers = ls_contains_2(path, tu, tv);
+   return covers;
 }
 
 

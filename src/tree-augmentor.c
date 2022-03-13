@@ -7,6 +7,7 @@
 #include "../include/tree-helper.h"
 #include "../include/tree-greedy.h"
 #include "../include/graph.h"
+#include "../include/int-list.h"
 
 /* Temporary Function to some debugging info */
 /* Some change but in a different branch */
@@ -30,26 +31,21 @@ int main(int argc, char *argv[]) {
    //degree changes when merging
    //degree changes when removing
 
-   char* t = "1 6\n1 7\n1 2\n2 1\n2 5\n3 11\n3 4\n3 5\n4 10\n4 8\n4 3\n5 3\n5 2\n6 1\n7 1\n8 4\n9 1\n10 4\n11 3\n0\n13 3\n12 11\n12 14\n15 12\n";
-   int size = 15;
+   char* t_text = "20 1\n1 3\n7 1\n7 8\n9 7\n9 10\n10 11\n11 12\n20 2\n20 4\n4 5\n4 6\n6 13\n6 14\n6 15\n14 16\n14 17\n17 18\n17 19\n8 21";
+   char* g_text = "20 1\n1 3\n7 1\n7 8\n9 7\n9 10\n10 11\n11 12\n20 2\n20 4\n4 5\n4 6\n6 13\n6 14\n6 15\n14 16\n14 17\n17 18\n17 19\n8 21\n17 15\n19 18\n19 16\n14 2\n13 3";
+   int size = 21;
 
+   graph* t = graph_create_text(t_text,size);
+   graph* g = graph_create_text(g_text,size);
 
-   graph* g = graph_create_text(t,size);
+   set_root(t,20);
 
-   graph_print(g);
-   printf("\n\n");
+   int x[5] = {1, 4, 6, 14, 17};
 
-   set_root(g,9);
-
-   for(int i = 1; i<=size; i++){
-      printf("%i -> %i parent: %i \t depth: %i\n", i , value(g,i), get_parent(g,i), get_depth(g,i));
-      fflush(stdout);
+   for(int i= 1; i<22; i++){
+      char c = lf_closed(g,t,i);
+      printf("   {n:%i lf:%i}   \n", i, c);
    }
 
    printf("\n\n");
-
-   merge_path(g, 1, 14);
-
-   graph_print(g);
-
 }

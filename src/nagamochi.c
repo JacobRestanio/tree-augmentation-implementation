@@ -7,8 +7,3 @@ int nagamochi(int size, graph* tree, double aproxFactor){
     return 0;
 }
 
-
-int isLfClosed(graph* tree, vertex* v, vertex* root, edge* edgeset){
-    
-    return 0;
-}
