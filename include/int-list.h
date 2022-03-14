@@ -33,11 +33,11 @@ void ls_remove_list(int_ls* is, int_ls* ns);
 
 void ls_print(int_ls* is);
 
-int ls_contains(int_ls* is, int n);
+int_ls* ls_contains(int_ls* is, int n);
 
 int ls_contains_2(int_ls* list, int a, int b);
 
-int ls_contains_list(int_ls* list, int_ls* ns);
+int_ls* ls_contains_any(int_ls* list, int_ls* ns);
 
 //void merge_set(int_ls* is, int_ls* js);
 

@@ -31,6 +31,8 @@ typedef struct Vertex {
   int mergeValue;
   int degree;
 
+  int_ls* aliases;
+
   edge* edge;
   edge* lastedge;
 } vertex;
@@ -49,6 +51,8 @@ typedef struct Graph {
   int edges;
 
   vertex** vert;
+
+  edge* retain;
   
   //used only if the graph is a tree
   int root;
@@ -66,6 +70,8 @@ int value(graph* g, int v); //not sure if chains merge correctly
 void add_new_edge(graph* g, int v1, int v2);
 
 void graph_add_edge(graph* g, int v1, int v2); 
+
+void retain(graph* g, edge* e);
 
 //returns null if no match.
 edge* find_edge(graph* g, int v1, int v2);
@@ -100,7 +106,7 @@ int get_depth(graph* t, int v);
 
 void merge_path(graph* t, int u, int v);
 
-
+void merge_list(graph* g, int_ls* vs);
 
 int_ls* tree_path(graph* t, int u, int v);
 

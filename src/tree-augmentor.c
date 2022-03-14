@@ -40,12 +40,25 @@ int main(int argc, char *argv[]) {
 
    set_root(t,20);
 
-   int x[5] = {1, 4, 6, 14, 17};
+   int_ls* path = tree_path(t,7,14);
 
-   for(int i= 1; i<22; i++){
-      char c = lf_closed(g,t,i);
-      printf("   {n:%i lf:%i}   \n", i, c);
-   }
+   merge_list(t,path);
+   merge_list(g,path);
+
+   graph_print(t);
+     printf("\n\n");
+   graph_print(g);
 
    printf("\n\n");
+     printf("\n\n");
+
+   remove_self_edges(t,4);
+   remove_self_edges(g,6);
+   graph_print(t);
+     printf("\n\n");
+   graph_print(g);
+
+  printf("\n\n");
+   printf("\n\n");
+
 }

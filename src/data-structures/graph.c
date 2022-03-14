@@ -46,6 +46,8 @@ vertex* vertex_create(int v){
    vs->mergeValue = v;
    vs->degree = 0;
 
+   vs->aliases = ls_add(NULL,v);
+
    vs->edge = NULL;
    vs->lastedge = NULL;
 }
@@ -55,6 +57,8 @@ void vertex_free(vertex* v){
    if(v){
    edge* e = v->edge;
    edge_free(e);
+   if(v->mergeValue == v->value)
+      ls_free(v->aliases);
    free(v);
    }
 }
@@ -68,12 +72,14 @@ graph* graph_create(int v) {
    g->vertex_count = v;
    g->original_vertex_count = v;
    g->edges = 0;
-   g->vert = malloc(sizeof(vertex*)*(v+1)); //vertex zero is reserved.
+   g->vert = malloc(sizeof(vertex*)*(v+1)); //vertex zero is reserved for retention.
 
    for(int i = 0; i<=v; i++){
       vertex* newVertex = vertex_create(i);
       g->vert[i] = newVertex;
    }
+
+   g->retain = NULL;
 
    g->root = 0;
    g->parents = NULL;
@@ -154,6 +160,12 @@ void graph_add_edge(graph* g, int v1, int v2){
    add_new_edge(g, v1, v2);
 }
 
+void retain(graph* g, edge* e){
+    edge* ne = edge_create(e->thisVertex,e->otherVertex);
+    ne->next = g->retain;
+    g->retain = ne;
+}
+
 //twin nonsense? what if v2 and v1 are flipped? is this possible?
 //returns null if no match.
 edge* find_edge(graph* g, int v1, int v2){
@@ -194,6 +206,7 @@ edge* find_prev_edge(graph* g, int v1, int v2){
    return NULL;
 }
 
+//has a starting edge
 edge* find_prev_edge_se(graph* g, edge* se, int v1, int v2){
    v1 = value(g,v1);
    v2 = value(g,v2);
@@ -281,6 +294,38 @@ int remove_edge(graph* g, int v1, int v2) {
    return 1;
 }
 
+int remove_self_edges(graph* g, int v){
+   v = value(g,v);
+   edge* le = g->vert[v]->edge;
+   edge* se = find_prev_edge_se(g,le,v,v);
+
+   while(1){
+      if(se){
+         edge* e_remove = se->next;
+        se->next = se->next->next;
+        e_remove -> next = NULL;
+        edge_free(e_remove);
+      }
+      // if e is null check the first edge in the list
+      else if (value(g,le->thisVertex)==value(g,le->otherVertex)){ 
+         edge* e_next = le->next;
+         if(le == g->vert[v]->edge){
+            g->vert[v]->edge = e_next;
+         }
+         le->next = NULL;
+         free(le);
+         se = e_next;
+      }
+      else{ //no more self-loops
+         return 1;
+      }
+      le = se;
+      se = find_prev_edge_se(g,le,v,v);
+   }
+   return 0;
+}
+
+
 
 
 ///NOTE:: CAN GO FROM O(E) -> O(1) IF WE KEEP TRACK OF LAST EDGE IN THE LIST.
@@ -307,6 +352,7 @@ void merge_vertices(graph* g, int v1, int v2){
    g->vert[v2]->lastedge=NULL;
 
    g->vert[v2]->mergeValue = v1;
+   g->vert[v1]->aliases = ls_merge(g->vert[v2]->aliases, g->vert[v1]->aliases);
 
    g->vert[v1]->degree += g->vert[v2]->degree;
    
@@ -399,6 +445,13 @@ void merge_path(graph* t, int u, int v){
    free(path);
 }
 
+void merge_list(graph* g, int_ls* vs){
+   int_ls* path = vs;
+   while(path->next){
+      merge_vertices(g, path->value, path->next->value);
+      path = path->next;
+   }
+}
 
 
 int_ls* tree_path(graph* t, int u, int v){

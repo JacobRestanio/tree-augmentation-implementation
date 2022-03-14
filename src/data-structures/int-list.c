@@ -60,8 +60,24 @@ int_ls* ls_add(int_ls* is, int i){
     return n;
 }
 
-int ls_remove(int_ls* is, int i){
-    return 0;
+int_ls* ls_remove_node(int_ls* is){
+    if(!is)
+        return NULL;
+
+    int_ls* is_prev = is->prev;
+    int_ls* is_next = is->next;
+
+    if(is_prev){
+        is_prev->next = is_next;    
+    }
+    if(is_next){
+        is_next->prev = is_prev;
+    }
+    is->next = NULL;
+    is->prev = NULL;
+    ls_free(is);
+
+    return (is_prev) ? is_prev : is_next;
 }
 
 int ls_remove_all(int_ls* is, int i){
@@ -94,15 +110,13 @@ void ls_print(int_ls* is){
     printf("}");
 }
 
-int ls_contains(int_ls* is, int n){
-    is = ls_first(is);
+int_ls* ls_contains(int_ls* is, int n){
     while(is){
-        if(is->value == n){
-            return 1;
-        }
+        if(is->value == n)
+            break;
         is = is->next;
     }
-    return 0;
+    return is;
 }
 
 int compare_int(const void * a, const void * b) {
@@ -131,7 +145,26 @@ int ls_contains_2(int_ls* list, int a, int b){
     return aFound && bFound;
 }
 
-int ls_contains_list(int_ls* list, int_ls* ns){
+int_ls* ls_contains_any(int_ls* list, int_ls* ns){
+    if(list == NULL || ns == NULL)
+        return 0;
+
+    int_ls* cur_ls = list;
+    while(cur_ls){
+        int_ls* cur_n = ns;
+        while(cur_n){
+            if(cur_n->value == cur_ls->value){
+                return cur_ls;
+            }
+            cur_n = cur_n->next;
+        }
+        cur_ls = cur_ls->next;
+    }
+   return cur_ls;
+}
+
+/*
+int ls_contains_list_bsearch(int_ls* list, int_ls* ns){
     if(list == NULL || ns == NULL)
         return 0;
 
@@ -185,7 +218,7 @@ int ls_contains_list(int_ls* list, int_ls* ns){
     free(isFound);
     return found == unique_nums;
 }
-
+*/
 
 //void merge_set(int_ls* is, int_ls* js);
 
