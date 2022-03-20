@@ -3,7 +3,7 @@
 #include <string.h> //included only for memset()
 #include "../../include/graph.h"
 #include "../../include/int-list.h"
-#include "../../include/ptr-list.h"
+#include "../../include/list.h"
 
 
 /*////////////items of future concern in graph.c
@@ -158,6 +158,25 @@ void add_new_edge(graph* g, int v1, int v2) {//Creates a new edge
 
 void graph_add_edge(graph* g, int v1, int v2){
    add_new_edge(g, v1, v2);
+}
+
+int_ls* graph_adjacent_vertices(graph* g, int v){
+   v = value(g,v);
+   char* added = malloc(sizeof(char)*(1+g->vertex_count));
+   memset(added,0,sizeof(char)*(1+g->vertex_count));
+   added[v] = 1;
+   int_ls* adj_verts = NULL;
+   edge* e = g->vert[v]->edge;
+   while(e){
+      int cur_vert = value(g,e->otherVertex);
+      if(!added[cur_vert]){
+         adj_verts = ls_add(adj_verts,cur_vert);
+         added[cur_vert] = 1;
+      }
+      e = e->next;
+   }
+   free(added);
+   return adj_verts;
 }
 
 void retain(graph* g, edge* e){
@@ -360,7 +379,36 @@ void merge_vertices(graph* g, int v1, int v2){
 }
 
 
+void unmerge_vertices(graph* g, int v){
+   v = value(g,v);
+   ls_free(g->vert[v]->aliases);
+   g->vert[v]->aliases = ls_add(NULL,v);
+   edge* e = g->vert[v]->edge;
+   edge* e_prev = NULL;
+   while(e){
+      edge* e_next = e->next;
 
+      if(e->thisVertex != v){
+         int u = e->thisVertex;
+         g->vert[u]->mergeValue = u;
+
+         if(!e_prev){
+            g->vert[v]->edge = e_next;
+         }
+         e->next = g->vert[u]->edge;
+         g->vert[u]->edge = e;
+
+         g->vert[u]->degree++;
+         g->vert[v]->degree--;
+         e = NULL;
+      }
+
+
+      e_prev = (e) ? e_prev: e;
+      e = e_next;
+   }
+
+}
 
 
 ///////////TREE FUNCTIONS/////////////
@@ -420,7 +468,7 @@ int get_parent(graph* tree, int v){
   if (tree->parents == 0)
     return 0;
    v = value(tree, v);
-  return tree->parents[v];
+  return value(tree,tree->parents[v]); //this originally was NOT corrected w/ value
 }
 
 
@@ -509,7 +557,7 @@ int_ls* d_helper(graph* t, int u){
 
    int_ls* current_kid = kids;
    while(current_kid){
-      int_ls* currents_kids = descendants(t,current_kid->value);
+      int_ls* currents_kids = d_helper(t,current_kid->value);
       kids_of_kids = ls_merge(kids_of_kids,currents_kids);
       current_kid = current_kid->next;
    }
@@ -617,6 +665,7 @@ char is_fringe(graph* t, int u){
    return 1;
 }
 
+// O(VE) solution. perhaps change to sort + binary search
 char lf_closed_nm(graph* g, graph* t, int r){
    int_ls* d = descendants(t,r);
    int_ls* l = leaves(t,r);
@@ -659,12 +708,89 @@ char covers(graph* t, int u, int v, int tu, int tv){
 
    int_ls* path = tree_path(t, u, v);
    char covers = ls_contains_2(path, tu, tv);
+   free(path);
    return covers;
 }
 
 
+   graph* gx = NULL;
+
+int ls_match_edge(void* item1, void* item2){
+   if(!gx)
+      return 0;
+   int_ls* ls1 = item1;
+   edge* ls2 = item2;
+   int v1 = value(gx,ls1->value);
+   int v2 = value(gx,ls2->otherVertex);
+   return (v1 == v2);
+}
 
 
+// v is a fringe vertex
+int_ls* isolated(graph* g, graph* t, int parent){
+   parent = value(t,parent);
+
+   void* l_contains(void* l, int(*compare)(void*,void*),void* item);
+   
+   int_ls* isolated_vs = NULL;
+
+   int_ls* desc = children(t, parent);
+   int_ls* cur_desc = desc;
+   while(cur_desc){
+      int v = value(g,cur_desc->value);
+      edge* e = g->vert[v]->edge;
+
+      int isolated = 1;
+
+      while(e){
+         int v1 = value(g,e->thisVertex);
+         int v2 = value(g,e->otherVertex);
+         if(v1 != v2){
+            gx = g;
+            if(l_contains(desc, ls_match_edge, e)){
+               isolated = 0;
+               break;
+            }
+         }
+         e = e->next;
+      }
+      
+      if(isolated){
+         isolated_vs = ls_add(isolated_vs, cur_desc->value);
+      }
+
+      cur_desc = cur_desc->next;
+   }
+
+   ls_free(desc);
+   return isolated_vs;
+}
+
+//speed up with hash map
+int_ls* non_redundant(graph* g, graph* t, int u){
+   u = value(g,u);
+   int parent = get_parent(t,u);
+
+   char* v_added = malloc(sizeof(char)*(g->vertex_count+1));
+   memset(v_added,0,sizeof(char)*(g->vertex_count+1));
+
+   edge* e = g->vert[u]->edge;
+   int_ls* non_redundant = NULL;
+   while(e){
+      int cur_v = value(g,e->otherVertex);
+      if(cur_v != parent && cur_v != u && !v_added[cur_v]){
+         non_redundant = ls_add(non_redundant,cur_v);
+         v_added[cur_v] = 1;
+      }
+      e = e->next;
+   }
+
+   if(!non_redundant){
+      non_redundant = ls_add(non_redundant,get_parent(t,u));
+   }
+   free(v_added);
+   return non_redundant;
+}
 
 
 

@@ -60,7 +60,7 @@ int_ls* ls_add(int_ls* is, int i){
     return n;
 }
 
-int_ls* ls_remove_node(int_ls* is){
+int_ls* ls_remove(int_ls* is){
     if(!is)
         return NULL;
 
@@ -88,6 +88,7 @@ void ls_remove_list(int_ls* is, int_ls* ns){
 
 }
 
+//appends js to is
 int_ls* ls_merge(int_ls* is, int_ls* js){
     if(!is)
         return js;

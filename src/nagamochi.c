@@ -28,10 +28,19 @@ int case1(graph* g, graph* t){
             p1(g, t, v);
             ret = 1;
         }
+        cur_fringe = cur_fringe->next;
     }
     ls_free(fringe);
     return ret;
 }
+
+int case2(graph* g, graph* t){
+    int_ls* fringe = fringes(t,t->root);
+    int_ls* cur_fringe = fringe;
+
+
+}
+
 
 int p2(graph* g, graph* t, int );
 
@@ -116,6 +125,51 @@ void map_free(pair** map, int len){
 }
 
 
+typedef struct edge_ls{
+        struct edge_ls* next;
+        struct edge_ls* prev;
+
+        edge* e;
+}edge_ls;
+
+graph* gm = NULL;
+
+//accepts edge_ls* and edge*
+int edge_match(void* list, void* item){
+    if(!gm)
+        return 0;
+    edge* cur_e = value(gm,((edge_ls*)list)->e);
+    edge* e = ((edge_ls*)item)->e;
+    return (value(gm,(cur_e->otherVertex)) ^ (value(gm,cur_e->thisVertex)) == (value(gm,(e->otherVertex) ^ value(gm,e->thisVertex))));
+}
+
+
+
+edge_ls* graph_adjacent_edges(graph* g, int v){
+   v = value(g,v);
+   char* added = malloc(sizeof(char)*(1+g->vertex_count));
+   memset(added,0,sizeof(char)*(1+g->vertex_count));
+   added[v] = 1;
+   edge_ls* adj_verts = NULL;
+   edge* e = g->vert[v]->edge;
+   while(e){
+      int cur_vert = value(g,e->otherVertex);
+      if(!added[cur_vert]){
+        edge_ls* eee = malloc(sizeof(edge_ls));
+        eee->e = e;
+         adj_verts = l_add(adj_verts,eee);
+         added[cur_vert] = 1;
+      }
+      e = e->next;
+   }
+   free(added);
+   return adj_verts;
+}
+
+
+
+
+
 //computes maximum matching
 edge* blossom_algorithm(graph* g, int_ls* vs){
     int num_v = ls_size(vs);
@@ -130,7 +184,7 @@ edge* blossom_algorithm(graph* g, int_ls* vs){
         cur_v = cur_v->next;
     }
 
-    graph* gm = graph_create(num_v);
+    gm = graph_create(num_v);
 
     int_ls* cur_v = vs;
     while(cur_v){
@@ -147,18 +201,113 @@ edge* blossom_algorithm(graph* g, int_ls* vs){
         }
     }
 
-    //matching list 
-    //array to keep track of matched vertices
+    
+    edge_ls* matching = NULL;
 
-    //continually dfs from un-matched verts
-        //add to matching 
-    // if loop is found, add it to blossom
+    int* matched = malloc((num_v+1) * sizeof(int));
+    memset(matched,0,sizeof(char)*(num_v+1));
+    int* queued = malloc((num_v+1) * sizeof(int));
+    int nonaugmented = 0;
 
-    //un-merge procedure.
-    //
+    for(int i = 1; i<=num_v && nonaugmented < num_v; i=i%(num_v+1)+1){ //for each vert
+        
+        if(matched[i]){ //matched, the algorithm ignores.
+            nonaugmented++;
+            continue;
+        }
+
+        int v = map_get(map,len,i);
+        int_ls* queue = ls_add(NULL,v); 
+        int_ls* end_queue = queue;
+        memset(queued,0,sizeof(int)*(num_v+1)); //set all verts to unprocessed
+        int dfs_depth = 1;
+        queued[v] = dfs_depth;
+        while(queue){
+            int v = value(gm,queue->value);
+            if(queued[v]){
+                queue = queue->next;
+                continue;
+            }
+            dfs_depth = queued[v]+1;
+
+            edge_ls* adj = graph_adjacent_edges(gm,v);
+            edge_ls* cur_adj = adj;
+            while(cur_adj){
+                int cur_edg = value(gm,cur_adj->e->otherVertex);
+
+                edge* e = edge_create(v,cur_edg);
+                e->next = NULL;
+                e->twin = NULL;
+
+                void* in_matching = l_contains(matching,edge_match,e);
+                edge_free(e);
+                e = NULL;
+                
+                int odd = dfs_depth%2;
+
+                if((odd && in_matching) || (!odd && !in_matching)){
+                    cur_adj = cur_adj->next;
+                    continue;
+                }
+
+                if(!queued[cur_edg]){
+                    if(!matched[v] && !matched[cur_edg]){ //free edge that can be matched
+                        //add to matching (non-value)
+                        edge_ls* cur_e = malloc(sizeof(edge_ls));
+                        cur_e->e = cur_adj->e;
+                        l_add(matching,cur_e);
+
+                        int u = cur_e->e->otherVertex; 
+                        int v = cur_e->e->thisVertex;
+
+                        matched[u] = v;
+                        matched[v] = u;
+                        //update 
+                    }
+                    //if even and unmatched, invert the current path.
+
+                    if(!odd && !matched[v]);
+
+                    int_ls* new = ls_add(NULL,cur_edg);
+                    queued[cur_edg] = dfs_depth;
+                    end_queue = ls_merge(end_queue,new);
+                    end_queue = ls_last(new);
+                }
+                else if (queued[cur_edg]== dfs_depth){
+                    //contract blossom
+                    //reDFS
+                    //mark for lifting
+                }
+                else{
+                    //ignore
+                }
+
+                cur_adj = cur_adj->next;
+            }
+            
+            //if queued, check depth
+                //if match
+                //backtrack and contract blossom
+                //rerun dfs
+            //if queued
+                //skip
+            
+            //flip edges.
+            //update matching nonaugmented = 0;
+            // un-merge all.
+
+
+            //edge_ls
+            //while(adj)
+            //free(adj);
+        }
+        free(ls_first(queue));
+    }
+
 
 
     graph_free(gm);
+    gm = NULL;
     map_free(map,len);
 }
 

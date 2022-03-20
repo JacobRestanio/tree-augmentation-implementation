@@ -4,10 +4,9 @@
 
 
 typedef struct int_ls {
-    int value; 
-
-    struct int_ls* prev;
     struct int_ls* next;
+    struct int_ls* prev;
+    int value; 
 } int_ls;
 
 
@@ -25,7 +24,7 @@ int_ls* ls_add(int_ls* is, int i);
 
 int_ls* ls_merge(int_ls* is, int_ls* js);
 
-int ls_remove(int_ls* is, int i);
+int_ls* ls_remove(int_ls* is);
 
 int ls_remove_all(int_ls* is, int i);
 

@@ -4,9 +4,7 @@
 //note to self: when you make the edgeset you can't store the edges as a list the way you normally would.
 //              you will have to either copy the vertices or create a container.
 
-
 //add null pointer catches
-
 
 #include "int-list.h"
 
@@ -20,7 +18,6 @@ typedef struct Edge {
 } edge;
 
 edge* edge_create(int thisVertex, int otherVertex);
-
 
 //frees the whole list
 void edge_free(edge* e);
@@ -39,10 +36,8 @@ typedef struct Vertex {
 
 vertex* vertex_create(int v);
 
-
 //also frees any edges, but not their twins.
 void vertex_free(vertex* v);
-
 
 //GRAPH
 typedef struct Graph {
@@ -85,15 +80,11 @@ int remove_edge(graph* g, int v1, int v2); //degree. could be slightly improved 
 //if you are doing this, you may want to do it on another graph too.
 void merge_vertices(graph* g, int v1, int v2);
 
-
 int remove_self_edges(graph* g, int v);
 
-// Eg(X)
-edge incident(graph* g, int_ls* v);
+int_ls* graph_adjacent_vertices(graph* g, int v);
 
-
-
-
+void unmerge_vertices(graph* g, int v);
 
 //TREE
 void set_root(graph* tree, int v);
@@ -130,8 +121,9 @@ int remove_all_edges(graph* g, int v1, int v2);
 
 char covers(graph* t, int u, int v, int tu, int tv);
 
+int_ls* isolated(graph* g, graph* t, int parent);
 
-
+int_ls* non_redundant(graph* g, graph* t, int u);
 
 //PRINT
 

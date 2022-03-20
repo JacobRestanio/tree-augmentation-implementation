@@ -8,6 +8,7 @@
 #include "../include/tree-greedy.h"
 #include "../include/graph.h"
 #include "../include/int-list.h"
+#include "../include/list.h"
 
 /* Temporary Function to some debugging info */
 /* Some change but in a different branch */
@@ -21,44 +22,96 @@ void printInfo(int n, int tree[][n], int edgeSet[][n], int edgeWeights[][n]) {
    printf("___________________________________\n\n");
 }
 
+typedef struct testls {
+  struct testls* next;
+  struct testls* prev;
+
+  int k;
+} testls;
+
+void testprint(void* testlist){
+  testls* xx = testlist;
+  printf("%i",xx->k);
+}
+
+int testmatch(void* testlist, void* testlist2){
+  testls* xx = testlist;
+  testls* t2 = testlist2;
+  if(xx->k == t2->k)
+    return 1;
+  return 0;
+}
+
+testls* testmake(int x){
+    testls* ret = malloc(sizeof(testls*));
+
+    ret->k = x;
+}
+
+
 int main(int argc, char *argv[]) {
    srand(time(0));
 
-   //test tree roots and create child thing.
-   //test degree correctness.
 
-   //degree changes when adding
-   //degree changes when merging
-   //degree changes when removing
+  //need to test merging's effect on parents
 
-   char* t_text = "20 1\n1 3\n7 1\n7 8\n9 7\n9 10\n10 11\n11 12\n20 2\n20 4\n4 5\n4 6\n6 13\n6 14\n6 15\n14 16\n14 17\n17 18\n17 19\n8 21";
-   char* g_text = "20 1\n1 3\n7 1\n7 8\n9 7\n9 10\n10 11\n11 12\n20 2\n20 4\n4 5\n4 6\n6 13\n6 14\n6 15\n14 16\n14 17\n17 18\n17 19\n8 21\n17 15\n19 18\n19 16\n14 2\n13 3";
-   int size = 21;
+   char* t_text = "4 1\n2 4\n5 1\n3 2\n2 6\n5 10\n5 7\n5 11\n2 12\n8 2\n9 4\n";
+   char* g_text = "2 4\n5 1\n3 2\n2 6\n5 10\n5 7\n5 11\n2 12\n8 2\n9 4\n8 6\n10 11\n12 4\n3 2\n3 2\n12 9\n12 11\n12 5\n10 1\n";
+   int size = 12;
 
    graph* t = graph_create_text(t_text,size);
    graph* g = graph_create_text(g_text,size);
 
-   set_root(t,20);
+   int rt = 4;
+   set_root(t,rt);
 
-   int_ls* path = tree_path(t,7,14);
+   int_ls* pth = tree_path(t, 5,2);
 
-   merge_list(t,path);
-   merge_list(g,path);
+   merge_list(t,pth);
+   merge_list(g,pth);
 
-   graph_print(t);
-     printf("\n\n");
+  unmerge_vertices(g,4);
+  unmerge_vertices(t,4);
+
    graph_print(g);
-
    printf("\n\n");
-     printf("\n\n");
-
-   remove_self_edges(t,4);
-   remove_self_edges(g,6);
    graph_print(t);
-     printf("\n\n");
-   graph_print(g);
 
-  printf("\n\n");
-   printf("\n\n");
+   
+
+  int_ls* fringe = fringes(t,rt);
+  int_ls* desc = descendants(t,rt);
+  int_ls* child = children(t,rt);
+  printf("desc: ");
+  ls_print(desc);
+  printf("\n");
+
+  printf("children: ");
+  ls_print(child);
+  printf("\n");
+
+  printf("fringes: ");
+  ls_print(fringe);
+  printf("\n");
+
+  while(fringe){
+    int_ls* isol = isolated(g,t,fringe->value);
+    int_ls* non_redun = non_redundant(g,t, fringe->value);
+    printf("p: %i \tisol: ",fringe->value);
+    ls_print(isol);
+
+    int_ls* childs = children(t,fringe->value);
+    while(childs){
+      printf("\t non-redundant(%i): ", childs->value);
+      ls_print(non_redundant(g,t, childs->value));
+
+      childs = childs->next;
+    }
+
+
+    printf("\n");
+
+    fringe = fringe->next;
+  }
 
 }
