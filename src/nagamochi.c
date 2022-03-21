@@ -2,14 +2,9 @@
 #include <stdio.h>
 #include "../include/tree-helper.h"
 #include "../include/graph.h"
+#include <string.h>
+#include "../include/list.h"
 
-edge* nagamochi(graph* g, graph* t, double approx){
-
-    //TEST FOR SHORT CIRCUIT EVALUATION
-    while(case1(g,t) ^ 2*case2(g,t) ^ 4*case3(g,t) ^ 8*case4(g,t));
-
-    return NULL;
-}
 
 
 
@@ -21,10 +16,10 @@ void p1(graph* g, graph* t, int u){
 int case1(graph* g, graph* t){
     int ret = 0;
     int_ls* fringe = fringes(t,t->root);
-    int_ls* cur_fringe = fringes;
+    int_ls* cur_fringe = fringe;
     while(cur_fringe){
         int v = value(t,cur_fringe->value);
-        if(lf_closed(g,t,v)){
+        if(l_closed(g,t,v)){
             p1(g, t, v);
             ret = 1;
         }
@@ -39,10 +34,68 @@ int case2(graph* g, graph* t){
     int_ls* cur_fringe = fringe;
 
 
+    int ret = 0;
+    while(cur_fringe){
+        int parent = value(t,cur_fringe->value);
+        if(!l_closed(g,t,parent)){
+            int_ls* kids = children(t,parent);
+            int_ls* cur_kid = kids;
+            while(cur_kid){
+                int cur_v = value(g, cur_kid->value);
+                int triv = trivial(g,t,cur_kid->value); //vertex connection that makes the cur_kid non-trivial;
+                if(triv && (cur_v != value(g,parent))){
+                    ret++;
+                    retain_merge_trim(g,t,cur_v,triv);
+                }
+                cur_kid = cur_kid->next;
+            }
+            ls_free(kids);
+        }
+        cur_fringe = cur_fringe->next;
+    }
+    ls_free(fringe);
+    return ret;
 }
 
+int case3(graph*g, graph* t){
+    int_ls* fringe = fringes(t,t->root);
+    int_ls* cur_fringe = fringe;
+    int ret = 0;
+    while(cur_fringe){
+        int parent = value(t,cur_fringe->value);
+        if(!l_closed(g,t,parent)){
+            int_ls* kids = children(t,parent);
+            if(ls_size(kids) == 3){
+                int_ls* iso = isolated(g,t,parent);
+                if(iso == NULL){
+                    int_ls* cur_kid = kids;
+                    while(cur_kid){
+                        if(trivial(g,t,cur_kid->value))
+                            break;
+                        cur_kid = cur_kid->next;
+                    }
+                    if(!cur_kid){
+                        ret++;
+                        int par_of_par = get_parent(t,parent);
+                        merge_vertices(g,parent,par_of_par);
+                        merge_vertices(t,parent,par_of_par);
+                        remove_self_edges(g,parent);
+                        remove_self_edges(t,parent);
+                    }
+                }
+                ls_free(iso);
+            }
+            ls_free(kids);
+        }
+        cur_fringe = cur_fringe->next;
+    }
+    ls_free(fringe);
+    return ret;
+}
 
-int p2(graph* g, graph* t, int );
+int case4(graph* g, graph* t){
+    return 0;
+}
 
 
 
@@ -138,7 +191,7 @@ graph* gm = NULL;
 int edge_match(void* list, void* item){
     if(!gm)
         return 0;
-    edge* cur_e = value(gm,((edge_ls*)list)->e);
+    edge* cur_e = ((edge_ls*)list)->e;
     edge* e = ((edge_ls*)item)->e;
     return (value(gm,(cur_e->otherVertex)) ^ (value(gm,cur_e->thisVertex)) == (value(gm,(e->otherVertex) ^ value(gm,e->thisVertex))));
 }
@@ -186,7 +239,7 @@ edge* blossom_algorithm(graph* g, int_ls* vs){
 
     gm = graph_create(num_v);
 
-    int_ls* cur_v = vs;
+    cur_v = vs;
     while(cur_v){
         int v = value(g,cur_v->value);
         edge* e = g->vert[v]->edge;
@@ -216,7 +269,7 @@ edge* blossom_algorithm(graph* g, int_ls* vs){
             continue;
         }
 
-        int v = map_get(map,len,i);
+        int v = map_get(map,len,i)->value;
         int_ls* queue = ls_add(NULL,v); 
         int_ls* end_queue = queue;
         memset(queued,0,sizeof(int)*(num_v+1)); //set all verts to unprocessed
@@ -313,3 +366,10 @@ edge* blossom_algorithm(graph* g, int_ls* vs){
 
 
 
+edge* nagamochi(graph* g, graph* t, double approx){
+
+    //TEST FOR SHORT CIRCUIT EVALUATION
+    while(case1(g,t) ^ 2*case2(g,t) ^ 4*case3(g,t) ^ 8*case4(g,t));
+
+    return NULL;
+}

@@ -180,6 +180,10 @@ int_ls* graph_adjacent_vertices(graph* g, int v){
 }
 
 void retain(graph* g, edge* e){
+   if(!e){
+      printf("err: retain() null edge");
+      return;
+   }
     edge* ne = edge_create(e->thisVertex,e->otherVertex);
     ne->next = g->retain;
     g->retain = ne;
@@ -240,6 +244,29 @@ edge* find_prev_edge_se(graph* g, edge* se, int v1, int v2){
       e = e->next;
    }
    return NULL;
+}
+
+
+
+unsigned int retain_merge_trim(graph* g, graph* t, int u, int v){
+
+   edge* e = find_edge(g,u,v);
+   if(!e)
+      return 0;
+
+   retain(g,e);
+   retain(t,e);
+
+   int_ls* path = tree_path(t,u,v);
+   merge_list(t,path);
+   merge_list(g,path);
+
+   remove_self_edges(t,u);
+   remove_self_edges(g,u);
+
+   free(path);
+
+   return e != 0;
 }
 
 
@@ -665,8 +692,39 @@ char is_fringe(graph* t, int u){
    return 1;
 }
 
+
+int_ls* pseudo_fringes(graph* g, graph* t, int  u){
+   u = value(g,u);
+
+   int_ls* pseudo_fringes = NULL;
+
+   int_ls* fringe = fringes(t,u);
+   int_ls* cur_fri = fringes(t,u);
+
+   while(cur_fri){
+      int f = value(g,cur_fri);
+      int_ls* kids = children(t,f);
+
+      //O(1) check for size 2
+      if(kids->next && !kids->next->next){
+         int cur_parent = get_parent(f);
+         int n;
+         while(cur_parent(children)){
+            //get parent while parent != current
+            // and while |children| = 1;
+         }
+
+      }
+      
+      ls_free(kids);
+      cur_fri = cur_fri->next; 
+   }
+
+   ls_free(fringe);
+}
+
 // O(VE) solution. perhaps change to sort + binary search
-char lf_closed_nm(graph* g, graph* t, int r){
+char l_closed_nm(graph* g, graph* t, int r){
    int_ls* d = descendants(t,r);
    int_ls* l = leaves(t,r);
 
@@ -690,13 +748,13 @@ char lf_closed_nm(graph* g, graph* t, int r){
    return 1;
 }
 
-char lf_closed_b(graph* g, graph* t, int r){
+char l_closed_b(graph* g, graph* t, int r){
    return 1;
 }
 
 
-char lf_closed(graph* g, graph* t, int r){
-   return lf_closed_nm(g,t,r);
+char l_closed(graph* g, graph* t, int r){
+   return l_closed_nm(g,t,r);
 }
 
 //returns 1 if (u,v) covers (tu,tv);
@@ -792,6 +850,16 @@ int_ls* non_redundant(graph* g, graph* t, int u){
    return non_redundant;
 }
 
+int trivial(graph* g, graph* t, int u){
+   int_ls* nr = non_redundant(g,t,u);
+   if(nr->next){
+      free(nr);
+      return 0;
+   }
+   int ret = nr->value;
+   free(nr);
+   return ret;
+}
 
 
 

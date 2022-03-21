@@ -115,7 +115,7 @@ int_ls* fringes(graph* t, int u);
 
 char is_fringe(graph* t, int u);
 
-char lf_closed(graph* g, graph* t, int r);
+char l_closed(graph* g, graph* t, int r);
 
 int remove_all_edges(graph* g, int v1, int v2);
 
@@ -124,6 +124,11 @@ char covers(graph* t, int u, int v, int tu, int tv);
 int_ls* isolated(graph* g, graph* t, int parent);
 
 int_ls* non_redundant(graph* g, graph* t, int u);
+
+int trivial(graph* g, graph* t, int u);
+
+
+unsigned int retain_merge_trim(graph* g, graph* t, int u, int v);
 
 //PRINT
 
