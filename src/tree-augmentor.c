@@ -11,52 +11,54 @@
 #include "../include/list.h"
 #include "../include/nagamochi.h"
 
+int main(int argc, char *argv[])
+{
+  srand(time(0));
 
-int main(int argc, char *argv[]) {
-   srand(time(0));
+  // need to test merging's effect on parents
 
+  char *t_text = "1 4\n4 5\n6 12\n2 6\n2 5\n1 8\n8 3\n9 10\n10 7\n10 11\n15 8\n15 9\n2 14\n6 13";
+  char *g_text = "1 4\n4 5\n6 12\n2 6\n2 5\n1 8\n8 3\n9 10\n10 7\n10 11\n15 8\n15 9\n2 14\n6 13\n13 12\n12 14\n12 3\n13 3\n";
+  int size = 15;
 
-  //need to test merging's effect on parents
+  graph *t = graph_create_text(t_text, size);
+  graph *g = graph_create_text(g_text, size);
 
-   char* t_text = "4 1\n2 4\n5 1\n3 2\n2 6\n5 10\n5 7\n5 11\n2 12\n8 2\n9 4\n";
-   char* g_text = "1 10\n1 5\n2 3\n2 8\n2 12\n2 6\n2 4\n4 12\n4 9\n5 11\n5 7\n5 10\n5 1\n6 8\n6 2\n7 5\n8 6\n8 2\n9 12\n10 1\n10 11\n10 5\n11 10\n11 5\n12 9\n12 4\n12 2\n7 11\n7 10\n";
-   int size = 12;
+  int rt = 4;
+  set_root(t, rt);
 
-   graph* t = graph_create_text(t_text,size);
-   graph* g = graph_create_text(g_text,size);
-
-   int rt = 4;
-   set_root(t,rt);
-  /*
-  case2(g,t);
-  case2(g,t);
-  case2(g,t);
-  case2(g,t);
-  case2(g,t);
-  */
-  case3(g,t);
+  // isolated and non_redudant test
 
   graph_print(g);
-  //isolated and non_redudant test
+
+  //while (case1(g, t) ^ 2 * case2(g, t) ^ 4 * case3(g, t) ^ 8 * case4(g, t));
+
+  
+  while(case4(g,t));
+
+  printf("\n\n\n");
+
+  graph_print(t);
+  printf("\n\n");
+  graph_print(g);
+  printf("\n\n");
+  ls_print(descendants(t,4));
+  printf("\n\n");
+
   /*
+  int_ls *pth = tree_path(t, 5, 2);
 
-   int_ls* pth = tree_path(t, 5,2);
+  merge_list(t, pth);
+  merge_list(g, pth);
 
-   merge_list(t,pth);
-   merge_list(g,pth);
+  unmerge_vertices(g, 4);
+  unmerge_vertices(t, 4);
 
-  unmerge_vertices(g,4);
-  unmerge_vertices(t,4);
+  int_ls *fringe = fringes(t, rt);
+  int_ls *p_fringes = pseudo_fringes(g, t, rt);
+  int_ls *desc = descendants(t, rt);
+  int_ls *child = children(t, rt);
 
-   graph_print(g);
-   printf("\n\n");
-   graph_print(t);
-
-   
-
-  int_ls* fringe = fringes(t,rt);
-  int_ls* desc = descendants(t,rt);
-  int_ls* child = children(t,rt);
   printf("desc: ");
   ls_print(desc);
   printf("\n");
@@ -69,25 +71,29 @@ int main(int argc, char *argv[]) {
   ls_print(fringe);
   printf("\n");
 
-  while(fringe){
-    int_ls* isol = isolated(g,t,fringe->value);
-    int_ls* non_redun = non_redundant(g,t, fringe->value);
-    printf("p: %i \tisol: ",fringe->value);
+  printf("p_fringes: ");
+  ls_print(p_fringes);
+  printf("\n");
+
+  while (fringe)
+  {
+    int_ls *isol = isolated(g, t, fringe->value);
+    int_ls *non_redun = non_redundant(g, t, fringe->value);
+    printf("p: %i \tisol: ", fringe->value);
     ls_print(isol);
 
-    int_ls* childs = children(t,fringe->value);
-    while(childs){
+    int_ls *childs = children(t, fringe->value);
+    while (childs)
+    {
       printf("\t non-red(%i): ", childs->value);
-      ls_print(non_redundant(g,t, childs->value));
-      printf("  triv(%i){%i}", childs->value, trivial(g,t,childs->value));
+      ls_print(non_redundant(g, t, childs->value));
+      printf("  triv(%i){%i}", childs->value, trivial(g, t, childs->value));
       childs = childs->next;
     }
-
 
     printf("\n");
 
     fringe = fringe->next;
   }
   */
-
 }
