@@ -502,17 +502,9 @@ int remove_self_edges(graph *g, int v)
    return 0;
 }
 
-/// NOTE:: CAN GO FROM O(E) -> O(1) IF WE KEEP TRACK OF LAST EDGE IN THE LIST.
-// how should we handle vertex->parent?
-// larger degree vertex subsumes smaller degree, v1 subsumes v2 if same degree
-// if you are doing this, you may want to do it on another graph too.
+// larger degree vertex subsumes smaller degree, v1 subsumes v2 
 void merge_vertices(graph *g, int v1, int v2)
 {
-
-   // find all edges that are v2,v1
-   // remove them
-   // add them to an edgelist
-
    v1 = value(g, v1);
    v2 = value(g, v2);
 
@@ -526,7 +518,10 @@ void merge_vertices(graph *g, int v1, int v2)
    g->vert[v2]->lastedge = NULL;
 
    g->vert[v2]->mergeValue = v1;
-   g->vert[v1]->aliases = ls_merge(g->vert[v2]->aliases, g->vert[v1]->aliases);
+
+   int_ls* copy = ls_copy(g->vert[v2]->aliases);
+
+   g->vert[v1]->aliases = ls_merge(g->vert[v2]->aliases, copy);
 
    g->vert[v1]->degree += g->vert[v2]->degree;
 

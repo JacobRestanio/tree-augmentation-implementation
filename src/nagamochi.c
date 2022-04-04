@@ -144,6 +144,25 @@ edge_ls* edge_ls_create(edge* e){
     return nn;
 }
 
+typedef struct blossom
+{
+    struct blossom *next;
+    struct blossom *prev;
+
+    int n;
+
+    int v_len;
+
+    int_ls* touching;
+
+    int_ls* v;
+
+} blossom;
+
+blossom* blossom_create(n);
+
+
+
 edge_ls *blossom_algorithm(graph *g, int_ls *vs)
 {
     gm = g;
@@ -156,6 +175,8 @@ edge_ls *blossom_algorithm(graph *g, int_ls *vs)
     int c_bytes = sizeof(char)*g_vertices;
     int i_bytes = sizeof(int)*g_vertices;
 
+    //these are really bad and should be converted to hash-maps
+
     int* queued = malloc(i_bytes);
     memset(queued,0,i_bytes);
 
@@ -167,6 +188,9 @@ edge_ls *blossom_algorithm(graph *g, int_ls *vs)
 
     char* not_exposed = malloc(c_bytes);
     memset(in_subgraph,0,c_bytes);
+
+    int* blossom = malloc(i_bytes);
+    memset(queued,0,i_bytes)
 
     //set all verts to be in subgraph.
     int_ls* cur_v = vs;
@@ -184,6 +208,8 @@ edge_ls *blossom_algorithm(graph *g, int_ls *vs)
     while(non_aug_checks < vertices){
         reset_queue(queued,vs); //slow, resets queued verts.
         reset_queue(queued_by,vs);
+        reset_queue(blossom,vs);
+        int blossom_count = 0;
 
         int root = value(g,cur_v->value);
 
@@ -305,6 +331,13 @@ edge_ls *blossom_algorithm(graph *g, int_ls *vs)
                                 //ls_print(cur_queue);
                                 //printf("\n");fflush(stdout);
                             }
+                        }else if(!looking_for_matched && queued[v]%2 && ((blossom[u] != blossom[v]) || blossom[u] == 0)){ //blossom found
+                                blossom_count++;
+
+                                int du = queued[u];
+                                int dv = queued[v];
+
+                                //restart algo.
                         }
                     }
                     e = e->next;
