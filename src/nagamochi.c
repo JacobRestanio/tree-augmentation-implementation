@@ -5,11 +5,16 @@
 #include <string.h>
 #include "../include/list.h"
 
-void p1(graph *g, graph *t, int u)
-{
 
-    // retain edges.
-}
+typedef struct edge_ls
+{
+    struct edge_ls *next;
+    struct edge_ls *prev;
+
+    edge *e;
+} edge_ls;
+
+
 
 int case1(graph *g, graph *t)
 {
@@ -26,8 +31,12 @@ int case1(graph *g, graph *t)
         int v = value(t, cur_fringe->value);
         if (l_closed(g, t, v))
         {
-            p1(g, t, v);
+            int_ls* d = descendants(t,v);
+
+            //edge_ls* e_retain = blossom_algorithm(g,d);
             ret = 1;
+
+            //any vertices that still remain after retention
         }
         cur_fringe = cur_fringe->next;
     }
@@ -36,6 +45,288 @@ int case1(graph *g, graph *t)
    fflush(stdout);
     return ret;
 }
+
+
+
+
+graph *gm = NULL;
+
+// accepts edge_ls* and edge*
+int edge_match(void *list, void *item)
+{
+    if (!gm)
+        return 0;
+    
+    edge* list_e = ((edge_ls*)list)->e;
+    edge* e = (edge*)item;
+
+    int u1 = value(gm,list_e->thisVertex);
+    int v1 = value(gm, list_e->otherVertex);
+
+    int u2 = value(gm,e->thisVertex);
+    int v2 = value(gm,e->otherVertex);
+    
+    return ((u1 == u2) && (v1 == v2)) || ((u1 == v2)  && (u2 == v1));
+}
+
+edge_ls *graph_adjacent_edges(graph *g, int v)
+{
+    v = value(g, v);
+    char *added = malloc(sizeof(char) * (1 + g->vertex_count));
+    memset(added, 0, sizeof(char) * (1 + g->vertex_count));
+    added[v] = 1;
+    edge_ls *adj_verts = NULL;
+    edge *e = g->vert[v]->edge;
+    while (e)
+    {
+        int cur_vert = value(g, e->otherVertex);
+        if (!added[cur_vert])
+        {
+            edge_ls *eee = malloc(sizeof(edge_ls));
+            eee->e = e;
+            adj_verts = l_add(adj_verts, eee);
+            added[cur_vert] = 1;
+        }
+        e = e->next;
+    }
+    free(added);
+    return adj_verts;
+}
+
+edge_ls* edge_ls_contains(edge_ls* el, edge* e){
+    return l_contains(el, edge_match, e);
+}
+
+edge* exposed_verts(graph*g, edge* e, char* matched){
+    int u = value(g,e->thisVertex);
+    int v = value(g,e->otherVertex);
+
+    if(u == v){
+        return 0;
+    }
+
+    int u_matched = matched[u];
+    int v_matched = matched[v];
+
+    return (matched[u] || matched[v]) ? 0 : e;
+}
+
+int is_in_subgraph(graph* g, edge* e, char* in_subgraph){
+    int u = value(g,e->thisVertex);
+    int v = value(g,e->otherVertex);
+
+    return in_subgraph[u] && in_subgraph[v];
+}
+
+//sets all used values of queue to 0
+void reset_queue(int* queue, int_ls *vs){
+    while(vs){
+        queue[vs->value] = 0; //may need to deref value
+        vs = vs->next;
+    }
+}
+
+void print_edge_ls_fn(void* el){
+    edge* e = ((edge_ls*)el)->e;
+    printf("(%i,%i)",e->thisVertex,e->otherVertex);
+}
+
+void print_edge_ls(edge_ls* el){
+    l_print(el,print_edge_ls_fn);
+}
+
+edge_ls* edge_ls_create(edge* e){
+    edge_ls* nn = malloc(sizeof(edge_ls));
+    nn->e = e;
+    nn->next = NULL;
+    nn->prev = NULL;
+
+    return nn;
+}
+
+edge_ls *blossom_algorithm(graph *g, int_ls *vs)
+{
+    gm = g;
+
+    edge_ls* matching = NULL;
+
+    int vertices = ls_size(vs);
+
+    int g_vertices = g->vertex_count + 1;
+    int c_bytes = sizeof(char)*g_vertices;
+    int i_bytes = sizeof(int)*g_vertices;
+
+    int* queued = malloc(i_bytes);
+    memset(queued,0,i_bytes);
+
+    int* queued_by = malloc(i_bytes);
+    memset(queued,0,i_bytes);
+
+    char* in_subgraph = malloc(c_bytes);
+    memset(in_subgraph,0,c_bytes);
+
+    char* not_exposed = malloc(c_bytes);
+    memset(in_subgraph,0,c_bytes);
+
+    //set all verts to be in subgraph.
+    int_ls* cur_v = vs;
+    while(cur_v){
+        int v = value(g,cur_v->value);
+        in_subgraph[v] = 1;
+        cur_v = cur_v->next;
+    }
+
+    int non_aug_checks = 0; //counts how many vertices have been checked without augmenting the graph.
+    cur_v = vs;
+
+
+
+    while(non_aug_checks < vertices){
+        reset_queue(queued,vs); //slow, resets queued verts.
+        reset_queue(queued_by,vs);
+
+        int root = value(g,cur_v->value);
+
+        printf("\n\nmatching: ");
+        fflush(stdout);
+        print_edge_ls(matching);
+        printf("\n");
+        printf("starting from: %i\n", root);
+        printf("non_aug: %i\n", non_aug_checks);
+        fflush(stdout);
+
+        if(!not_exposed[root]){ //start BFS from unmatched verticies
+            int break_flag = 0;
+
+            int_ls* queue = ls_add(NULL, root); //start queue
+            int_ls* cur_queue = queue;
+            int_ls* last_queue = queue;
+            queued[root] = 1;
+            
+            int prev_u = 0;
+
+            while(cur_queue){
+                int q_u = value(g,cur_queue->value); //current v
+                edge* e = g->vert[q_u]->edge;
+
+                int current_depth = queued[q_u]+1;
+
+                int looking_for_matched = current_depth%2;
+
+                //printf("1. 5's edges: ");print_edges(g,5,1);
+
+                printf("u:%i \tcurrent depth: %i\n", q_u, current_depth);fflush(stdout);
+                while(e){ //go through each edge in current vertex
+                    if(is_in_subgraph(g,e,in_subgraph)){
+
+                        int u = value(g,e->thisVertex); // should be the same as q_u
+                        int v = value(g,e->otherVertex);
+
+                        //queue if unqueued.
+                        
+                        if(exposed_verts(g,e,not_exposed)){  //add to matching
+                            edge_ls* new_edge_ls = edge_ls_create(e);
+                            matching = l_add(matching,new_edge_ls);
+                            not_exposed[u] = 1;
+                            not_exposed[v] = 1;
+
+                            non_aug_checks = -1; //reset counter
+                            break_flag = 1;
+                            break;
+                        }
+                        
+                        int e_in_matching = l_contains(matching,edge_match,e);
+                        //printf("%i,%i :\t looking: %i\tin_m:%i\n",u,v,looking_for_matched,e_in_matching);fflush(stdout);
+
+                        if(looking_for_matched && e_in_matching){
+                            if(!queued[v]){                   //add to queue
+                                //printf("2. queueing %i ", v);fflush(stdout);
+                                //ls_print(cur_queue);
+
+                                int_ls* new_node = ls_add(NULL,v);
+                                ls_merge(last_queue,new_node);
+                                last_queue = new_node;
+                                queued[v] = current_depth;
+                                queued_by[v] = q_u;
+
+                                //printf("  ->  ");fflush(stdout);
+                                //ls_print(cur_queue);
+                               // printf("\n");fflush(stdout);
+                            }
+                            break;//can break because this should be the only one.
+                        }
+                        else if(!looking_for_matched && !e_in_matching){
+                            //printf("!looking & !in mathcing\n");fflush(stdout);
+                            
+                            if(!not_exposed[v]){ //flip edges
+                                //printf("exposed!\n");fflush(stdout);
+                                int cur_v = v;
+                                int old_u = u;
+                                int p_u = queued_by[old_u];
+                                do{
+                                    edge* temp_e = edge_create(old_u,cur_v);
+
+                                    edge* ee = find_edge(g,old_u,cur_v);
+                                    edge_ls* new_node = edge_ls_create(ee);
+
+                                    matching = l_add(matching,new_node);
+                                    not_exposed[old_u] = 1;
+                                    not_exposed[cur_v] = 1;
+
+                                    free(temp_e);
+
+                                    if(p_u){
+                                        edge* temp_e2 = edge_create(old_u, p_u);
+
+                                        edge_ls* rm = l_contains(matching,edge_match,temp_e2); //remove edge
+                                        l_remove(rm);
+                                    }
+
+                                    cur_v = p_u;
+                                    old_u = queued_by[p_u];
+                                    p_u = queued_by[old_u];
+                                }while(old_u);
+                                non_aug_checks = -1; //reset counter
+                                break_flag = 1;
+                                break;
+                            }
+                             //printf("a\n");fflush(stdout);
+                            if(!queued[v]){                   //add to queue
+                                //printf("3. queueing %i ", v);fflush(stdout);
+                                ls_print(cur_queue);
+
+                                int_ls* new_node = ls_add(NULL,v);
+                                ls_merge(last_queue,new_node);
+                                last_queue = new_node;
+                                queued[v] = current_depth;
+                                queued_by[v] = q_u;
+
+                                //printf("  ->  ");fflush(stdout);
+                                //ls_print(cur_queue);
+                                //printf("\n");fflush(stdout);
+                            }
+                        }
+                    }
+                    e = e->next;
+                } // end while(e)
+                if(break_flag)
+                    break;
+                prev_u = q_u;
+                cur_queue = cur_queue->next;
+            } // end while(cur_queue){
+            ls_free(queue);
+        }// end if(!matched[root])
+        non_aug_checks++;
+        cur_v = cur_v->next ? cur_v->next : vs;
+    } // end while (non_aug_checks < vertices)
+
+    free(queued);
+    free(in_subgraph);
+    free(not_exposed);
+    return matching;
+}
+
+
 
 int case2(graph *g, graph *t)
 {
@@ -137,7 +428,6 @@ int case3(graph *g, graph *t)
 
     return ret;
 }
-
 
 
 int case4(graph *g, graph *t)
@@ -246,288 +536,9 @@ int case4(graph *g, graph *t)
     return ret;
 }
 
-// maximum matching algorithm
-
-// copied from https://stackoverflow.com/questions/664014/what-integer-hash-function-are-good-that-accepts-an-integer-hash-key
-unsigned int hash(unsigned int x)
-{
-    x = ((x >> 16) ^ x) * 0x45d9f3b;
-    x = ((x >> 16) ^ x) * 0x45d9f3b;
-    x = (x >> 16) ^ x;
-    return x;
-}
-
-// copied from https://stackoverflow.com/questions/664014/what-integer-hash-function-are-good-that-accepts-an-integer-hash-key
-unsigned int unhash(unsigned int x)
-{
-    x = ((x >> 16) ^ x) * 0x119de1f3;
-    x = ((x >> 16) ^ x) * 0x119de1f3;
-    x = (x >> 16) ^ x;
-    return x;
-}
-
-typedef struct pair
-{
-    int key;
-    int value;
-} pair;
-
-#define NUM_PRIMES 47
-int primes[NUM_PRIMES] = {2, 3, 5, 7, 13, 17, 19, 31, 61, 89, 107, 127, 521, 607, 1279, 2203, 2281, 3217, 4253, 4423, 9689, 9941, 11213, 19937, 21701, 23209, 44497, 86243, 110503, 132049, 216091, 756839, 859433, 1257787, 1398269, 2976221, 3021377, 6972593, 13466917, 20996011, 24036583, 25964951, 30402457, 2147483647};
-
-int prime_bigger_than(int size)
-{
-#define factor 2
-    size = (size + 1) * factor;
-
-    int i = 0;
-    for (i = 0; i < NUM_PRIMES; i++)
-    {
-        if (primes[i] > size)
-            break;
-    }
-    return primes[i];
-}
-
-pair *map_get(pair **map, int len, int key)
-{
-    unsigned int i = hash(key) % len;
-
-    while (map[i])
-    {
-        pair *kv = map[i];
-        if (kv->key == key)
-            return kv;
-        i = (i + 1) % len;
-    }
-    return NULL;
-}
-
-pair *map_add(pair **map, int len, int key, int value)
-{
-    unsigned int i = hash(key) % len;
-
-    while (map[i])
-    {
-        pair *kv = map[i];
-        if (kv->key == key)
-        {
-            kv->value = value;
-            return kv;
-        }
-        i = (i + 1) % len;
-    }
-    map[i] = malloc(sizeof(pair *));
-    map[i]->key = key;
-    map[i]->value = value;
-}
-
-void map_free(pair **map, int len)
-{
-    for (int i = 0; i < len; i++)
-    {
-        if (map[i])
-            free(map[i]);
-    }
-    free(map);
-}
-
-typedef struct edge_ls
-{
-    struct edge_ls *next;
-    struct edge_ls *prev;
-
-    edge *e;
-} edge_ls;
-
-graph *gm = NULL;
-
-// accepts edge_ls* and edge*
-int edge_match(void *list, void *item)
-{
-    if (!gm)
-        return 0;
-    edge *cur_e = ((edge_ls *)list)->e;
-    edge *e = ((edge_ls *)item)->e;
-    return (value(gm, (cur_e->otherVertex)) ^ (value(gm, cur_e->thisVertex)) == (value(gm, (e->otherVertex) ^ value(gm, e->thisVertex))));
-}
-
-edge_ls *graph_adjacent_edges(graph *g, int v)
-{
-    v = value(g, v);
-    char *added = malloc(sizeof(char) * (1 + g->vertex_count));
-    memset(added, 0, sizeof(char) * (1 + g->vertex_count));
-    added[v] = 1;
-    edge_ls *adj_verts = NULL;
-    edge *e = g->vert[v]->edge;
-    while (e)
-    {
-        int cur_vert = value(g, e->otherVertex);
-        if (!added[cur_vert])
-        {
-            edge_ls *eee = malloc(sizeof(edge_ls));
-            eee->e = e;
-            adj_verts = l_add(adj_verts, eee);
-            added[cur_vert] = 1;
-        }
-        e = e->next;
-    }
-    free(added);
-    return adj_verts;
-}
 
 // computes maximum matching
-edge *blossom_algorithm(graph *g, int_ls *vs)
-{
-    int num_v = ls_size(vs);
 
-    int len = prime_bigger_than(num_v);
-    pair **map = malloc(sizeof(pair *) * len);
-
-    int_ls *cur_v = vs;
-    for (int i = 1; cur_v; i++)
-    {
-        int v = value(g, cur_v->value);
-        map_add(map, len, v, i);
-        cur_v = cur_v->next;
-    }
-
-    gm = graph_create(num_v);
-
-    cur_v = vs;
-    while (cur_v)
-    {
-        int v = value(g, cur_v->value);
-        edge *e = g->vert[v]->edge;
-        while (e)
-        {
-            int other_v = value(g, e->otherVertex);
-
-            int this_v = map_get(map, len, v)->value;
-            pair *this_other_v = map_get(map, len, other_v);
-            if (this_other_v)
-            {
-                graph_add_edge(gm, this_v, this_other_v->value);
-            }
-        }
-    }
-
-    edge_ls *matching = NULL;
-
-    int *matched = malloc((num_v + 1) * sizeof(int));
-    memset(matched, 0, sizeof(char) * (num_v + 1));
-    int *queued = malloc((num_v + 1) * sizeof(int));
-    int nonaugmented = 0;
-
-    for (int i = 1; i <= num_v && nonaugmented < num_v; i = i % (num_v + 1) + 1)
-    { // for each vert
-
-        if (matched[i])
-        { // matched, the algorithm ignores.
-            nonaugmented++;
-            continue;
-        }
-
-        int v = map_get(map, len, i)->value;
-        int_ls *queue = ls_add(NULL, v);
-        int_ls *end_queue = queue;
-        memset(queued, 0, sizeof(int) * (num_v + 1)); // set all verts to unprocessed
-        int dfs_depth = 1;
-        queued[v] = dfs_depth;
-        while (queue)
-        {
-            int v = value(gm, queue->value);
-            if (queued[v])
-            {
-                queue = queue->next;
-                continue;
-            }
-            dfs_depth = queued[v] + 1;
-
-            edge_ls *adj = graph_adjacent_edges(gm, v);
-            edge_ls *cur_adj = adj;
-            while (cur_adj)
-            {
-                int cur_edg = value(gm, cur_adj->e->otherVertex);
-
-                edge *e = edge_create(v, cur_edg);
-                e->next = NULL;
-                e->twin = NULL;
-
-                void *in_matching = l_contains(matching, edge_match, e);
-                edge_free(e);
-                e = NULL;
-
-                int odd = dfs_depth % 2;
-
-                if ((odd && in_matching) || (!odd && !in_matching))
-                {
-                    cur_adj = cur_adj->next;
-                    continue;
-                }
-
-                if (!queued[cur_edg])
-                {
-                    if (!matched[v] && !matched[cur_edg])
-                    { // free edge that can be matched
-                        // add to matching (non-value)
-                        edge_ls *cur_e = malloc(sizeof(edge_ls));
-                        cur_e->e = cur_adj->e;
-                        l_add(matching, cur_e);
-
-                        int u = cur_e->e->otherVertex;
-                        int v = cur_e->e->thisVertex;
-
-                        matched[u] = v;
-                        matched[v] = u;
-                        // update
-                    }
-                    // if even and unmatched, invert the current path.
-
-                    if (!odd && !matched[v])
-                        ;
-
-                    int_ls *new = ls_add(NULL, cur_edg);
-                    queued[cur_edg] = dfs_depth;
-                    end_queue = ls_merge(end_queue, new);
-                    end_queue = ls_last(new);
-                }
-                else if (queued[cur_edg] == dfs_depth)
-                {
-                    // contract blossom
-                    // reDFS
-                    // mark for lifting
-                }
-                else
-                {
-                    // ignore
-                }
-
-                cur_adj = cur_adj->next;
-            }
-
-            // if queued, check depth
-            // if match
-            // backtrack and contract blossom
-            // rerun dfs
-            // if queued
-            // skip
-
-            // flip edges.
-            // update matching nonaugmented = 0;
-            //  un-merge all.
-
-            // edge_ls
-            // while(adj)
-            // free(adj);
-        }
-        free(ls_first(queue));
-    }
-
-    graph_free(gm);
-    gm = NULL;
-    map_free(map, len);
-}
 
 edge *nagamochi(graph *g, graph *t, double approx)
 {

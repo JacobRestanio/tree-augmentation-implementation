@@ -378,7 +378,36 @@ int remove_edge(graph *g, int v1, int v2) // has bugs when removing self edges
    return 1;
 }
 
-void print_edges(graph* g,int v, int nl){
+//prints all edges after e, no deref
+void print_edge(edge* e, int nl){
+   printf("{ ");
+   while(e){
+      int u = e->thisVertex;
+      int v = e->otherVertex;
+      printf("(%i,%i) ",u,v);
+      e = e->next;
+   }
+   printf("}");
+   if(nl)
+      printf("\n");
+}
+
+//prints all edges after e, dereffed
+void print_edge_value(graph* g, edge* e, int nl){
+   printf("{ ");
+   while(e){
+      int u = value(g,e->thisVertex);
+      int v = value(g,e->otherVertex);
+      printf("(%i,%i) ",u,v);
+      e = e->next;
+   }
+   printf("}");
+   if(nl)
+      printf("\n");
+}
+
+//prints all edges of v, rereffed.
+void print_edges_value(graph* g,int v, int nl){
    v = value(g,v);
    edge* e = g->vert[v]->edge;
 
@@ -386,6 +415,22 @@ void print_edges(graph* g,int v, int nl){
    while(e){
       int u = value(g,e->thisVertex);
       int v = value(g,e->otherVertex);
+      printf("(%i,%i) ",u,v);
+      e = e->next;
+   }
+   printf("}");
+   if(nl)
+      printf("\n");
+}
+
+void print_edges(graph* g,int v, int nl){
+   v = value(g,v);
+   edge* e = g->vert[v]->edge;
+
+   printf("{ ");
+   while(e){
+      int u = e->thisVertex;
+      int v = e->otherVertex;
       printf("(%i,%i) ",u,v);
       e = e->next;
    }

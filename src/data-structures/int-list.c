@@ -5,6 +5,7 @@
 
 void ls_free(int_ls *is)
 {
+    is = ls_first(is);
     while (is)
     {
         int_ls *next = is->next;
@@ -122,6 +123,18 @@ void ls_print(int_ls *is)
         is = is->next;
     }
     printf("}");
+}
+
+//copy is reversed
+int_ls* ls_copy(int_ls* ls){
+    int_ls* copy = NULL;
+
+    while(ls){
+        copy = ls_add(copy,ls->value);
+        ls = ls->next;
+    }
+
+    return copy;
 }
 
 int_ls *ls_contains(int_ls *is, int n)

@@ -11,15 +11,18 @@
 #include "../include/list.h"
 #include "../include/nagamochi.h"
 
+
+
+
 int main(int argc, char *argv[])
 {
   srand(time(0));
 
   // need to test merging's effect on parents
 
-  char *t_text = "1 4\n4 5\n6 12\n2 6\n2 5\n1 8\n8 3\n9 10\n10 7\n10 11\n15 8\n15 9\n2 14\n6 13";
-  char *g_text = "1 4\n4 5\n6 12\n2 6\n2 5\n1 8\n8 3\n9 10\n10 7\n10 11\n15 8\n15 9\n2 14\n6 13\n13 12\n12 14\n12 3\n13 3\n";
-  int size = 15;
+  char *t_text = "1 4\n2 3\n2 4\n3 5\n3 6\n3 7\n3 9\n3 8\n1 10\n10 12\n10 11\n3 13";
+  char *g_text = "1 4\n2 3\n2 4\n1 10\n10 12\n8 5\n7 9\n7 13\n13 5\n6 8\n10 11\n9 6";
+  int size = 13;
 
   graph *t = graph_create_text(t_text, size);
   graph *g = graph_create_text(g_text, size);
@@ -27,23 +30,17 @@ int main(int argc, char *argv[])
   int rt = 4;
   set_root(t, rt);
 
-  // isolated and non_redudant test
+  int_ls* sg = children(t,3);
+  printf("children of 3: ");
+  ls_print(sg);
+  printf("\n");
+  fflush(stdout);
 
-  graph_print(g);
 
-  //while (case1(g, t) ^ 2 * case2(g, t) ^ 4 * case3(g, t) ^ 8 * case4(g, t));
+  edge_ls* x = blossom_algorithm(g, sg);
+  printf("a2\n");
+  fflush(stdout);
 
-  
-  while(case4(g,t));
-
-  printf("\n\n\n");
-
-  graph_print(t);
-  printf("\n\n");
-  graph_print(g);
-  printf("\n\n");
-  ls_print(descendants(t,4));
-  printf("\n\n");
 
   /*
   int_ls *pth = tree_path(t, 5, 2);

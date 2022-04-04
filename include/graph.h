@@ -11,10 +11,12 @@
 // EDGE
 typedef struct Edge
 {
+  struct Edge *next;
+  struct Edge *prev;
+  
   int thisVertex;
   int otherVertex;
 
-  struct Edge *next;
   struct Edge *twin;
 } edge;
 
@@ -135,6 +137,14 @@ int trivial(graph *g, graph *t, int u);
 int_ls *pseudo_fringes(graph *g, graph *t, int u);
 
 unsigned int retain_merge_trim(graph *g, graph *t, int u, int v);
+
+void print_edge(edge* e, int nl);
+
+void print_edges(graph* g,int v, int nl);
+
+void print_edge_value(graph* g, edge* e, int nl);
+
+void print_edges_value(graph* g,int v, int nl);
 
 // PRINT
 
