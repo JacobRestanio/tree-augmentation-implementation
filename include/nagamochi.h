@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include "../include/tree-helper.h"
 #include "../include/graph.h"
+#include "../include/int-list.h"
+#include "../include/list.h"
 
 typedef struct edge_ls
 {
@@ -17,6 +19,10 @@ typedef struct edge_ls
 } edge_ls;
 
 
+
+
+// computes maximum matching
+edge_ls* blossom_algorithm(graph *g, int_ls *vs);
 
 edge *nagamochi(graph *g, graph *t, double approx);
 
@@ -34,14 +40,8 @@ int edge_match(void *list, void *item);
 
 // edge_ls* graph_adjacent_edges(graph* g, int v);
 
-// computes maximum matching
-edge_ls* blossom_algorithm(graph *g, int_ls *vs);
-
-
-
 void print_edge_ls_fn(void* el);
 void print_edge_ls(edge_ls* el);
-
 
 typedef struct pair_ls
 {

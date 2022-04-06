@@ -257,6 +257,8 @@ edge *find_prev_edge_se(graph *g, edge *se, int v1, int v2)
 
 unsigned int retain_merge_trim(graph *g, graph *t, int u, int v)
 {
+   if ((u == v) || (value(g,u) == value(g,v)))
+      return 0;
 
    edge *e = find_edge(g, u, v);
    if (!e)
@@ -266,10 +268,12 @@ unsigned int retain_merge_trim(graph *g, graph *t, int u, int v)
    retain(t, e);
 
    int_ls *path = tree_path(t, u, v);
+   printf("retention path: "); ls_print(path); printf("\n");
 
    merge_list(t, path);
    merge_list(g, path);
 
+   u = value(g,u);
    remove_self_edges(t, u);
    remove_self_edges(g, u);
 
@@ -1107,18 +1111,35 @@ void graph_print(graph *g)
 
 void graph_print_vertex(graph* g, int i){
    vertex* v = g->vert[i];
-   printf("vertex %i \tmerge value:%i\n",v->value, v->mergeValue);
-   printf("\tedges: "); print_edges(g,i,1);
-   printf("\taliases: "); ls_print(v->aliases);
+   printf("v %i",v->value);
+   printf("\te: "); print_edges(g,i,0);
+   printf("\talias: "); ls_print(v->aliases);
    printf("\n");
 
 }
 
 void graph_print_all(graph *g){
+   int g_vertices = g->original_vertex_count + 1;
+    int i_bytes = sizeof(int)*g_vertices;
+
+    int* printed = malloc(i_bytes);
+    memset(printed,0,i_bytes);
+
+
    for (int i = 1; i <= g->original_vertex_count; i++)
    {  
+      if(printed[i])
+         continue;
       graph_print_vertex(g,i);
+      int_ls* alie = g->vert[i]->aliases;
+      int_ls* k = alie;
+      while(k){
+         printed[k->value] = 1;
+
+         k = k->next;
+      }
    }
+   free(printed);
 }
 
 
