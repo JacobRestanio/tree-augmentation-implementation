@@ -9,7 +9,9 @@ typedef struct int_ls
     int value;
 } int_ls;
 
-void ls_free();
+void ls_free(int_ls *is);
+
+void ls_free_some();
 
 int_ls *ls_create();
 
@@ -24,6 +26,8 @@ int_ls *ls_add(int_ls *is, int i);
 int_ls *ls_merge(int_ls *is, int_ls *js);
 
 int_ls *ls_remove(int_ls *is);
+
+int_ls* ls_copy(int_ls* ls);
 
 int ls_remove_all(int_ls *is, int i);
 

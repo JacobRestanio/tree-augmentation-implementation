@@ -30,7 +30,6 @@ typedef struct Vertex
 {
   int value;
   int mergeValue;
-  int degree;
 
   int_ls *aliases;
 
@@ -147,6 +146,11 @@ void print_edge_value(graph* g, edge* e, int nl);
 void print_edges_value(graph* g,int v, int nl);
 
 // PRINT
+
+void graph_print_vertex(graph* g, int i);
+
+void graph_print_all(graph *g);
+
 
 // prints the format for CSAcademy's graph visualizer.
 void graph_print(graph *g);

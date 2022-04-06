@@ -1,19 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h> //included only for memset()
+#include <string.h> //included for memset()
 #include "../../include/graph.h"
 #include "../../include/int-list.h"
 #include "../../include/list.h"
-
-/*////////////items of future concern in graph.c
-
-make sure that the free() functions are correct.
-
-degree includes duplicate edges
-
-combine duplicate edges when merging.
-
-*/
 
 ///////////EDGE/////////////
 
@@ -44,7 +34,6 @@ vertex *vertex_create(int v)
    vertex *vs = malloc(sizeof(*vs));
    vs->value = v;
    vs->mergeValue = v;
-   vs->degree = 0;
 
    vs->aliases = ls_add(NULL, v);
 
@@ -143,11 +132,9 @@ void add_new_edge(graph *g, int v1, int v2)
 
    e1->next = g->vert[v1]->edge; // put the edge at the beginning of the list for each vertex
    g->vert[v1]->edge = e1;
-   g->vert[v1]->degree++;
 
    e2->next = g->vert[v2]->edge;
    g->vert[v2]->edge = e2;
-   g->vert[v2]->degree++;
 
    if (g->vert[v1]->lastedge == NULL)
    { // update last edge
@@ -170,8 +157,8 @@ void graph_add_edge(graph *g, int v1, int v2)
 int_ls *graph_adjacent_vertices(graph *g, int v)
 {
    v = value(g, v);
-   char *added = malloc(sizeof(char) * (1 + g->vertex_count));
-   memset(added, 0, sizeof(char) * (1 + g->vertex_count));
+   char *added = malloc(sizeof(char) * (1 + g->original_vertex_count));
+   memset(added, 0, sizeof(char) * (1 + g->original_vertex_count));
    added[v] = 1;
    int_ls *adj_verts = NULL;
    edge *e = g->vert[v]->edge;
@@ -371,10 +358,6 @@ int remove_edge(graph *g, int v1, int v2) // has bugs when removing self edges
       g->vert[0]->edge = ee->next;
    }
 
-   g->vert[v1]->degree--;
-
-   g->vert[v2]->degree--;
-
    return 1;
 }
 
@@ -502,7 +485,7 @@ int remove_self_edges(graph *g, int v)
    return 0;
 }
 
-// larger degree vertex subsumes smaller degree, v1 subsumes v2 
+// v2 is eaten by v1. new ref is v1
 void merge_vertices(graph *g, int v1, int v2)
 {
    v1 = value(g, v1);
@@ -521,9 +504,7 @@ void merge_vertices(graph *g, int v1, int v2)
 
    int_ls* copy = ls_copy(g->vert[v2]->aliases);
 
-   g->vert[v1]->aliases = ls_merge(g->vert[v2]->aliases, copy);
-
-   g->vert[v1]->degree += g->vert[v2]->degree;
+   g->vert[v1]->aliases = ls_merge(g->vert[v1]->aliases, copy);
 
    g->vertex_count--;
 }
@@ -551,8 +532,6 @@ void unmerge_vertices(graph *g, int v)
          e->next = g->vert[u]->edge;
          g->vert[u]->edge = e;
 
-         g->vert[u]->degree++;
-         g->vert[v]->degree--;
          e = NULL;
       }
 
@@ -1064,8 +1043,8 @@ int_ls *non_redundant(graph *g, graph *t, int u)
    u = value(g, u);
    int parent = get_parent(t, u);
 
-   char *v_added = malloc(sizeof(char) * (g->vertex_count + 1));
-   memset(v_added, 0, sizeof(char) * (g->vertex_count + 1));
+   char *v_added = malloc(sizeof(char) * (g->original_vertex_count + 1));
+   memset(v_added, 0, sizeof(char) * (g->original_vertex_count + 1));
 
    edge *e = g->vert[u]->edge;
    int_ls *non_redundant = NULL;
@@ -1125,6 +1104,23 @@ void graph_print(graph *g)
       }
    }
 }
+
+void graph_print_vertex(graph* g, int i){
+   vertex* v = g->vert[i];
+   printf("vertex %i \tmerge value:%i\n",v->value, v->mergeValue);
+   printf("\tedges: "); print_edges(g,i,1);
+   printf("\taliases: "); ls_print(v->aliases);
+   printf("\n");
+
+}
+
+void graph_print_all(graph *g){
+   for (int i = 1; i <= g->original_vertex_count; i++)
+   {  
+      graph_print_vertex(g,i);
+   }
+}
+
 
 /* Creates a graph from csacademy's output format
    char* text: output text with linebreaks as '\n' */

@@ -51,6 +51,7 @@ void *l_add(void *list, void *new_list)
     return new;
 }
 
+//removes the node
 void *l_remove(void *list)
 {
     ls *is = list;
@@ -121,6 +122,7 @@ void *l_contains_ls(void *list, int (*match)(void *, void *), void *items)
     return NULL;
 }
 
+//removes all
 void *l_remove_item(void *list, int (*match)(void *, void *), void *item)
 {
     void *rm = list;

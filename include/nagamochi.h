@@ -37,4 +37,28 @@ int edge_match(void *list, void *item);
 // computes maximum matching
 edge_ls* blossom_algorithm(graph *g, int_ls *vs);
 
+
+
+void print_edge_ls_fn(void* el);
+void print_edge_ls(edge_ls* el);
+
+
+typedef struct pair_ls
+{
+    struct pair_ls *next;
+    struct pair_ls *prev;
+
+    int u;
+    int v;
+} pair_ls;
+
+pair_ls* pair_create(int u, int v);
+
+pair_ls* blossom_merge(graph* g, int u, int v, int blossom_number, pair_ls* merge_order);
+
+pair_ls* blossom_unmerge(graph* g, pair_ls* merge_order);
+
+int_ls* last_blossom_verts(pair_ls* merge_order);
+
+
 #endif

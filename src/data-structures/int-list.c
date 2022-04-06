@@ -14,6 +14,19 @@ void ls_free(int_ls *is)
     }
 }
 
+
+void ls_free_some(int_ls *is)
+{   
+    if(is && is->prev);
+        is->prev->next=NULL;
+    while (is)
+    {
+        int_ls *next = is->next;
+        free(is);
+        is = next;
+    }
+}
+
 int_ls *ls_create()
 {
     int_ls *ghost = malloc(sizeof(int_ls));
