@@ -117,11 +117,17 @@ int_ls *leaves(graph *t, int u);
 
 char is_leaf(graph *t, int u);
 
+int_ls* all_fringes(graph* g,graph* t,int v);
+
 int_ls *fringes(graph *t, int u);
 
 char is_fringe(graph *t, int u);
 
 char l_closed(graph *g, graph *t, int r);
+
+char lf_closed(graph* g, graph* t, int v);
+
+int_ls* minimally_lf_closed(graph* g, graph* t, int v);
 
 int remove_all_edges(graph *g, int v1, int v2);
 
@@ -150,6 +156,10 @@ void print_edges_value(graph* g,int v, int nl);
 void graph_print_vertex(graph* g, int i);
 
 void graph_print_all(graph *g);
+
+char is_branch(graph* t, int u);
+int_ls* thorns(graph* t,int u);
+char is_thorn(graph* t, int u);
 
 
 // prints the format for CSAcademy's graph visualizer.

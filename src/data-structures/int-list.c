@@ -109,7 +109,12 @@ int ls_remove_all(int_ls *is, int i)
 }
 
 void ls_remove_list(int_ls *is, int_ls *ns)
-{
+{   
+    int_ls* xb = is;
+    while(xb = ls_contains_any(is,ns)){
+        is = xb = ls_remove(xb);
+    }
+    return ls_first(is);
 }
 
 // appends js to is

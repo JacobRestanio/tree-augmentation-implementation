@@ -829,6 +829,11 @@ char is_fringe(graph *t, int u)
    return 1;
 }
 
+
+
+
+
+
 int_ls *pseudo_fringes(graph *g, graph *t, int u)
 {
    u = value(g, u);
@@ -845,34 +850,34 @@ int_ls *pseudo_fringes(graph *g, graph *t, int u)
 
       if (kids->next && !kids->next->next)
       { // number of kids is two
-         printf("%i: number of kids is two\n", f);
+         //printf("%i: number of kids is two\n", f);
          int u1 = kids->value;
          int u2 = kids->next->value;
          if (graph_is_edge(g, u1, u2))
          { // kids are connected, prime edge type 1
-            printf("%i: u1(%i) and u2(%i)  are connected\n", f, u1, u2);
+           //printf("%i: u1(%i) and u2(%i)  are connected\n", f, u1, u2);
             int cur_parent = get_parent(t, f);
             int n;
             while (cur_parent)
             {
-               printf("%i (%i): climbing parents\n", f, cur_parent);
+             //  printf("%i (%i): climbing parents\n", f, cur_parent);
                int_ls *cur_kids = children(t, cur_parent);
                if (cur_kids->next && !cur_kids->next->next)
                { // two children
-                  printf("%i (%i): <-- potential p_fringe\n", f, cur_parent);
+               //   printf("%i (%i): <-- potential p_fringe\n", f, cur_parent);
                   int p_fringe_candidate = cur_parent;
                   cur_parent = 0; // stop while loop
 
                   // make u3 the leaf hanging from p_fringe
                   int u3 = is_leaf(t, cur_kids->value);
                   u3 = u3 ? u3 : is_leaf(t, cur_kids->next->value);
-                  printf("%i : u3 is %i\n", f, u3);
+                 // printf("%i : u3 is %i\n", f, u3);
                   if (u3)
                   {
 
                      if (graph_is_edge(g, u1, u3) && graph_is_edge(g, u2, u3))
                      { // prime edge type 2
-                        printf("%i : prime edges of type 2 exist\n", f);
+                   //     printf("%i : prime edges of type 2 exist\n", f);
                         int_ls *desc_v = descendants(t, p_fringe_candidate);
 
                         edge *e = g->vert[u1]->edge;
@@ -908,11 +913,11 @@ int_ls *pseudo_fringes(graph *g, graph *t, int u)
                         {
                            pseudo_fringes = ls_add(pseudo_fringes, p_fringe_candidate);
                         }
-                        free(desc_v);
+                        ls_free(desc_v);
                      }
                   }
                }
-               free(cur_kids);
+               ls_free(cur_kids);
                if (cur_parent)
                {
                   int np = get_parent(t, cur_parent);
@@ -966,6 +971,152 @@ char l_closed_b(graph *g, graph *t, int r)
 char l_closed(graph *g, graph *t, int r)
 {
    return l_closed_nm(g, t, r);
+}
+
+int_ls* all_fringes(graph* g,graph* t,int v){
+   v = value(g,v);
+
+   int_ls* pf = pseudo_fringes(g,t,v);
+   int_ls* f = fringes(t,v);
+
+   return ls_merge(pf,f);
+}
+
+
+//horrible. just terrible
+int_ls* minimally_lf_closed(graph* g, graph* t, int v){
+   v = value(g,v);
+
+   int_ls* des = descendants(t,v);
+
+   int_ls* lf_close = NULL; //holds all lf-closed verts
+
+   int_ls* cur_des = des;
+   while(cur_des){                     //find each lf-closed vertex
+      if(lf_closed(g,t,cur_des->value)){
+         int v = value(g,cur_des->value);
+         lf_close = ls_add(lf_close,v);
+      }
+      cur_des = cur_des->next;
+   }
+
+   int_ls* ret = NULL;
+
+   int_ls* cur_lf_close = lf_close;
+   while(cur_lf_close){
+      int u = cur_lf_close->value;
+      int_ls* des_lf = descendants(t,u);
+
+      des_lf = ls_first(ls_remove(ls_contains(des_lf,u)));
+
+      if(!ls_contains_any(des_lf,lf_close) && des_lf != NULL){ //is minimally lf_closed
+         ret = ls_add(ret,u);
+      }
+      ls_free(des_lf);
+      cur_lf_close = cur_lf_close->next;
+   }
+
+   ls_free(lf_close);
+   ls_free(des);
+   return ret;
+}
+
+
+char lf_closed(graph* g, graph* t, int v){
+   v = value(g,v);
+
+   int_ls* leafs = leaves(t, v);
+   int_ls* fringes = all_fringes(g,t,v);
+   
+   //printf("lf-closed(%i)  :\tleaves: ",v); ls_print(leafs); printf("\tfringes: "); ls_print(fringes); printf("\n");
+
+   int_ls* lfs_ps = ls_merge(fringes,leafs);
+
+   int_ls* des = descendants(t,v);
+   int_ls* lf_p = lfs_ps;
+
+   while(lf_p){
+      int u = value(g,lf_p->value);
+      edge* e = g->vert[u]->edge;
+
+      while(e){
+         int other_v = value(g,e->otherVertex);
+         if(!ls_contains(des,other_v)){
+            ls_free(des);
+            ls_free(lfs_ps);
+            //printf("\tfailed: this_v: %i\t other_v: %i\n",u,other_v);
+            return 0;
+         }
+         e = e->next;
+      }
+      lf_p = lf_p->next;
+   }
+   ls_free(des);
+   ls_free(lfs_ps);
+   return 1;
+}
+
+char is_branch(graph* t, int u){
+   u = value(t,u);
+
+   if(u == value(t,t->root)){
+      return 1;
+   }
+
+   int_ls* kids = children(t,u);
+   int_ls* kid = kids;
+   int non_leaves = 0;
+   while(kid){
+
+      if(!is_leaf(t,kid->value))
+         non_leaves++;
+
+      if(non_leaves >= 2)
+         break;
+
+      kid = kid->next;
+   }
+
+
+   ls_free(kids);
+   return non_leaves >= 2;
+}
+
+
+
+int_ls* thorns(graph* t,int u){
+   u = value(t,u);
+
+   int_ls* l = leaves(t,u);
+
+   int_ls* thorns = NULL;
+
+   int_ls* cur_l = l;
+
+   while(cur_l){
+      int lv = cur_l->value;
+      int p = get_parent(t,lv);
+
+      if(!is_fringe(t,p)){
+         thorns = ls_add(thorns,lv);
+      }
+
+      cur_l = cur_l->next;
+   }
+   
+   ls_free(l);
+   return thorns;
+}
+
+char is_thorn(graph* t, int u){
+   u = value(t,u);
+
+   int p = get_parent(t,u);
+
+   if(is_leaf(t,u) && !is_fringe(t,p)){
+      return 1;
+   }
+   return 0;
 }
 
 // returns 1 if (u,v) covers (tu,tv);

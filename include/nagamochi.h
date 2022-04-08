@@ -60,5 +60,14 @@ pair_ls* blossom_unmerge(graph* g, pair_ls* merge_order);
 
 int_ls* last_blossom_verts(pair_ls* merge_order);
 
+edge_ls* edge_ls_create(edge* e);
+
+edge_ls* leaf_to_leaf_edges(graph* g, graph*t, int v);
+edge_ls* leaf_edges(graph* g, graph* t, int v);
+
+edge_ls* prime_edges_type1(graph* g, graph* t, int v);
+edge_ls* prime_edges_type2(graph* g, graph* t, int v);
+edge_ls* prime_edges(graph* g, graph* t, int v);
+
 
 #endif
