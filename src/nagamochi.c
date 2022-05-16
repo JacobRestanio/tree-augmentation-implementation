@@ -4,121 +4,23 @@
 #include "../include/graph.h"
 #include <string.h>
 #include "../include/list.h"
+#include "../include/blossom.h"
 
 
-typedef struct edge_ls
-{
-    struct edge_ls *next;
-    struct edge_ls *prev;
-
-    edge *e;
-} edge_ls;
-
-
-
-
-
-
-
-
-
-graph *gm = NULL;
-
-// accepts edge_ls* and edge*. match by deref
-int edge_match(void *list, void *item)
-{
-    if (!gm)
-        return 0;
-    
-    edge* list_e = ((edge_ls*)list)->e;
-    edge* e = (edge*)item;
-
-    int u1 = value(gm,list_e->thisVertex);
-    int v1 = value(gm, list_e->otherVertex);
-
-    int u2 = value(gm,e->thisVertex);
-    int v2 = value(gm,e->otherVertex);
-    
-    return ((u1 == u2) && (v1 == v2)) || ((u1 == v2)  && (u2 == v1));
-}
-
-int edge_match_one(void *list, void *item)
-{
-    if (!gm)
-        return 0;
-    
-    edge* list_e = ((edge_ls*)list)->e;
-    edge* e = (edge*)item;
-
-    int u1 = value(gm,list_e->thisVertex);
-    int v1 = value(gm, list_e->otherVertex);
-
-    int u2 = value(gm,e->thisVertex);
-    int v2 = value(gm,e->otherVertex);
-    
-    return ((u1 == u2) || (v1 == v2)) || ((u1 == v2)  || (u2 == v1));
-}
-
-edge_ls *graph_adjacent_edges(graph *g, int v)
-{
-    v = value(g, v);
-    char *added = malloc(sizeof(char) * (1 + g->original_vertex_count));
-    memset(added, 0, sizeof(char) * (1 + g->vertex_count));
-    added[v] = 1;
-    edge_ls *adj_verts = NULL;
-    edge *e = g->vert[v]->edge;
-    while (e)
-    {
-        int cur_vert = value(g, e->otherVertex);
-        if (!added[cur_vert])
-        {
-            edge_ls *eee = malloc(sizeof(edge_ls));
-            eee->e = e;
-            adj_verts = l_add(adj_verts, eee);
-            added[cur_vert] = 1;
-        }
-        e = e->next;
-    }
-    free(added);
-    return adj_verts;
-}
-
-edge_ls* edge_ls_contains(edge_ls* el, edge* e){
-    return l_contains(el, edge_match, e);
-}
-
-edge* exposed_verts(graph*g, edge* e, char* matched){
-    int u = value(g,e->thisVertex);
-    int v = value(g,e->otherVertex);
-
-    if(u == v){
-        return 0;
-    }
-
-    int u_matched = matched[u];
-    int v_matched = matched[v];
-
-    return (matched[u] || matched[v]) ? 0 : e;
-}
-
-int is_in_subgraph(graph* g, edge* e, char* in_subgraph){
-    int u = value(g,e->thisVertex);
-    int v = value(g,e->otherVertex);
-
-    return in_subgraph[u] && in_subgraph[v];
-}
-
-//sets all used values of queue to 0
-void reset_queue(int* queue, int_ls *vs){
-    while(vs){
-        queue[vs->value] = 0; //may need to deref value
-        vs = vs->next;
-    }
-}
 
 void print_edge_ls_fn(void* el){
     edge* e = ((edge_ls*)el)->e;
     printf("(%i,%i)",e->thisVertex,e->otherVertex);
+}
+
+
+edge_ls* edge_ls_copy(edge_ls* el){
+    edge_ls* ret = NULL;
+
+    for(;el; el=el->next){
+        ret = l_add(ret, edge_ls_create(el->e));
+    }
+    return ret;
 }
 
 void print_edge_ls(edge_ls* el){
@@ -135,433 +37,423 @@ edge_ls* edge_ls_create(edge* e){
 }
 
 
-typedef struct pair_ls
-{
-    struct pair_ls *next;
-    struct pair_ls *prev;
+swing_ls* create_swing(graph* t, int up, int down, edge* e){
+    swing_ls* swing = malloc(sizeof(swing_ls));
 
-    int u;
-    int v;
+    swing->up = up;
+    swing->down = down;
+    swing->p_up = get_parent(t,up);
+    swing->p_down = get_parent(t,down);
 
-    int blossom_number;
-} pair_ls;
+    swing->e = e;
 
-pair_ls* pair_create(int u, int v, int blossom_number){
-    pair_ls* ret = malloc(sizeof(pair_ls));
+    swing->is_solo_edge = 0;
+    swing->in_lower = 0;
 
-    ret->next = NULL;
-    ret->prev = NULL;
-    
-    ret->u = u;
-    ret->v = v;
+    swing->next = NULL;
+    swing->prev = NULL;
+    swing->binding_edges = NULL;
 
-    ret->blossom_number = blossom_number;
-
-    return ret;
+    return swing;
 }
 
 
-pair_ls* blossom_merge(graph* g, int u, int v, int blossom_number, pair_ls* merge_order){
-    u = value(g,u);
-    v = value(g,v);
+chain_ls* create_chain(int u, int u2, int uk){
+    chain_ls* chain = malloc(sizeof(chain_ls));
+    chain->next = NULL;
+    chain->prev = NULL;
 
-    merge_vertices(g,u,v);
+    chain->u = u;
+    chain->u2 = u2;
+    chain->uk = uk;
 
-    pair_ls* new_pair = pair_create(u,v,blossom_number);
+    chain->ua = 0;
 
-    return l_add(merge_order,new_pair);
+    chain->swings = NULL;
+    chain->binding_edges = NULL;
+    chain->swing_edges = NULL;
+
+    chain->e_p = NULL;  //upper edge
 }
 
-
-pair_ls* blossom_unmerge(graph* g, pair_ls* merge_order){
-    if(!merge_order)
-        return NULL;
-
-    //printf("unmerge: \n");
-
-    int blossom_number = merge_order->blossom_number;
-
-    while(merge_order && (merge_order->blossom_number == blossom_number)){
-        //printf("bm: %i\n",merge_order->blossom_number);
-        int u = value(g,merge_order->u);
-        int v = merge_order->v;
-
-        int_ls* u_alias = g->vert[u]->aliases;
-
-        int_ls* v_aliases = g->vert[v]->aliases;
-
-        edge* e_prev = NULL;
-        edge* e = g->vert[u]->edge;
-
-        while(e && ls_contains(v_aliases,e->thisVertex)){
-            e_prev = e;
-            e = e->next;
-        }
-
-        if(e_prev){
-            e_prev->next = NULL;
-            g->vert[v]->lastedge = e_prev;
-        }
-
-        g->vert[v]->edge = g->vert[u]->edge;
-        g->vert[v]->lastedge = e_prev;
-
-        g->vert[u]->edge = e;
-
-        g->vert[v]->mergeValue = v;
-
-
-        while(!ls_contains(v_aliases,u_alias->value)){
-            u_alias = u_alias->next;
-        }
-        ls_free_some(u_alias);
-
-        merge_order = l_remove(merge_order);
-        }
-    
-    return merge_order;
+//private helper
+void p_ch(void* chain){
+    chain_ls* chain_ls = chain;
+    printf("(u:%i uk:%i ua:%i), ", chain_ls->u, chain_ls->uk, chain_ls->ua);
 }
 
-int_ls* last_blossom_verts(pair_ls* merge_order){
-    if(!merge_order)
-        return NULL;
-    
-    int blossom_number = merge_order->blossom_number;
-    int_ls* ret = ls_add(NULL,merge_order->u);
+void print_chain(chain_ls* chain_ls){
+    l_print(chain_ls, p_ch);
+}
 
-    while(merge_order && (merge_order->blossom_number == blossom_number)){
-        ret = ls_add(ret,merge_order->v);
+void p_swing(void* swings){
+    swing_ls* swing = swings;
+    printf("(up:%i down:%i p_up:%i p_down:%i)\n ",swing->up, swing->down, swing->p_up, swing->p_down);
+    printf("\t\tbinding_edges: "); print_edge_ls(swing->binding_edges); if(swing->is_solo_edge)printf(" solo-edge!"); printf("\n");
+}
 
-        merge_order = merge_order->next;
+void print_swings(swing_ls* swings){
+    l_print(swings,p_swing);
+}
+
+//private helper
+void p_ch_n_s(void* chain){
+    chain_ls* chain_ls = chain;
+    printf("chain(u:%i uk:%i ua:%i uo:%i)\n", chain_ls->u, chain_ls->uk, chain_ls->ua, chain_ls->e_p->otherVertex);
+    printf("\tbinding_edges: "); print_edge_ls(chain_ls->binding_edges); printf("\n");
+    if(chain_ls->swings){
+        printf("\tswings: "); print_swings(chain_ls->swings); printf("\n"); fflush(stdout);
     }
-    return ret;
 }
 
-//should lift all blossoms once the path is found
-pair_ls* lift_blossom(graph* g, edge_ls* matching, int* queued_by, int* queues, char* not_exposed, pair_ls* merge_order){
-    if(!merge_order || !matching || !g)
-        return NULL;
+void print_chain_and_swings(chain_ls* chain_ls){
+    l_print(chain_ls, p_ch_n_s);
+}
+
+int_ls* branches(graph* t, int v){
+    int_ls* d = descendants(t,v);
+    int_ls* b = NULL;
+
+    for(int_ls* cd = d; cd; cd=cd->next){
+        int u = value(t,cd->value);
+        if( is_branch(t,u)){
+            b = ls_add(b,u);
+        }
+    }
+    ls_free(d);
+    return b;
+}
+
+chain_ls* find_chains(graph* t, int v){
+    v = value(t,v);
+
+    chain_ls* chains = NULL;
+
+    int_ls* brnches = branches(t,v);
+
+    for(int_ls* b = brnches; b; b = b->next){
+        int u = value(t,b->value);
+        int_ls* queue = children(t,u);
+        int_ls* end_que = ls_last(queue);
+
+        for(int_ls* cur_que = queue; cur_que; cur_que = cur_que->next){
+            int cv = value(t,cur_que->value);
+            if(is_leaf(t,cv))
+                continue;
     
-    //printf("lifting blossom. \n");
-
-    int old_u = value(g,merge_order->u);
-    int cur_v = queues[old_u];
-    int exit_node = queued_by[old_u];
-
-    int_ls* blossom_verts = last_blossom_verts(merge_order);
-    merge_order = blossom_unmerge(g, merge_order);
-
-    int p_u = queued_by[old_u];
-
-    edge* e = g->vert[cur_v]->edge;
-
-    while(e && !not_exposed[value(g,e->otherVertex)] && !ls_contains(blossom_verts, value(g,e->otherVertex))){
-        e = e->next;
-    }
-    // now e should be in the path
-
-    old_u = value(g,e->otherVertex);
-    queued_by[cur_v] = old_u;
-    queues[old_u] = cur_v;
-
-    //terminate lifting current blossom node connects to p[old_u];
-    edge* temp = edge_create(old_u, exit_node);
-    int chain_completed = !!l_contains(matching,edge_match,e);
-
-    while(!chain_completed){
-
-        int v = old_u;
-
-        edge* e = g->vert[v]->edge;
-        edge* ex = NULL;
-        while(e){
-            ex = l_contains(matching,edge_match,e);
-            if(ex)
-                break;
-
-            e = e->next;
+            if(is_branch(t,cv) || is_fringe(t,cv)){
+                int u2 = cv;
+                while(u!=get_parent(t,u2 = get_parent(t,u2)));
+                chain_ls* new_chain = create_chain(u,u2,cv);
+                chains = l_add(chains,new_chain);
+            }else{
+                int_ls* next = children(t,cv);
+                end_que = ls_last(ls_merge(end_que,next));
+            }
         }
-        
-        int ux = value(g,ex->thisVertex);
-        int vx = value(g,ex->otherVertex);
-
-        int u = ux == v ? vx : ux;
-
-        queued_by[v] = u;
-        queues[u] = v;
-
-        e = g->vert[u]->edge;
-
-        while(!ls_contains(blossom_verts,value(g,e->otherVertex))){
-            e = e->next;
-        }
-
-        old_u = value(g,e->otherVertex);
-
-        queued_by[u] = old_u;
-        queues[old_u] = u;
-
-        temp->thisVertex = old_u;
-        chain_completed = !!l_contains(matching,edge_match,e);
+        ls_free(queue);
     }
+    return chains;
+}
 
-    free(temp);
-    ls_free(blossom_verts);
-    return merge_order;
+int next_in_chain(graph* t, int v){
+    v = value(t,v);
+
+    if(is_branch(t,v))
+        return 0;
+    
+    int_ls* kids = children(t,v);
+
+    v = 0;
+    for(int_ls* kid = kids; kid; kid = kid->next ){
+        v = value(t,kid->value);
+        if(!is_leaf(t,v)){
+            break;
+        }
+    }
+    
+    ls_free(kids);
+    return v;
+}
+
+int_ls* immediate_thorns(graph* t, int v){
+    int_ls* kids = children(t,v);
+
+    int_ls* kid = kids;
+    for(; kid; kid = kid->next){
+        if(!is_leaf(t,kid->value)){
+            kid = ls_remove(kid);
+            break;
+        }
+    }
+    return ls_first(kid);
 }
 
 
-edge_ls *blossom_algorithm(graph *g, int_ls *vs)
-{
-    gm = g;
+edge* upper_edge(graph* g, graph* t, chain_ls* chain){
+    int u = value(g,chain->u);
+    int uk = value(g,chain->uk);
 
-    edge_ls* matching = NULL;
+    int u2 = value(g,chain->u2);
 
-    pair_ls* merge_order = NULL;
+    int_ls* d_u2 = descendants(t, u2);
+    printf("d %i->%i\t",u,u2); ls_print(d_u2); printf("\n");
 
-    int vertices = ls_size(vs);
-
-    int g_vertices = g->original_vertex_count + 1;
-    int c_bytes = sizeof(char)*g_vertices;
-    int i_bytes = sizeof(int)*g_vertices;
-
-    //these are really bad and should be converted to hash-maps
-
-    int* queued = malloc(i_bytes);
-    memset(queued,0,i_bytes);
-
-    int* queued_by = malloc(i_bytes);
-    memset(queued,0,i_bytes);
-
-    int* queues = malloc(i_bytes);
-    memset(queued,0,i_bytes);
-
-    char* in_subgraph = malloc(c_bytes);
-    memset(in_subgraph,0,c_bytes);
-
-    char* not_exposed = malloc(c_bytes);
-    memset(in_subgraph,0,c_bytes);
-
-    int* in_blossom = malloc(i_bytes);
-    memset(queued,0,i_bytes);
-
-    //set all verts to be in subgraph.
-    int_ls* cur_v = vs;
-    while(cur_v){
-        int v = value(g,cur_v->value);
-        in_subgraph[v] = 1;
-        cur_v = cur_v->next;
-    }
-
-    int blossom_count = 0;
-    int non_aug_checks = 0; //counts how many vertices have been checked without augmenting the graph.
-    cur_v = vs;
-    
-/*
-    matching = l_add(matching, edge_ls_create(edge_create(6,8)));
-     matching = l_add(matching, edge_ls_create(edge_create(5,13)));
-      matching = l_add(matching, edge_ls_create(edge_create(7,9)));
-        cur_v = ls_contains(vs,14);
-      not_exposed[6] = 1;
-    not_exposed[8] = 1;
-    not_exposed[5] = 1;
-    not_exposed[13] = 1;
-    not_exposed[7] = 1;
-    not_exposed[9] = 1;
-*/
-
-
-
-    while(non_aug_checks < vertices){
-        reset_queue(queued,vs); //slow, resets queued verts.
-        reset_queue(queued_by,vs);
-        reset_queue(queues,vs);
-
-        int root = value(g,cur_v->value);
-
-
-        if(!not_exposed[root]){ //start BFS from unmatched verticies
-            int break_flag = 0;
-
-            /*printf("\n\nmatching: ");
-            fflush(stdout);
-            print_edge_ls(matching);
-            printf("\n");
-            printf("starting from: %i\n", root);
-            printf("non_aug: %i\n", non_aug_checks);
-            fflush(stdout);*/
-
-            int_ls* queue = ls_add(NULL, root); //start queue
-            int_ls* cur_queue = queue;
-            int_ls* last_queue = queue;
-            queued[root] = 1;
+    for(int v = uk; v != u; v = get_parent(t,v)){ //go up the chain from uk
+        int_ls* thorns_and_v = NULL;
+        if(v != uk)
+            thorns_and_v = ls_merge(immediate_thorns(t,v),ls_add(NULL,v));                   //look for edges in the thorns adjacent to v
+        else
+            thorns_and_v = ls_add(NULL,v);
             
-            int prev_u = 0;
+        for(int_ls* tv = thorns_and_v; tv; tv = tv->next){
+            for(edge* e = g->vert[v]->edge; e ; e = e->next){ //check each vertex for one that resides outside chain's desc.
+                int other_v = value(g,e->otherVertex);
+                if(!ls_contains(d_u2,other_v)){
+                    ls_free(d_u2);
+                    return e;
+                }
+            }
+        }
+        ls_free(thorns_and_v);
+    }
+    ls_free(d_u2);
+    return NULL;
+}
 
-            while(cur_queue){
-                int q_u = value(g,cur_queue->value); //current v
-                edge* e = g->vert[q_u]->edge;
+void find_swings(graph* g, graph* t, chain_ls* chain){
+    int u = chain->u;
+    int uk = chain->uk;
 
-                int current_depth = queued[q_u]+1;
+    int d_ua = get_depth(t,chain->ua);
 
-                int looking_for_matched = current_depth%2;
+    int higher = 0;
+    int lower = 0;
+    for(int cu = chain->u2; cu && cu!=uk; cu = next_in_chain(t,cu)){
+       // printf("cu: %i", cu);
 
-                //printf("u:%i \tcurrent depth: %i\n", q_u, current_depth);fflush(stdout);
-                while(e){ //go through each edge in current vertex
-                        int u = value(g,e->thisVertex); // should be the same as q_u
-                        int v = value(g,e->otherVertex);
+        int_ls* thrns = immediate_thorns(t,cu);
+        int num_thrns = ls_size(thrns);
+        if(num_thrns > 2){
+            higher = 0;
+        }
+        else if(num_thrns <= 0){
+            //do nothing
+        }
+        else if(num_thrns == 2){
+            higher = 0;
+            int thrn1 = value(g,thrns->value);
+            int thrn2 = value(g,thrns->next->value); /// may need to add checks for edges in g to vertices outside the path
 
-                    if(is_in_subgraph(g,e,in_subgraph) && u!=v){
-
-                        int e_in_matching = !!l_contains(matching,edge_match,e);
-                        //printf("%i,%i :\t looking: %i\tin_m:%i\tq[v]mod2 = %i\n",u,v,looking_for_matched,e_in_matching,queued[v]%2);fflush(stdout);
-
-                        
-                        
-                        if(exposed_verts(g,e,not_exposed)){  //add to matching
-                            edge_ls* new_edge_ls = edge_ls_create(e);
-                            matching = l_add(matching,new_edge_ls);
-                            not_exposed[u] = 1;
-                            not_exposed[v] = 1;
-
-                            non_aug_checks = -1; //reset counter
-                            break_flag = 1;
-                            break;
-                        }
-                        
-
-                        if(looking_for_matched && e_in_matching){
-                            if(!queued[v]){                   //add to queue
-                                //printf("2. queueing %i ", v);fflush(stdout);
-                                //ls_print(cur_queue);
-
-                                int_ls* new_node = ls_add(NULL,v);
-                                ls_merge(last_queue,new_node);
-                                last_queue = new_node;
-                                queued[v] = current_depth;
-                                queued_by[v] = q_u;
-                                queues[q_u] = v;
-
-                                //printf("  ->  ");fflush(stdout);
-                                //ls_print(cur_queue);
-                                //printf("\n");fflush(stdout);
-                            }
-                            break;//can break because this should be the only one.
-                        }
-                        else if(!looking_for_matched && !e_in_matching && !queued[v]%2){
-                            //printf("!looking & !in mathcing\n");fflush(stdout);
-                            
-                            if(!not_exposed[v]){ //flip edges
-                              //  printf("exposed!\n");fflush(stdout);
-                                int cur_v = v;
-                                int old_u = u;
-                                int p_u = queued_by[old_u];
-
-                                //lift all blossoms
-                                while(merge_order = lift_blossom(g, matching,queued_by,queues,not_exposed,merge_order));
-                                    
-                                do{
-                                    //printf("\t flipping:\t cur_v: %i \t old_u: %i\t p_u: %i\n",cur_v,old_u,p_u); fflush(stdout);
-                                    edge* temp_e = edge_create(old_u,cur_v); //edge struct for matching list
-
-                                    edge* ee = find_edge(g,old_u,cur_v);
-                                    edge_ls* new_node = edge_ls_create(ee);
-
-                                    matching = l_add(matching,new_node);
-                                    not_exposed[old_u] = 1;
-                                    not_exposed[cur_v] = 1;
-
-                                    free(temp_e);
-
-                                    if(p_u){
-                                        edge* temp_e2 = edge_create(old_u, p_u);
-
-                                        edge_ls* rm = l_contains(matching,edge_match,temp_e2); //remove edge
-                                        l_remove(rm);
-                                    }
-
-                                    cur_v = p_u;
-                                    old_u = queued_by[p_u];
-                                    p_u = queued_by[old_u];
-                                }while(old_u);
-                                non_aug_checks = -1; //reset counter
-                                break_flag = 1;
-                                break;
-                            }
-                            if(!queued[v]){                   //add to queue
-                                //printf("3. queueing %i ", v);fflush(stdout);
-                                //ls_print(cur_queue);
-
-                                int_ls* new_node = ls_add(NULL,v);
-                                ls_merge(last_queue,new_node);
-                                last_queue = new_node;
-                                queued[v] = current_depth;
-                                queued_by[v] = q_u;
-                                queues[q_u] = v;
-                                //printf("  ->  ");fflush(stdout);
-                                //ls_print(cur_queue);
-                                //printf("\n");fflush(stdout);
-                            }
-                        }else if(!looking_for_matched && queued[v]%2){ //blossom found
-                                blossom_count++;
-
-                                //backtrack and merge until du and dv meet
-                                //printf("!!!!CONTRACTING BLOSSOM\n");
-                                in_blossom[u] = blossom_count;
-                                in_blossom[v] = blossom_count;
-
-                                while(u != v){
-                                    int du = queued[u]; // one end of blossom
-                                    int dv = queued[v]; // other end of blossom
-
-                                    if(du > dv){
-                                        
-                                        int u_prev = queued_by[u];
-                                        blossom_merge(g,u,u_prev,blossom_count,merge_order);
-                                        u = u_prev;
-                                        in_blossom[u_prev] = blossom_count;
-                                    }
-                                    else{
-                                        int v_prev = queued_by[v];
-                                        blossom_merge(g,v,v_prev,blossom_count,merge_order);
-                                        v = v_prev;
-                                        in_blossom[v_prev] = blossom_count;
-                                    }
-                                }
-                                
-                                //restart algo from same vert.
-                                cur_v = cur_v->prev ? cur_v->prev : ls_last(cur_v);
-                                break_flag = 1;
-                                break;
-                                
-                        }
-                        else{ // may need to add a flag to see if the vert has changed
-                            while(merge_order = blossom_unmerge(g,merge_order)); //unmerge all blossoms
-                            reset_queue(in_blossom,vs);
-                            blossom_count = 0;
-                            non_aug_checks--;
-                        }
+            edge* e = find_edge(g,thrn1,thrn2);
+            if(e){
+                swing_ls* new_sw = create_swing(t,thrn1,thrn2,e);
+                int d_higher = get_depth(t,thrn1);
+                int d_lower = get_depth(t,thrn2);
+                if(d_ua<d_higher-1){
+                      new_sw->in_lower = 1;
+                }
+                if(get_depth(t,thrn1) < get_depth(t,chain->ua) && get_depth(t,thrn2) > get_depth(t,get_parent(t,uk))){
+                        new_sw->in_lower = 1;
                     }
-                    e = e->next;
-                } // end while(e)
-                if(break_flag)
-                    break;
-                prev_u = q_u;
-                cur_queue = cur_queue->next;
-            } // end while(cur_queue){
-            ls_free(queue);
-        }// end if(!matched[root])
-        non_aug_checks++;
-        cur_v = cur_v->next ? cur_v->next : vs;
-    } // end while (non_aug_checks < vertices)
+                chain->swings = l_add(chain->swings,new_sw); 
+                chain->swing_edges = l_add(chain->swing_edges,edge_ls_create(e));
+            }
+        }
+        else{ //num_thorns = 1;      
+            if(!higher){
+                higher = value(g,thrns->value);
+            }
+            else{// if a there is a valid thorn above, check for a connection.
+                int current_thorn = value(g,thrns->value);
+                edge* e = find_edge(g,higher,current_thorn);
 
-    free(queued);
-    free(queued_by);
-    free(queues);
-    free(in_subgraph);
-    free(not_exposed);
-    free(in_blossom);
-    return matching;
+                if(e){
+                    swing_ls* new_sw = create_swing(t,higher,current_thorn,e);
+                    int d_higher = get_depth(t,higher);
+                    int d_lower = get_depth(t,current_thorn);
+                    if(d_ua<d_higher-1){
+                        new_sw->in_lower = 1;
+                    }
+                    chain->swings = l_add(chain->swings,new_sw);
+                    chain->swing_edges = l_add(chain->swing_edges,edge_ls_create(e));
+                    higher = 0; 
+                }
+                else{
+                    higher = current_thorn;
+                }
+            }
+        }
+        ls_free(thrns);
+    }
+}
+
+void find_binding_edges(graph* g, graph* t, chain_ls* chain){
+
+    int ua = chain->ua;
+    int uk = chain->uk;
+    int ua_next = next_in_chain(t,ua);
+    int ua_next = ua_next?ua_next: ua;
+    int_ls* ua_to_uk = NULL;
+    if(ua_next){
+        ua_to_uk = tree_path(t,ua_next,get_parent(t,uk));
+    }
+
+    for(swing_ls* swing = chain->swings; swing; swing = swing->next){
+        int upg = swing->p_up;
+        int dng = swing->p_down;
+
+        int up_in_lower = !!ls_contains(ua_to_uk,upg);
+        int down_in_lower = !!ls_contains(ua_to_uk,dng);
+
+        if(up_in_lower && down_in_lower){
+            int_ls* w_candidates = thorns(t,chain->u2);
+            int_ls* l_upg = leaves(t,upg);
+            w_candidates = ls_remove_list(w_candidates,l_upg);
+            int_ls* y_candidates = descendants(t,upg);
+
+            for(int_ls* c_w = w_candidates; c_w; c_w = c_w->next){
+                int w = value(g,c_w->value);
+                for(edge* e = g->vert[w]->edge; e; e = e->next){
+                    int y = value(g,e->otherVertex);
+                    if(ls_contains(y_candidates,y)){
+                        int_ls* zg_not = ls_add(ls_add(ls_add(NULL, w),swing->up),swing->down);
+
+
+                        int_ls* p1 = tree_path(t,dng,y); // DOWN_G to Y
+                        int_ls* p1_l = NULL;
+                        for(int_ls* p1c = p1; p1c; p1c = p1c->next){
+                            p1_l = ls_merge(p1_l,immediate_thorns(t,p1c->value));
+                        }
+                        p1_l = ls_remove_list(p1_l,zg_not);
+
+                        if(p1_l){
+                            swing->binding_edges = l_add(swing->binding_edges,edge_ls_create(e)); // add to swing
+                            if(!l_contains(chain->binding_edges, edge_match, e) && swing->in_lower){
+                                chain->binding_edges = l_add(swing->binding_edges,edge_ls_create(e)); //add to chain
+                            }
+                            ls_free(p1);
+                            ls_free(p1_l);
+                            ls_free(zg_not);
+                            continue;
+                        }
+
+                        int_ls* p2 = tree_path(t,get_parent(t,w),upg); // P(W) to UP(G)
+                        int_ls* p2_l = NULL;
+                        for(int_ls* p2c = p2; p2c; p2c = p2c->next){
+                            p2_l = ls_merge(p2_l,immediate_thorns(t,p2c->value));
+                        }
+                        p2_l = ls_remove_list(p2_l,zg_not);
+                        if(ls_size(p2_l) >= 2){
+                            swing->binding_edges = l_add(swing->binding_edges,edge_ls_create(e)); // add to swing
+                            if(!l_contains(chain->binding_edges, edge_match, e) && swing->in_lower){
+                                chain->binding_edges = l_add(swing->binding_edges,edge_ls_create(e)); //add to chain
+                            }
+                            ls_free(p1);
+                            ls_free(p1_l);
+                            ls_free(zg_not);
+                            ls_free(p2);
+                            ls_free(p2_l);
+                            continue;
+                        }
+                        else if(p2_l){
+                            //check for a zg with no edge to w
+                            int l = value(g,p2_l->value);
+                            if(!graph_is_edge(g,l,w)){
+                                swing->binding_edges = l_add(swing->binding_edges,edge_ls_create(e)); // add to swing
+                                if(!l_contains(chain->binding_edges, edge_match, e)){
+                                    chain->binding_edges = l_add(swing->binding_edges,edge_ls_create(e)); //add to chain
+                                }
+                                ls_free(p1);
+                                ls_free(p1_l);
+                                ls_free(zg_not);
+                                ls_free(p2);
+                                ls_free(p2_l);
+                                continue;
+                            }
+                        }
+                        ls_free(p1);
+                        ls_free(p1_l);
+                        ls_free(zg_not);
+                        ls_free(p2);
+                        ls_free(p2_l);
+
+                    }
+                }
+                
+            }
+            if(swing->binding_edges == NULL && swing->in_lower){
+                swing->is_solo_edge = 1;
+            }
+            ls_free(w_candidates);
+            ls_free(l_upg);
+            ls_free(y_candidates);
+        }
+    }
+    ls_free(ua_to_uk);
+}
+
+void process_chains(graph* g, graph* t, chain_ls* chains){
+    
+    for(chain_ls* ch = chains; ch; ch = ch->next){
+        edge* up_edge = upper_edge(g,t,ch);
+        if(up_edge){
+            ch->e_p = up_edge;
+            ch->ua = value(g,up_edge->thisVertex);
+        }
+        find_swings(g,t,ch);
+        find_binding_edges(g,t,ch);
+    }
+}
+
+void edge_ls_free(edge_ls* el){
+
+}
+
+edge_ls* E(graph* g, graph* t,int_ls* x){
+   edge_ls* ret = NULL;
+
+   for(int_ls* cx = x;cx; cx = cx->next){
+      int u = value(g,cx->value);
+
+      for(edge* e = g->vert[u]->edge; e; e = e->next){
+         int v = value(g,e->otherVertex);
+
+         if(!ls_contains(x,v)){
+            ret = l_add(ret,edge_ls_create(e));
+         }
+      }
+   }
+   return ret;
+}
+
+edge* high(graph* g, graph* t, int_ls* x){
+
+    edge* highest = NULL;
+
+    edge_ls* es = E(g,t,x);
+
+    int least_depth = 99999;
+
+    for(edge_ls* ec = es; ec; ec = ec->next ){
+        edge* e = ec->e;
+        int u = value(g,e->otherVertex);
+        int v = value(g,e->thisVertex);
+
+        int lc = lca(t,u,v);
+        int d_lc = get_depth(t,lc);
+
+        if(d_lc < least_depth){
+            highest = e;
+            least_depth = d_lc;;
+        }
+        else if(d_lc = least_depth){
+            highest = e;
+        }
+    }
+
+    l_free(es);
+    return highest;
 }
 
 int case1(graph *g, graph *t)
@@ -587,27 +479,27 @@ int case1(graph *g, graph *t)
                 cur_e = cur_e->next;
             }
 
-            graph_print_all(g);
+            //graph_print_all(g);
 
             int_ls* remaining_des = descendants(t,v);
             int_ls* cur_des = remaining_des;
-            printf("remaining des %i ",v); ls_print(remaining_des); printf("\n");
-            printf("-----\n");
+            //printf("remaining des %i ",v); ls_print(remaining_des); printf("\n");
+            //printf("-----\n");
             while(cur_des){
                 int u = value(g,cur_des->value);
                 if(u == v){
                     cur_des = cur_des->next;
                     continue;
                 }
-                printf("(((u: %i\t",u);
-                fflush(stdout);
+              //  printf("(((u: %i\t",u);
+               // fflush(stdout);
                 int u2 = g->vert[u]->edge->otherVertex;
-                printf("u2: %i\t))))\n",u2);
+                //printf("u2: %i\t))))\n",u2);
                 retain_merge_trim(g,t,u,u2);
 
-                printf("v4: %i\n",g->vert[4]->edge->otherVertex);
+                //printf("v4: %i\n",g->vert[4]->edge->otherVertex);
                 
-                graph_print_all(g);
+//                graph_print_all(g);
 
                 cur_des = cur_des->next;
             }
@@ -617,15 +509,15 @@ int case1(graph *g, graph *t)
         cur_fringe = cur_fringe->next;
     }
     ls_free(fringe);
-    printf("\t ret: %i",ret);
-   fflush(stdout);
+    //printf("\t ret: %i",ret);
+   //fflush(stdout);
     return ret;
 }
 
 int case2(graph *g, graph *t)
 {
-    printf("\n\n__CASE 2__\n\n");
-    fflush(stdout);
+    //printf("\n\n__CASE 2__\n\n");
+    //fflush(stdout);
 
     int_ls *fringe = fringes(t, t->root);
     int_ls *cur_fringe = fringe;
@@ -633,33 +525,33 @@ int case2(graph *g, graph *t)
     int ret = 0;
     while (cur_fringe)
     {   
-       printf("cur_fringe: %i\n",cur_fringe->value);
-        fflush(stdout);
+      // printf("cur_fringe: %i\n",cur_fringe->value);
+        //fflush(stdout);
 
         int parent = value(t, cur_fringe->value);
         if (!l_closed(g, t, parent))
         {
-            printf("not l-closed\n");
-            fflush(stdout);
+      //      printf("not l-closed\n");
+        //    fflush(stdout);
             int_ls *kids = children(t, parent);
             int_ls *cur_kid = kids;
             while (cur_kid)
             {
-                printf("cur_kid %i\n",cur_kid->value);
-                fflush(stdout);
+          //      printf("cur_kid %i\n",cur_kid->value);
+            //    fflush(stdout);
                 int cur_v = value(g, cur_kid->value);
                 int triv = trivial(g, t, cur_kid->value); // vertex connection that makes the cur_kid non-trivial;
                 if (triv && (cur_v != value(g, parent)))
                 {
-                    printf("cur_v: %i\ttriv:%i\n", cur_v, triv);
-                    graph_print(g);
-                    fflush(stdout);
+              //      printf("cur_v: %i\ttriv:%i\n", cur_v, triv);
+                   // graph_print(g);
+                    //fflush(stdout);
 
 
                     ret++;
                     retain_merge_trim(g, t, cur_v, triv);
-                    printf("1.33..\n");
-                    fflush(stdout);
+                //    printf("1.33..\n");
+                  //  fflush(stdout);
                 }
                 cur_kid = cur_kid->next;
             }
@@ -668,15 +560,15 @@ int case2(graph *g, graph *t)
         cur_fringe = cur_fringe->next;
     }
     ls_free(fringe);
-    printf("\t ret: %i",ret);
-   fflush(stdout);
+    //printf("\t ret: %i",ret);
+  // fflush(stdout);
     return ret;
 }
 
 int case3(graph *g, graph *t)
 {
-    printf("\n\n__CASE 3__\n\n");
-    fflush(stdout);
+    //printf("\n\n__CASE 3__\n\n");
+   // fflush(stdout);
 
     int_ls *fringe = fringes(t, t->root);
     int_ls *cur_fringe = fringe;
@@ -717,17 +609,16 @@ int case3(graph *g, graph *t)
     }
     ls_free(fringe);
 
-    printf("\t ret: %i",ret);
-    fflush(stdout);
+    //printf("\t ret: %i",ret);
+    //fflush(stdout);
 
     return ret;
 }
 
-
 int case4(graph *g, graph *t)
 {   
-    printf("\n\n__CASE 4__\n\n");
-    fflush(stdout);
+    //printf("\n\n__CASE 4__\n\n");
+    //fflush(stdout);
 
     int u = t->root;
 
@@ -738,65 +629,65 @@ int case4(graph *g, graph *t)
 
     while (cur_fri)
     {
-        printf("checking %i.. \n",cur_fri->value);
+        //printf("checking %i.. \n",cur_fri->value);
         int f = value(g, cur_fri->value);
         int_ls *kids = children(t, f);
 
         if (kids->next && !kids->next->next)
         { // number of kids is two
-            printf("%i: number of kids is two\n", f);
+          //  printf("%i: number of kids is two\n", f);
             int u1 = kids->value;
             int u2 = kids->next->value;
             if (graph_is_edge(g, u1, u2))
             { // kids are connected, prime edge type 1
-                printf("%i: u1(%i) and u2(%i)  are connected\n", f, u1, u2);
+            //    printf("%i: u1(%i) and u2(%i)  are connected\n", f, u1, u2);
                 int cur_parent = get_parent(t, f);
                 int n;
                 while (cur_parent)
                 {
-                    printf("%i (%i): climbing parents\n", f, cur_parent);
+                    //printf("%i (%i): climbing parents\n", f, cur_parent);
                     int_ls *cur_kids = children(t, cur_parent);
                     if (cur_kids->next && !cur_kids->next->next)
                     { // two children
-                        printf("%i (%i): <-- potential p_fringe\n", f, cur_parent);
+                      //  printf("%i (%i): <-- potential p_fringe\n", f, cur_parent);
                         int v = cur_parent;
                         cur_parent = 0; // stop while loop
 
                         // make u3 the leaf hanging from p_fringe
                         int u3 = is_leaf(t, cur_kids->value);
                         u3 = u3 ? u3 : is_leaf(t, cur_kids->next->value);
-                        printf("%i : u3 is %i\n", f, u3);
+                       // printf("%i : u3 is %i\n", f, u3);
                         if (u3)
                         {
                             if (!l_closed(g, t, v))
                             { // the paper asserts that this is true, but I am not convinced
-                                printf("%i - %i not lclosed\n", f, v);
+                         //       printf("%i - %i not lclosed\n", f, v);
                                 int u1_u3 = graph_is_edge(g, u1, u3);
                                 int u2_u3 = graph_is_edge(g, u2, u3);
 
                                 int unconnected = (u1_u3? 0:u1) + (u2_u3?0:u2);
-                                printf("%i - unconnected %i\n", f, unconnected);
+                                //printf("%i - unconnected %i\n", f, unconnected);
                                 int unconnected_connects_outside = 0;
 
                                 
                                 edge* e = g->vert[unconnected]->edge;
                                 int_ls* tree_verts = descendants(t,v);
-                                printf("non p-fringe descendants: "); ls_print(tree_verts);
-                                printf("\n");
+                                //printf("non p-fringe descendants: "); ls_print(tree_verts);
+                                //printf("\n");
                                 if(!(u1_u3 && u2_u3)){ //this check isnt necessary
                                     
                                     while(e){
                                         int cur_e = value(g,e->otherVertex);
-                                        printf("e:%i  ", cur_e);
+                                  //      printf("e:%i  ", cur_e);
                                         if(!ls_contains(tree_verts,cur_e)){
                                             // mark for parent contraction
                                             unconnected_connects_outside = 1;
-                                            printf("%i - connects outside = %i\n", f, unconnected_connects_outside);
+                                    //        printf("%i - connects outside = %i\n", f, unconnected_connects_outside);
                                             break;
                                         }
                                         e = e->next;
                                     }
-                                     printf("%i - connects outside = %i\n", f, unconnected_connects_outside);
+                                    // printf("%i - connects outside = %i\n", f, unconnected_connects_outside);
                                 }
 
                                 if ((u1_u3 && u2_u3) || unconnected_connects_outside)
@@ -825,483 +716,12 @@ int case4(graph *g, graph *t)
         cur_fri = cur_fri->next;
     }
     ls_free(fringe);
-    printf("\t ret: %i",ret);
-   fflush(stdout);
+//    printf("\t ret: %i",ret);
+ //  fflush(stdout);
     return ret;
 }
 
 
-// computes maximum matching
-
-
-edge *nagamochi(graph *g, graph *t, double approx)
-{
-
-    // at the very very end, we may have to check that each edge is covered,
-    // p4 doesnt seem to guarantee covering an edge when contracting f'
-    // apparently we can select any edge that covers it??/???
-
-    // this may not work. test for short circuit evaluation.
-    while (case1(g, t) ^ 2 * case2(g, t) ^ 4 * case3(g, t) ^ 8 * case4(g, t));
-
-    return NULL;
-}
-
-
-//should lift all blossoms once the path is found
-pair_ls* lift_blossom2(graph* g, edge_ls* matching, int* queued_by, int* queues, char* not_exposed, edge_ls* es, pair_ls* merge_order){
-    if(!merge_order || !matching || !g)
-        return NULL;
-    
-    //printf("lifting blossom. \n");
-
-    int old_u = value(g,merge_order->u);
-    int cur_v = queues[old_u];
-    int exit_node = queued_by[old_u];
-
-    int_ls* blossom_verts = last_blossom_verts(merge_order);
-    merge_order = blossom_unmerge(g, merge_order);
-
-    int p_u = queued_by[old_u];
-
-    edge* e = g->vert[cur_v]->edge;
-
-    while(e && edge_ls_contains(es,e) && !not_exposed[value(g,e->otherVertex)] && !ls_contains(blossom_verts, value(g,e->otherVertex))){
-        e = e->next;
-    }
-    // now e should be in the path
-
-    old_u = value(g,e->otherVertex);
-    queued_by[cur_v] = old_u;
-    queues[old_u] = cur_v;
-
-    //terminate lifting current blossom node connects to p[old_u];
-    edge* temp = edge_create(old_u, exit_node);
-    int chain_completed = !!l_contains(matching,edge_match,e);
-
-    while(!chain_completed){
-
-        int v = old_u;
-
-        edge* e = g->vert[v]->edge;
-        edge* ex = NULL;
-        while(e){
-            ex = l_contains(matching,edge_match,e);
-            if(ex)
-                break;
-
-            e = e->next;
-        }
-        
-        int ux = value(g,ex->thisVertex);
-        int vx = value(g,ex->otherVertex);
-
-        int u = ux == v ? vx : ux;
-
-        queued_by[v] = u;
-        queues[u] = v;
-
-        e = g->vert[u]->edge;
-
-        while(!ls_contains(blossom_verts,value(g,e->otherVertex)) && !edge_ls_contains(es,e)){
-            e = e->next;
-        }
-
-        old_u = value(g,e->otherVertex);
-
-        queued_by[u] = old_u;
-        queues[old_u] = u;
-
-        temp->thisVertex = old_u;
-        chain_completed = !!l_contains(matching,edge_match,e);
-    }
-
-    free(temp);
-    ls_free(blossom_verts);
-    return merge_order;
-}
-
-
-edge_ls *blossom_algorithm2(graph *g, int_ls *vs, edge_ls* es)
-{
-    gm = g;
-
-    edge_ls* matching = NULL;
-
-    pair_ls* merge_order = NULL;
-
-    int vertices = ls_size(vs);
-
-    int g_vertices = g->original_vertex_count + 1;
-    int c_bytes = sizeof(char)*g_vertices;
-    int i_bytes = sizeof(int)*g_vertices;
-
-    //these are really bad and should be converted to hash-maps
-
-    int* queued = malloc(i_bytes);
-    memset(queued,0,i_bytes);
-
-    int* queued_by = malloc(i_bytes);
-    memset(queued,0,i_bytes);
-
-    int* queues = malloc(i_bytes);
-    memset(queued,0,i_bytes);
-
-    char* in_subgraph = malloc(c_bytes);
-    memset(in_subgraph,0,c_bytes);
-
-    char* not_exposed = malloc(c_bytes);
-    memset(in_subgraph,0,c_bytes);
-
-    int* in_blossom = malloc(i_bytes);
-    memset(queued,0,i_bytes);
-
-    //set all verts to be in subgraph.
-    int_ls* cur_v = vs;
-    while(cur_v){
-        int v = value(g,cur_v->value);
-        in_subgraph[v] = 1;
-        cur_v = cur_v->next;
-    }
-
-    int blossom_count = 0;
-    int non_aug_checks = 0; //counts how many vertices have been checked without augmenting the graph.
-    cur_v = vs;
-    
-/*
-    matching = l_add(matching, edge_ls_create(edge_create(6,8)));
-     matching = l_add(matching, edge_ls_create(edge_create(5,13)));
-      matching = l_add(matching, edge_ls_create(edge_create(7,9)));
-        cur_v = ls_contains(vs,14);
-      not_exposed[6] = 1;
-    not_exposed[8] = 1;
-    not_exposed[5] = 1;
-    not_exposed[13] = 1;
-    not_exposed[7] = 1;
-    not_exposed[9] = 1;
-*/
-
-    while(non_aug_checks < vertices){
-        reset_queue(queued,vs); //slow, resets queued verts.
-        reset_queue(queued_by,vs);
-        reset_queue(queues,vs);
-
-        int root = value(g,cur_v->value);
-
-
-        if(!not_exposed[root]){ //start BFS from unmatched verticies
-            int break_flag = 0;
-
-            /*printf("\n\nmatching: ");
-            fflush(stdout);
-            print_edge_ls(matching);
-            printf("\n");
-            printf("starting from: %i\n", root);
-            printf("non_aug: %i\n", non_aug_checks);
-            fflush(stdout);*/
-
-            int_ls* queue = ls_add(NULL, root); //start queue
-            int_ls* cur_queue = queue;
-            int_ls* last_queue = queue;
-            queued[root] = 1;
-            
-            int prev_u = 0;
-
-            while(cur_queue){
-                int q_u = value(g,cur_queue->value); //current v
-                edge* e = g->vert[q_u]->edge;
-
-                int current_depth = queued[q_u]+1;
-
-                int looking_for_matched = current_depth%2;
-
-                //printf("u:%i \tcurrent depth: %i\n", q_u, current_depth);fflush(stdout);
-                while(e){ //go through each edge in current vertex
-                        int u = value(g,e->thisVertex); // should be the same as q_u
-                        int v = value(g,e->otherVertex);
-
-                    if(is_in_subgraph(g,e,in_subgraph) && u!=v && edge_ls_contains(es,e)){
-
-                        int e_in_matching = !!l_contains(matching,edge_match,e);
-                        //printf("%i,%i :\t looking: %i\tin_m:%i\tq[v]mod2 = %i\n",u,v,looking_for_matched,e_in_matching,queued[v]%2);fflush(stdout);
-
-                        
-                        
-                        if(exposed_verts(g,e,not_exposed)){  //add to matching
-                            edge_ls* new_edge_ls = edge_ls_create(e);
-                            matching = l_add(matching,new_edge_ls);
-                            not_exposed[u] = 1;
-                            not_exposed[v] = 1;
-
-                            non_aug_checks = -1; //reset counter
-                            break_flag = 1;
-                            break;
-                        }
-                        
-
-                        if(looking_for_matched && e_in_matching){
-                            if(!queued[v]){                   //add to queue
-                                //printf("2. queueing %i ", v);fflush(stdout);
-                                //ls_print(cur_queue);
-
-                                int_ls* new_node = ls_add(NULL,v);
-                                ls_merge(last_queue,new_node);
-                                last_queue = new_node;
-                                queued[v] = current_depth;
-                                queued_by[v] = q_u;
-                                queues[q_u] = v;
-
-                                //printf("  ->  ");fflush(stdout);
-                                //ls_print(cur_queue);
-                                //printf("\n");fflush(stdout);
-                            }
-                            break;//can break because this should be the only one.
-                        }
-                        else if(!looking_for_matched && !e_in_matching && !queued[v]%2){
-                            //printf("!looking & !in mathcing\n");fflush(stdout);
-                            
-                            if(!not_exposed[v]){ //flip edges
-                              //  printf("exposed!\n");fflush(stdout);
-                                int cur_v = v;
-                                int old_u = u;
-                                int p_u = queued_by[old_u];
-
-                                //lift all blossoms
-                                while(merge_order = lift_blossom2(g, matching,queued_by,queues,not_exposed,merge_order));
-                                    
-                                do{
-                                    //printf("\t flipping:\t cur_v: %i \t old_u: %i\t p_u: %i\n",cur_v,old_u,p_u); fflush(stdout);
-                                    edge* temp_e = edge_create(old_u,cur_v); //edge struct for matching list
-
-                                    edge* ee = find_edge(g,old_u,cur_v);
-                                    edge_ls* new_node = edge_ls_create(ee);
-
-                                    matching = l_add(matching,new_node);
-                                    not_exposed[old_u] = 1;
-                                    not_exposed[cur_v] = 1;
-
-                                    free(temp_e);
-
-                                    if(p_u){
-                                        edge* temp_e2 = edge_create(old_u, p_u);
-
-                                        edge_ls* rm = l_contains(matching,edge_match,temp_e2); //remove edge
-                                        l_remove(rm);
-                                    }
-
-                                    cur_v = p_u;
-                                    old_u = queued_by[p_u];
-                                    p_u = queued_by[old_u];
-                                }while(old_u);
-                                non_aug_checks = -1; //reset counter
-                                break_flag = 1;
-                                break;
-                            }
-                            if(!queued[v]){                   //add to queue
-                                //printf("3. queueing %i ", v);fflush(stdout);
-                                //ls_print(cur_queue);
-
-                                int_ls* new_node = ls_add(NULL,v);
-                                ls_merge(last_queue,new_node);
-                                last_queue = new_node;
-                                queued[v] = current_depth;
-                                queued_by[v] = q_u;
-                                queues[q_u] = v;
-                                //printf("  ->  ");fflush(stdout);
-                                //ls_print(cur_queue);
-                                //printf("\n");fflush(stdout);
-                            }
-                        }else if(!looking_for_matched && queued[v]%2){ //blossom found
-                                blossom_count++;
-
-                                //backtrack and merge until du and dv meet
-                                //printf("!!!!CONTRACTING BLOSSOM\n");
-                                in_blossom[u] = blossom_count;
-                                in_blossom[v] = blossom_count;
-
-                                while(u != v){
-                                    int du = queued[u]; // one end of blossom
-                                    int dv = queued[v]; // other end of blossom
-
-                                    if(du > dv){
-                                        
-                                        int u_prev = queued_by[u];
-                                        blossom_merge(g,u,u_prev,blossom_count,merge_order);
-                                        u = u_prev;
-                                        in_blossom[u_prev] = blossom_count;
-                                    }
-                                    else{
-                                        int v_prev = queued_by[v];
-                                        blossom_merge(g,v,v_prev,blossom_count,merge_order);
-                                        v = v_prev;
-                                        in_blossom[v_prev] = blossom_count;
-                                    }
-                                }
-                                
-                                //restart algo from same vert.
-                                cur_v = cur_v->prev ? cur_v->prev : ls_last(cur_v);
-                                break_flag = 1;
-                                break;
-                                
-                        }
-                        else{ // may need to add a flag to see if the vert has changed
-                            while(merge_order = blossom_unmerge(g,merge_order)); //unmerge all blossoms
-                            reset_queue(in_blossom,vs);
-                            blossom_count = 0;
-                            non_aug_checks--;
-                        }
-                    }
-                    e = e->next;
-                } // end while(e)
-                if(break_flag)
-                    break;
-                prev_u = q_u;
-                cur_queue = cur_queue->next;
-            } // end while(cur_queue){
-            ls_free(queue);
-        }// end if(!matched[root])
-        non_aug_checks++;
-        cur_v = cur_v->next ? cur_v->next : vs;
-    } // end while (non_aug_checks < vertices)
-
-    free(queued);
-    free(queued_by);
-    free(queues);
-    free(in_subgraph);
-    free(not_exposed);
-    free(in_blossom);
-    return matching;
-}
-
-typedef struct edge_ls_ls
-{
-    void* x;
-} edge_ls_ls;
-
-
-
-// v must be minimally lf-closed s
-void COVER(graph* g, graph* t, int v){
-
-    edge_ls* F_leaf = leaf_edges(g,t,v); //leaf edges in T[v] - edges that connect a leaf to an ancestor
-
-    edge_ls* E_leaf = leaf_to_leaf_edges(g,t,v); //edges that connect two leaves
-
-    edge_ls* E_prime1 = prime_edge_type1(g,t,v);
-
-    edge_ls* E_prime2 = prime_edges_type2(g,t,v);
-
-    edge_ls* E_prime = ls_merge(ls_copy(E_prime1), ls_copy(E_prime2)); //prime edges
-
-    //for each swing edge g in a given chain of T[v]
-        edge_ls* gg; // each swing edge in the lower part of the chain
-        edge_ls* e_g; //binding edges corresponding to 'g' (possible also for each chain. ambiguous)
-        //for each chain P
-            edge* e_p; //upper edge of P
-    edge_ls_ls* E_bind; //set of all e_g's
-    edge_ls_ls* E_upper; //set of all e_p's
-
-    //for each branch vertex in T[v]
-        int vi; //current branch vertex
-/*     E_upper(vi) set of upper edges e_p of -chains of vi-  */
-
-
-    /* PHASE 1 - PHASE 1 - PHASE 1 - PHASE 1 - PHASE 1 - PHASE 1*/
-        int_ls* vs = leaves(t,v);
-        edge_ls* e_mat = l_remove_ls(leaves,edge_match,E_prime);
-
-        edge_ls* m_star = blossom_algorithm2(g,vs,e_mat); //this list will be retained
-
-        edge_ls* matched_v = NULL;
-
-        for(edge_ls* m = m_star; m; m=m->next){
-            int u1 = value(g,m->e->thisVertex);
-            int u2 = value(g,m->e->otherVertex);
-            
-            ls_add(matched_v,u1);
-            ls_add(matched_v,u2);
-        }
-
-        int_ls* unmatched_v = ls_copy(vs); ls_remove_list(unmatched_v,matched_v);
-
-        edge_ls* M1_s = NULL;
-        edge_ls* M2_s = NULL;
-
-        int_ls* newly_matched_v = NULL;
-
-        for(edge_ls* e1 = E_prime1; e1; e1 = e1->next){
-            int u1 = value(g,e1->e->thisVertex);
-            int u2 = value(g,e1->e->otherVertex);
-
-            if(ls_contains_2(unmatched_v,u1,u2)){
-                M1_s = l_add(M1_s, edge_ls_create(e1->e)); //this list will be retained
-                newly_matched_v = ls_add(newly_matched_v,u1);
-                newly_matched_v = ls_add(newly_matched_v,u2);
-            }
-        }
-
-        for(edge_ls* e2 = E_prime2; e2; e2 = e2->next){
-            int u1 = value(g,e2->e->thisVertex);
-            int u2 = value(g,e2->e->otherVertex);
-
-            if(ls_contains_2(unmatched_v,u1,u2))
-                M2_s = l_add(M1_s, edge_ls_create(e2->e));
-        }
-
-        edge_ls* m2_d = NULL; //m2_d should be size m1_d/2
-        for(edge_ls* m = M1_s; m; m = m->next){
-            m2_d = ls_add(m2_d, l_contains(M2_s,edge_match_one, m->e)); //this list will be retained
-
-            int u1 = value(g,m->e->thisVertex);
-            int u2 = value(g,m->e->otherVertex);
-            newly_matched_v = ls_add(newly_matched_v,u1);
-            newly_matched_v = ls_add(newly_matched_v,u2);
-        }
-
-        ls_remove_list(unmatched_v,matched_v); //remove the newly matched verts from unmatched.
-
-        //for each unmatched_v, w,
-            //if has binding edge where w is the higher vert, and w has no other binding edges
-                //'ew' = bind_edge
-
-           //else if w is incident to a swing
-                //'ew' = swing
-            //else
-                //'ew' = high(w)
-
-        //retain all 'ew'
-
-
-
-
-    /* PHASE 2 - PHASE 2 - PHASE 2 - PHASE 2 - PHASE 2 - PHASE 2*/
-
-
-    /* PHASE 3 - PHASE 3 - PHASE 3 - PHASE 3 - PHASE 3 - PHASE 3*/
-
-}
-
-typedef struct chain_ls{
-    chain_ls* next;
-    chain_ls* prev;
-
-    int u ;
-    int uk;
-
-    int ua;
-
-    edge* e_p; //upper
-}chain_ls;
-
-chain_ls* create_chain(int u,int uk){
-    chain_ls* chain = malloc(sizeof(chain_ls));
-    chain->next = NULL;
-    chain->prev = NULL;
-
-    int u;
-
-    edge* e_p = NULL; 
-}
 
 
 edge_ls* prime_edges(graph* g, graph* t, int v){
@@ -1558,8 +978,6 @@ edge_ls* leaf_edges(graph* g, graph* t, int v){
             parent_ls = ls_add(parent_ls,cur_v);
         }
 
-        printf("parent list (%i): ",cur_lf); ls_print(parent_ls); printf("\n");
-
         for(edge* e = g->vert[cur_lf]->edge; e ; e=e->next){
             int other_v = value(g,e->otherVertex);
 
@@ -1596,4 +1014,432 @@ edge_ls* leaf_to_leaf_edges(graph* g, graph*t, int v){
     ls_free(leafs);
 
     return leaf_edges;
+}
+
+
+
+// v must be minimally lf-closed s
+void COVER(graph* g, graph* t, int v){
+
+    edge_ls* F_leaf = leaf_edges(g,t,v); //leaf edges in T[v] - edges that connect a leaf to an ancestor
+
+    edge_ls* E_leaf = leaf_to_leaf_edges(g,t,v); //edges that connect two leaves
+    edge_ls_print_vertices(E_leaf);
+
+    edge_ls* E_prime1 = prime_edges_type1(g,t,v);
+
+    edge_ls* E_prime2 = prime_edges_type2(g,t,v);
+
+    edge_ls* E_prime = l_merge(edge_ls_copy(E_prime1), edge_ls_copy(E_prime2)); //prime edges
+    edge_ls_print_vertices(E_prime);
+
+
+    graph_print_all(g);
+
+    chain_ls* P = find_chains(t,v);
+    process_chains(g,t,P);
+
+    edge_ls* E_bind = NULL; //set of all e_g's
+    edge_ls* E_upper = NULL; //set of all e_p's
+    edge_ls* E_swing = NULL;
+
+    for(chain_ls* chain = P; chain; chain = chain->next){
+        if(chain->binding_edges){
+            E_bind = l_add(E_bind,edge_ls_create(chain->binding_edges->e));
+        }
+        if(chain->e_p){
+            E_upper = l_add(E_upper,edge_ls_create(chain->e_p));
+        }
+    }
+
+
+    //for each branch vertex in T[v]
+        int vi; //current branch vertex
+/*     E_upper(vi) set of upper edges e_p of -chains of vi-  */
+
+    graph_print_all(g);
+
+    /* PHASE 1 - PHASE 1 - PHASE 1 - PHASE 1 - PHASE 1 - PHASE 1*/
+        int_ls* vs = leaves(t,v);
+        edge_ls_print_vertices(E_prime);
+        edge_ls_print_vertices(E_leaf);
+        edge_ls* e_mat = l_remove_ls(E_leaf,edge_match,E_prime);
+
+        edge_ls* m_star = blossom_algorithm2(g,vs,e_mat); //this list will be retained
+
+        int_ls* matched_v = NULL;
+
+        for(edge_ls* m = m_star; m; m=m->next){ //find out which vertices are matched from M*
+            int u1 = value(g,m->e->thisVertex);
+            int u2 = value(g,m->e->otherVertex);
+            
+            matched_v = ls_add(matched_v,u1);
+            matched_v = ls_add(matched_v,u2);
+        }
+
+        //find unmatched vertices
+        int_ls* unmatched_v = ls_copy(vs); unmatched_v = ls_remove_list(unmatched_v,matched_v); //W
+
+        edge_ls* M1_s = NULL;
+        edge_ls* M2_s = NULL;
+
+        int_ls* newly_matched_v = NULL;
+
+        // build M1_s and record the edges that will soon be matched
+        for(edge_ls* e1 = E_prime1; e1; e1 = e1->next){
+            int u1 = value(g,e1->e->thisVertex);
+            int u2 = value(g,e1->e->otherVertex);
+
+            int_ls* uu = ls_add(NULL,u1);
+            uu = ls_add(uu,u2);
+
+            if(ls_contains_any(unmatched_v,uu)){
+                M1_s = l_add(M1_s, edge_ls_create(e1->e)); //this list will be retained
+                newly_matched_v = ls_add(newly_matched_v,u1);
+                newly_matched_v = ls_add(newly_matched_v,u2);
+            }
+            ls_free(uu);
+        }
+
+        for(edge_ls* e2 = E_prime2; e2; e2 = e2->next){
+            int u1 = value(g,e2->e->thisVertex);
+            int u2 = value(g,e2->e->otherVertex);
+
+            int_ls* uu = ls_add(NULL,u1);
+            uu = ls_add(uu,u2);
+
+            if(ls_contains_any(unmatched_v,uu)){
+                M2_s = l_add(M1_s, edge_ls_create(e2->e));
+                newly_matched_v = ls_add(newly_matched_v,u1);
+                newly_matched_v = ls_add(newly_matched_v,u2);
+            }
+
+            ls_free(uu);
+        }
+
+        graph_print_all(g);
+
+        edge_ls* m2_d = NULL; //m2_d should be size m1_d/2
+        for(edge_ls* m = M1_s; m; m = m->next){ 
+            m2_d = l_add(m2_d, l_contains(M2_s,edge_match_one, m->e)); //this list will be retained
+
+            int u1 = value(g,m->e->thisVertex);
+            int u2 = value(g,m->e->otherVertex);
+        }
+
+        unmatched_v = ls_remove_list(unmatched_v,newly_matched_v); //remove the newly matched verts from unmatched.
+
+        //W minus m1' and m2'
+        int_ls* Wmmm = ls_copy(unmatched_v);
+        Wmmm = ls_remove_list(Wmmm,newly_matched_v);
+
+        edge_ls* ew = NULL; //retention of unmatched_v
+
+        //for each unmatched_v, w,
+        for(int_ls* wl = Wmmm; wl; wl = wl->next){
+            int w = value(g,wl->value);
+
+            int continue_flag = 0;
+
+            //if has binding edge where w is the higher vert, and it's the lowest such binding edge
+            edge* e = edge_create(w,w);
+            edge_ls* potential_ew = E_bind;
+            edge* cur_highest_ew = NULL;
+
+            while(potential_ew = l_contains(potential_ew,edge_match_one,e)){
+                int u1 = value(g,potential_ew->e->thisVertex);
+                int u2 = value(g,potential_ew->e->otherVertex);
+
+                int y = u1 ^ u2 ^ w;
+
+                if(get_depth(t,y) < get_depth(t,get_parent(t,w))){ //w must be > y
+                    if(!cur_highest_ew){
+                        cur_highest_ew = potential_ew->e;
+                    }
+                    else{
+                        int ux1 = value(g,e->thisVertex);
+                        int ux2 = value(g,e->otherVertex);
+                        int y2 = w ^ ux1 ^ ux2;
+
+                        if(get_depth(t,y) < get_depth(t,y2)){ //ew must have the highest y
+                            cur_highest_ew = potential_ew->e;
+                        }
+                    }
+                }
+                potential_ew = potential_ew->next;
+            }
+            
+
+            if(cur_highest_ew){
+                free(e);
+                ew = l_add(ew,edge_ls_create(cur_highest_ew));
+                continue;
+            }
+
+
+                //else if w is incident to a swing
+                //'ew' = swing
+            edge* new_ew = NULL;
+
+            for(chain_ls* ch = P; ch; ch = ch->next){ //for each chain
+                edge_ls* sw = ch->swing_edges;
+                while(sw = l_contains(sw,edge_match_one,e)){
+                    int u1 = value(g,sw->e->thisVertex);
+                    int u2 = value(g,sw->e->otherVertex);
+
+                    if(u2 == w){
+                        int t = u2;
+                        u2 = u1;
+                        u1 = t;
+                    }
+
+                    if(get_depth(t,u1) <= get_depth(t,u2)){
+
+                        new_ew = sw->e;
+                        
+                    }
+                    sw = sw->next;
+                }
+            } 
+
+            if(new_ew){
+                free(e);
+                ew = l_add(ew,edge_ls_create(new_ew));
+                continue;
+            }
+
+            
+
+            int_ls* ww = ls_add(NULL,w);
+
+            new_ew = high(g,t,ww);
+            free(e);
+            ls_free(ww);
+            ew = l_add(ew,edge_ls_create(new_ew));
+        }
+            
+        //retain all 'ew'
+
+        edge_ls* p4_eg = NULL;
+
+        for(edge_ls* cg = l_first(M1_s); cg; cg = cg->next){
+            
+            edge_ls* p2 = NULL;
+            if(p2 = l_contains(M2_s,edge_match_one,cg->e)){
+                int w = value(g,p2->e->thisVertex);
+                int wd = value(g,p2->e->otherVertex);
+
+                if(get_depth(t,wd) > get_depth(t,w)){
+                    int t = w;
+                    w = wd;
+                    wd = t;
+                }
+
+                int_ls* desc = descendants(t,w);
+
+                edge* new_eg = high(g,t,desc);
+                ls_free(desc);
+                p4_eg = l_add(p4_eg,new_eg);
+            }
+            else{
+                int u = value(g,cg->e->thisVertex);
+                int ud = value(g,cg->e->otherVertex);
+                int pu = get_parent(t,u);
+                int_ls* uupu = ls_add(NULL,u);
+                uupu = ls_add(uupu,ud);
+                uupu = ls_add(uupu,pu);
+
+                edge* new_eg = high(g,t,uupu);
+                ls_free(uupu);
+                p4_eg = l_add(p4_eg,new_eg);
+            }
+        }
+
+        edge_ls* E1 = l_merge(M1_s,m2_d);
+        E1 = l_merge(E1,l_merge(ew,p4_eg));
+
+        for(edge_ls* ec = E1; ec; ec = ec->next){
+            retain_merge_trim(g,t,ec->e->thisVertex, ec->e->otherVertex);
+        }
+
+        graph_print_all(g);
+
+    /* PHASE 2 - PHASE 2 - PHASE 2 - PHASE 2 - PHASE 2 - PHASE 2*/
+
+        /* MERGE 1 - MERGE 1 - MERGE 1 - MERGE 1 */
+        for(chain_ls* ch = P; ch; ch = ch->next){
+            for(swing_ls* sw = ch->swings; sw; sw = sw->next){
+                //an edge is  in a small component if only 2 vertices in matched_v deref to the edge.
+
+                int sw_v = value(g,sw->e->thisVertex);
+                int matches = 0;
+
+                for(int_ls* m = matched_v; m; m = m->next){
+                    int u = value(g,m->value);
+                    if(u == sw_v){
+                        matches++;
+                    }
+                }
+
+                if(matches == 2){ 
+                    edge* ret_e = sw->in_lower ? sw->binding_edges->e : ch->e_p;
+                    int u = value(g,ret_e->thisVertex);
+                    int v2 = value(g,ret_e->otherVertex);
+
+                    int_ls* tp = tree_path(t,u,v2);
+
+                    int components = 0;
+
+                    int_ls* temp = NULL;
+                    for(int_ls* t = tp; t; t = t->next){
+                        for(int_ls* m = matched_v; m; m = m->next){ //calculate how many components will be merged by edge.
+                            int cur_m = value(g,m->value);
+                            if(cur_m == tp->value){
+                                components++;
+                                break;
+                            }
+                        }
+                    }
+
+                    if(components >= 3){
+                        retain_merge_trim(g,t,u,v2); 
+                    }
+                }
+            }
+        }
+
+        graph_print_all(g);
+
+        /* MERGE 2 - MERGE 2 - MERGE 2 - MERGE 2 */
+        for(chain_ls* ch = P; ch; ch = ch->next){
+            int ua1 = value(g,ch->e_p->thisVertex);
+            int ua2 = value(g,ch->e_p->otherVertex);
+
+            if(ua1 == ua2)
+                continue;
+
+            int v1_matched = !!ls_contains(matched_v,ch->u);
+
+            int num_upward = 0;
+            int any_in_matching = 0;
+
+            for(swing_ls* sw = ch->swings; sw; sw = sw->next){
+                if(!sw->in_lower){
+                    num_upward++;
+                    int u1 = value(g,sw->e->thisVertex);
+                    int u2 = value(g,sw->e->otherVertex);
+                    if(ls_contains_2(matched_v,u1,u2)){
+                        any_in_matching++;
+                    }
+                }
+            }
+
+            if(any_in_matching && num_upward >=2 || v1_matched && num_upward){
+                //if there are others with upwards, then contract their upper_edges
+
+                edge_ls* uppers = NULL;
+
+                for(chain_ls* chc = P; chc; chc = chc->next){
+                    if(chc == ch)
+                        continue;
+
+                    int uhc1 = value(g,chc->e_p->thisVertex);
+                    int uhc2 = value(g,chc->e_p->otherVertex);
+
+                    if(uhc1 == uhc2)
+                        continue;
+
+                    int v1_matched_c = !!ls_contains(matched_v,chc->u);
+
+                    int num_upward_c = 0;
+
+                    for(swing_ls* sw = ch->swings; sw; sw = sw->next){
+                        if(!sw->in_lower){
+                            num_upward++;
+                        }
+                    }
+                    if(num_upward>=2)
+                        uppers = l_add(uppers,edge_ls_create(chc->e_p));
+
+                }
+
+                if(uppers){
+                    uppers = l_add(uppers,edge_ls_create(ch->e_p));
+
+                    for(edge_ls* ue = uppers; ue; ue->next){
+                        int v1 = value(g,ue->e->thisVertex);
+                        int v2 = value(g,ue->e->otherVertex);
+
+                        retain_merge_trim(g,t,v1,v2);
+                    }
+
+                    l_free(uppers);
+                }
+
+            }
+
+        }
+
+
+        graph_print_all(g);
+
+    /* PHASE 3 - PHASE 3 - PHASE 3 - PHASE 3 - PHASE 3 - PHASE 3*/
+        int_ls* cur_desc = descendants(t,v);
+        cur_desc = ls_first(ls_remove(ls_contains(cur_desc,v)));
+        int_ls* lf_p = ls_merge(leaves(t,v),pseudo_fringes(g,t,v)); /// This isn't well explained in the paper. may be incorrect.
+        
+        cur_desc = ls_remove_list(cur_desc,lf_p);
+
+        for(int_ls* cd = cur_desc; cd; cd = cd->next){
+            int u = value(g,cd->value);
+            int_ls* ul = ls_add(NULL,u);
+            edge* he = high(g,t,ul);
+            int u1 = value(g,he->thisVertex);
+            int u2 = value(g,he->otherVertex);
+
+            int uo = u ^ u1 ^ u2;
+
+            retain_merge_trim(g,t,u,uo);
+
+            ls_free(ul);
+        }
+
+        graph_print_all(g);
+
+        l_free(F_leaf); //edge_ls* F_leaf
+        l_free(E_leaf);  //edge_ls* E_leaf
+        l_free(E_prime1); //edge_ls* E_prime1
+        l_free(E_prime2); //edge_ls* E_prime2
+        l_free(E_prime); //edge_ls* E_prime
+        //ls_free(P); //chain_ls* P
+        ls_free(vs); //int_ls* vs
+        l_free(m_star); //edge_ls* m_star
+        ls_free(matched_v); //int_ls* matched_v 
+        ls_free(unmatched_v); //int_ls* unmatched_v
+        l_free(M2_s); //edge_ls* M2_s
+        ls_free(newly_matched_v); //int_ls* newly_matched_v
+        ls_free(Wmmm); //int_ls* Wmmm
+        l_free(E1); //edge_ls* E1
+        ls_free(cur_desc); //int_ls* cur_desc
+        ls_free(lf_p); //int_ls* lf_p
+
+}
+
+
+edge* nagamochi(graph *g, graph *t, double approx)
+{
+
+    // at the very very end, we may have to check that each edge is covered,
+    // p4 doesnt seem to guarantee covering an edge when contracting f'
+    // apparently we can select any edge that covers it??/???
+
+    for(int i = 0; i<50; i++){
+        while (case1(g, t) ^ 2 * case2(g, t) ^ 4 * case3(g, t) ^ 8 * case4(g, t));
+
+        int x = t->root;
+        int_ls* mlfc = minimally_lf_closed(g,t,t->root);
+        COVER(g,t,mlfc->value);
+
+    }
+    return NULL;
 }

@@ -10,12 +10,16 @@
 #include "../include/int-list.h"
 #include "../include/list.h"
 #include "../include/nagamochi.h"
+#include "../include/blossom.h"
 
 
 //TODO
 //hashmap in children()
 
 //case 1 appears to work. further testing would be helpful.
+
+//case 3 and case 4 may leave f' edges uncovered. store these edges for later and see if they are covered at the end
+
 
 void run_matching_test(){
   char *match_text = "28 2\n28 1\n1 3\n3 4\n4 5\n5 6\n2 6\n3 8\n8 7\n9 10\n10 11\n9 8\n9 11\n14 15\n16 17\n14 13\n16 13\n13 12\n12 11\n17 18\n15 19\n18 19\n6 25\n25 24\n24 23\n23 20\n24 22\n22 21\n21 20\n20 19\n5 26\n26 27";
@@ -41,9 +45,9 @@ int main(int argc, char *argv[])
 
   // need to test merging's effect on parents
 
-  char *t_text = "1 2\n2 4\n4 7\n4 6\n1 3\n3 5\n5 8\n5 9\n8 10\n10 11\n13 10\n14 2\n12 1\n12 16\n12 15\n";
-  char *g_text = "1 2\n2 4\n4 7\n4 6\n1 3\n3 5\n5 8\n5 9\n8 10\n10 11\n13 10\n14 2\n12 1\n12 16\n12 15\n7 6\n6 14\n7 14\n11 13\n13 9\n11 9\n15 16\n16 3\n";
-  int size = 21;
+  char *t_text = "1 20\n20 21\n21 22\n1 2\n2 3\n3 4\n4 5\n5 6\n6 7\n7 8\n8 9\n9 10\n10 11\n11 12\n12 13\n13 14\n14 17\n12 15\n15 16\n16 18\n18 19\n23 3\n24 6\n25 8\n4 26\n";
+  char *g_text = "1 20\n20 21\n21 22\n1 2\n2 3\n3 4\n4 5\n5 6\n6 7\n7 8\n8 9\n9 10\n10 11\n11 12\n12 13\n13 14\n14 17\n12 15\n15 16\n16 18\n18 19\n23 3\n24 6\n25 8\n4 26\n23 7\n24 25\n";
+  int size = 48;
   
   printf("\n\n");
 
@@ -52,6 +56,9 @@ int main(int argc, char *argv[])
 
   int rt = 1;
   set_root(t, rt);
+  set_gm(g);
+
+  nagamochi(g,t,1.0);
 
   int_ls *fringe = fringes(t, rt);
   int_ls *p_fringes = pseudo_fringes(g, t, rt);
@@ -65,11 +72,13 @@ int main(int argc, char *argv[])
   edge_ls* prime1 = prime_edges_type1(g,t,rt);
   edge_ls* prime2 = prime_edges_type2(g,t,rt);
   edge_ls* primes = prime_edges(g,t,rt);
+  chain_ls* chains = find_chains(t,rt);
+  process_chains(g,t,chains);
   
-  for(int_ls* cur_des = desc; cur_des; cur_des = cur_des->next){
+  /*for(int_ls* cur_des = desc; cur_des; cur_des = cur_des->next){
     if(is_branch(t,cur_des->value))
       br = ls_add(br,cur_des->value);
-  }
+  }*/
 
   printf("desc: ");
   ls_print(desc);
@@ -112,20 +121,25 @@ int main(int argc, char *argv[])
   int u = 1; int v = 11;
   printf("path %i %i :\t",u,v); ls_print(tree_path(t,u,v)); printf("\n");
 
+ print_chain_and_swings(chains); printf("\n");
 
-  int_ls* des = descendants(t,4);
-
+  int_ls* des = descendants(t,rt);
   int_ls* lf = NULL;
-  while(des){
+  /*while(des){
     if(lf_closed(g,t,des->value)){
       lf = ls_add(lf,des->value);
     }
     des = des->next;
-  }
+  }*/
 
   printf("lf-closed: "); ls_print(lf); printf("\n\n");
-  lf = minimally_lf_closed(g,t,4);
+  lf = minimally_lf_closed(g,t,1);
   printf("min lf-closed: "); ls_print(lf); printf("\n\n");
+
+  COVER(g,t,rt);
+
+
+  printf("\n\n");
 
   /*
   int_ls *pth = tree_path(t, 5, 2);

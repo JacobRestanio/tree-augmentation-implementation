@@ -165,3 +165,22 @@ void l_print(void *list, void (*print_fn)(void *))
     }
     printf(" }");
 }
+
+
+void l_free_some(){
+
+}
+
+void l_free(void* l){
+    ls* ll = l_first(l);
+
+    while(ll){
+        ls* next = ll->next;
+        free(ll);
+        ll = next;
+    }
+}
+
+void l_free_fn(){
+
+}

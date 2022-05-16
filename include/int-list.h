@@ -31,7 +31,7 @@ int_ls* ls_copy(int_ls* ls);
 
 int ls_remove_all(int_ls *is, int i);
 
-void ls_remove_list(int_ls *is, int_ls *ns);
+void* ls_remove_list(int_ls *is, int_ls *ns);
 
 void ls_print(int_ls *is);
 

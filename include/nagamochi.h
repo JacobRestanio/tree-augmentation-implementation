@@ -1,8 +1,6 @@
 #ifndef NAGAMOCHI_H
 #define NAGAMOCHI_H
 
-#include "graph.h"
-
 #include <stdlib.h>
 #include <stdio.h>
 #include "../include/tree-helper.h"
@@ -18,11 +16,58 @@ typedef struct edge_ls
     edge *e;
 } edge_ls;
 
+edge_ls* edge_ls_copy(edge_ls* el);
+
+typedef struct swing_ls{
+    struct swing_ls* next;
+    struct swing_ls* prev;
+
+    edge* e;
+
+    int up;
+    int down;
+    int p_up;
+    int p_down;
+
+    int is_solo_edge;
+    int in_lower;
+
+    edge_ls* binding_edges;
+}swing_ls;
 
 
+typedef struct chain_ls{
+    struct chain_ls* next;
+    struct chain_ls* prev;
 
-// computes maximum matching
-edge_ls* blossom_algorithm(graph *g, int_ls *vs);
+    int u;
+    int u2;
+    int uk;
+
+    int ua;
+
+    swing_ls* swings;
+    edge_ls* binding_edges;
+    edge_ls* swing_edges;
+
+    edge* e_p; //upper
+}chain_ls;
+
+chain_ls* create_chain(int u,int u2,int uk);
+chain_ls* find_chains(graph* t, int v);
+void process_chains(graph* g, graph* t, chain_ls* chains);
+
+void p_ch(void* chain_ls);
+
+void print_chain(chain_ls* chain_ls);
+
+void print_chain_and_swings(chain_ls* chain_ls);
+
+int_ls* branches(graph* t, int v);
+
+edge_ls* E(graph* g, graph* t,int_ls* x);
+
+edge* high(graph* g, graph* t, int_ls* x);
 
 edge *nagamochi(graph *g, graph *t, double approx);
 
@@ -43,22 +88,7 @@ int edge_match(void *list, void *item);
 void print_edge_ls_fn(void* el);
 void print_edge_ls(edge_ls* el);
 
-typedef struct pair_ls
-{
-    struct pair_ls *next;
-    struct pair_ls *prev;
-
-    int u;
-    int v;
-} pair_ls;
-
-pair_ls* pair_create(int u, int v);
-
-pair_ls* blossom_merge(graph* g, int u, int v, int blossom_number, pair_ls* merge_order);
-
-pair_ls* blossom_unmerge(graph* g, pair_ls* merge_order);
-
-int_ls* last_blossom_verts(pair_ls* merge_order);
+void edge_ls_print_vertices(edge_ls* e);
 
 edge_ls* edge_ls_create(edge* e);
 
@@ -68,6 +98,9 @@ edge_ls* leaf_edges(graph* g, graph* t, int v);
 edge_ls* prime_edges_type1(graph* g, graph* t, int v);
 edge_ls* prime_edges_type2(graph* g, graph* t, int v);
 edge_ls* prime_edges(graph* g, graph* t, int v);
+
+void COVER(graph* g, graph* t, int v);
+
 
 
 #endif

@@ -268,7 +268,7 @@ unsigned int retain_merge_trim(graph *g, graph *t, int u, int v)
    retain(t, e);
 
    int_ls *path = tree_path(t, u, v);
-   printf("retention path: "); ls_print(path); printf("\n");
+   //printf("retention path: "); ls_print(path); printf("\n");
 
    merge_list(t, path);
    merge_list(g, path);
@@ -720,6 +720,8 @@ int_ls *descendants(graph *t, int u)
 {
    return ls_add(d_helper(t, u), u);
 }
+
+
 
 int lca(graph *t, int u, int v)
 {
@@ -1263,13 +1265,65 @@ void graph_print(graph *g)
 void graph_print_vertex(graph* g, int i){
    vertex* v = g->vert[i];
    printf("v %i",v->value);
-   printf("\te: "); print_edges(g,i,0);
+   printf("\te: "); print_edges(g,i,0); fflush(stdout);
    printf("\talias: "); ls_print(v->aliases);
    printf("\n");
 
 }
 
 void graph_print_all(graph *g){
+   int g_vertices = g->original_vertex_count + 1;
+    int i_bytes = sizeof(int)*g_vertices;
+
+    int* printed = malloc(i_bytes);
+    memset(printed,0,i_bytes);
+
+
+   for (int i = 1; i <= g->original_vertex_count; i++)
+   {  
+      if(printed[i])
+         continue;
+      graph_print_vertex(g,i);
+      int_ls* alie = g->vert[i]->aliases;
+      int_ls* k = alie;
+      while(k){
+         printed[k->value] = 1;
+
+         k = k->next;
+      }
+   }
+   free(printed);
+}
+
+
+
+
+void pretend_print_edges(graph* g,int v, int nl){
+   v = value(g,v);
+   edge* e = g->vert[v]->edge;
+
+   //printf("{ ");
+   while(e){
+      int u = e->thisVertex;
+      int v = e->otherVertex;
+      //printf("(%i,%i) ",u,v);
+      e = e->next;
+   }
+   //printf("}");
+   //if(nl)
+      //printf("\n");
+}
+
+void graph_pretend_print_vertex(graph* g, int i){
+   vertex* v = g->vert[i];
+   //printf("v %i",v->value);
+   //printf("\te: "); pretend_print_edges(g,i,0);
+   //printf("\talias: "); ls_print(v->aliases);
+   //printf("\n");
+
+}
+
+void graph_pretend_print_all(graph *g){
    int g_vertices = g->original_vertex_count + 1;
     int i_bytes = sizeof(int)*g_vertices;
 
