@@ -253,11 +253,11 @@ int main(int argc, char *argv[]) {
    }
    /* print the average times for the algorithms */
    printf("\n\n");
-   printf("\t\tRANDOM\t\tLINEAR\t\tSTAR\t\tSTARLIKE\tCATERPILLAR\tLOBSTER\n");
+   printf("\t\t    RANDOM\t    LINEAR\t      STAR\t  STARLIKE\tCATERPILLAR\t   LOBSTER\n");
    for (int i = 0; i < numAlgorithms; i++) {
       switch(i) {
          case 0:
-            printf("GREEDY:\n");
+            printf("RANDOM:\n");
             break;
          case 1:
             printf("FREDRICKSON:\n");
@@ -265,14 +265,22 @@ int main(int argc, char *argv[]) {
       }
       for (int j = 0; j < treeSizeLen; j++) {
          printf("  SIZE = %i\t\n", treesize[j]);
-         printf("    time (ms):\t");
+         if (treesize[j] <= 100) {
+            printf("    time (ms):\t");
+         } else {
+            printf("    time (s):\t");
+         }
          for (int k = 0; k < 6; k++) {
-            printf("%.3lf\t\t", 1000 * averagedTimes[i][j][k] / CLOCKS_PER_SEC);
+            if (treesize[j] <= 100) {
+               printf("%10.3lf\t", 1000 * averagedTimes[i][j][k] / CLOCKS_PER_SEC);
+            } else {
+               printf("%10.3lf\t", averagedTimes[i][j][k] / CLOCKS_PER_SEC);
+            }
          }
          printf("\n");
          printf("    num edges:\t");
          for (int k = 0; k < 6; k++) {
-            printf("%.3lf\t\t", averagedSolutions[i][j][k]);
+            printf("%10.3lf\t", averagedSolutions[i][j][k]);
          }
          printf("\n");
       }
