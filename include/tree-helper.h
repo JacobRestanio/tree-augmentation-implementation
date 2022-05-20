@@ -24,10 +24,10 @@ void genPlot(int numAlgorithms, int size, int timeSize, double times[][timeSize]
 void genEdgeWeights(int n, int edges[][n], int edgeWeights[][n], int max);
 
 /* Generates an edge set for tree augmentation
-   n is the number of nodes in the tree
-   tree is the adjacency matrix of a tree of size n x n
-   edgeSet is the adjacency matrix of the edge set for tree augmentation of size n x n */
-void createEdgeSet(int n, graph* tree, graph* edgeSet);
+   int density: a number between 0 - 100 that is the percent density of the edge set
+   graph* tree: the tree the edge set is based off of
+   graph* edgeSet: an empty graph that is the same size as tree */
+void createEdgeSet(int density, graph* tree, graph* edgeSet);
 
 /* Copies an adjacency matrix to another matrix of the same size
    n is the size of the adjacency matrix
@@ -41,6 +41,6 @@ void copyMatrix(int n, int originalMatrix[][n], int copyMatrix[][n]);
 void createCompleteDirectedTree(int n, int completeDirectedGraph[][n]);
 
 /* returns 1 if the graph is 2-edge connected, 0 otherwise */
-int checkConnected(int n, graph* tree, graph* edges);
+int checkConnected(graph* tree, graph* edges);
 
 #endif

@@ -3,9 +3,11 @@
 #include "../../include/stack.h"
 #include "../../include/graph.h"
 #include "../../include/fibonacci-heap.h"
+#include "../../include/queue.h"
 
 int main() {
   printf("\n\n");
+  printf("_____STACK_____\n");
   printf("Creating stack\n");
   stack* s = stack_create(10);
 
@@ -36,8 +38,18 @@ int main() {
   stack_free(s);
 
   printf("\n\n");
+  printf("_____DIRECTED GRAPH_____\n");
+  printf("Create Empty Directed Graph\n");
+  directedgraph* dg = directedgraph_create(0);
+  directedgraph_print(dg);
+  printf("Add a vertex to empty graph\n");
+  directedgraph_add_vertex(dg, 0);
+  directedgraph_add_vertex(dg, 2);
+  directedgraph_add_vertex(dg, 1);
+  directedgraph_print(dg);
+  directedgraph_free(dg);
   printf("Creating Directed Graph\n");
-  directedgraph* dg = directedgraph_create(5);
+  dg = directedgraph_create(5);
 
   printf("Print empty graph:\n");
   directedgraph_print(dg);
@@ -55,6 +67,14 @@ int main() {
 
   printf("Print graph:\n");
   directedgraph_print(dg);
+
+  printf("Create copy of graph:\n");
+  directedgraph* dg_copy = directedgraph_create_copy(dg);
+  directedgraph_print_weights(dg_copy);
+
+  printf("Update cost of existing edge:\n");
+  directedgraph_add_weighted_edge(dg_copy, 0, 2, 0);
+  directedgraph_print_weights(dg_copy);
 
   printf("Removing vertices 0, 2, 4:\n");
   directedgraph_print(dg);
@@ -82,7 +102,9 @@ int main() {
   directedgraph_print(dg);
 
   printf("Finding a cycle in the directed graph rooted:\n");
-  adjlist_print(adjlist_find_cycle_in_directedgraph(dg));
+  adjlist* cycle = adjlist_find_cycle_in_directedgraph(dg);
+  adjlist_print(cycle);
+  adjlist_free(cycle);
 
   printf("Removing all predecessors of edge 4\n");
   directedgraph_remove_predecessors(dg, 4);
@@ -100,8 +122,10 @@ int main() {
 
   printf("Freeing graph\n");
   directedgraph_free(dg);
+  directedgraph_free(dg_copy);
 
   printf("\n\n");
+  printf("_____GRAPH_____\n");
   printf("Creating Graph\n");
   graph* g = graph_create(10);
 
@@ -142,6 +166,52 @@ int main() {
   printf("Freeing graph\n");
   graph_free(g);
 
+  /* Queue */
+  printf("\n\n");
+  printf("_____QUEUE_____\n");
+  printf("Creating queue\n");
+  queue* q = queue_create();
+
+  printf("Check if queue is empty: %i\n", queue_isEmpty(q));
+
+  printf("Enqueue 1, 2, 3\n");
+  queue_enqueue(q, 1);
+  queue_enqueue(q, 2);
+  queue_enqueue(q, 3);
+  queue_print(q);
+
+  printf("Check if queue is empty: %i\n", queue_isEmpty(q));
+
+  printf("Dequeue 1\n");
+  queue_dequeue(q);
+  queue_print(q);
+
+  printf("Dequeue 2\n");
+  queue_dequeue(q);
+  queue_print(q);
+
+  printf("Peek at front of queue: %i\n", queue_peek(q));
+
+  printf("Dequeue 3\n");
+  queue_dequeue(q);
+  queue_print(q);
+
+  printf("Dequeue empty\n");
+  queue_dequeue(q);
+  queue_print(q);
+
+  printf("Enqueue 1, 2, 3\n");
+  queue_enqueue(q, 1);
+  queue_enqueue(q, 2);
+  queue_enqueue(q, 3);
+  queue_print(q);
+
+  printf("Free queue\n");
+  queue_free(q);
+
+
+
+  /* Fibonacci Heap */
   // printf("\n\n");
   // printf("Creating Fibonacci Heap\n");
   // fib_heap* h = fib_heap_create();

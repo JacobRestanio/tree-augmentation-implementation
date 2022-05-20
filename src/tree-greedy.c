@@ -5,15 +5,15 @@
 #include "../include/tree-helper.h"
 #include "../include/graph.h"
 
-int greedyHeuristic(int n, graph* tree, graph* edgeSet){
+int greedyHeuristic(graph* tree, graph* edgeSet){
    /* Check if a 2-edge connected graph is possible */
-   if (checkConnected(n, tree, edgeSet) == 0) {
+   int n = graph_get_number_of_vertices(tree);
+   if (checkConnected(tree, edgeSet) == 0) {
       printf("impossible to connect tree and edge set\n");
       return 0;
    }
 
    /* Begin Greedy Algorithm */
-   srand(time(NULL));
    int e = 0;
    graph* edges = graph_create(n);
 
@@ -42,7 +42,7 @@ int greedyHeuristic(int n, graph* tree, graph* edgeSet){
    }
 
    /* Check if the graph is 2-edge connected */
-   while (checkConnected(n, tree, edges) == 0) {
+   while (checkConnected(tree, edges) == 0) {
       /* Arbitrarily add edges until the graph is 2-edge connected */
       int i = rand() % n;
       for (int j = 0; j < n; j++) {

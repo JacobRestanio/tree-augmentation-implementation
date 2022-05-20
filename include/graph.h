@@ -53,13 +53,9 @@ int vertex_get_visited(vertex* vs);
 
 int vertex_get_inpath(vertex* vs);
 
-edge* vertex_get_minimum_incoming_edge(vertex* vs);
-
 void vertex_set_visited(vertex* vs, int visited);
 
 void vertex_set_inpath(vertex* vs, int inpath);
-
-void vertex_set_minimum_incoming_edge(vertex* vs, edge* e);
 
 vertex* directedgraph_get_vertex_successors(directedgraph* dg, int v);
 
@@ -136,6 +132,8 @@ void directedgraph_add_corresponding_weighted_edge(directedgraph* dg, int source
    MODIFES: g by removing an edge */
 void directedgraph_remove_edge(directedgraph* dg, int source, int destination);
 
+void directedgraph_remove_edges_from_vertex(directedgraph* dg, int v);
+
 void directedgraph_remove_vertex(directedgraph* dg, int v);
 
 void directedgraph_remove_predecessors(directedgraph* dg, int destination);
@@ -162,6 +160,17 @@ void directedgraph_free(directedgraph* dg);
    int v: the number of vertices in the graph
    RETURNS: a graph* with no edges */
 graph* graph_create(int v);
+
+/* Returns the adjacency list of vertices in the graph
+   graph* g: the graph
+   RETURNS: a vertex* that is the first in the list */
+vertex* graph_get_vertex_list(graph* g);
+
+/* Returns the vertex specificied for a given graph
+   graph* g: the graph
+   int v: the integer label of the vertex
+   RETURNS: a vertex* corresponding to v or NULL if none exists */
+vertex* graph_get_vertex(graph* g, int v);
 
 /* Checks if an edge exists from vertex u to vertex v in a graph
    graph* g: a graph to add the edge to
@@ -190,6 +199,15 @@ void graph_remove_edge(graph* g, int u, int v);
    graph* g: the graph to be printed
    NOTE: probably don't want to do this for large graphs */
 void graph_print(graph* g);
+
+/* Prints a graph to file
+   graph* g: the graph to be printed
+   char* filename: the name of the file without extension */
+void graph_print_to_file(graph* g, char* filename);
+
+/* Reads a graph from file
+   char* filename: the name of the file without extension */
+graph* graph_read_from_file(char* filename);
 
 /* Frees the memory of a graph
    graph* g: the directed graph to be freed */

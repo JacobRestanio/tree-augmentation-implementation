@@ -211,12 +211,18 @@ void genEdgeWeights(int n, int edges[][n], int edgeWeights[][n], int max) {
 }
 
 /* Currently this creates an adjacency matrix of all possible edges for the tree
-   basically a worst-case scenario, need to make sure this is acceptable */
-void createEdgeSet(int n, graph* tree, graph* edgeSet) {
+   int density: a number between 0 - 1000 that is the percent density of the edge set
+      1000 represents 100.0%, 500 representes 50.0%, etc.
+   graph* tree: the tree the edge set is based off of
+   graph* edgeSet: an empty graph that is the same size as tree */
+void createEdgeSet(int density, graph* tree, graph* edgeSet) {
+   int n = graph_get_number_of_vertices(tree);
    for(int i = 0; i < n; i++) {
       for(int j = 0; j < n; j++) {
          if(i != j && !graph_is_edge(tree, i, j)) {
-            graph_add_edge(edgeSet, i, j);
+            if(rand() % 1000 < density) {
+               graph_add_edge(edgeSet, i, j);
+            }
          }
       }
    }
@@ -278,9 +284,10 @@ int _checkBridgeConnected(int n, int v, graph* tree, graph* edges, int arrival[]
 }
 
 /* returns 1 if the graph is 2-edge connected, 0 otherwise */
-int checkConnected(int n, graph* tree, graph* edges) {
+int checkConnected(graph* tree, graph* edges) {
   /* perform DFS on graph rooted at node 0
 	   we need to make sure no bridges exist in our graph */
+   int n = graph_get_number_of_vertices(tree);
 	int r = 0;
 	int dep = 0;
 	int* depPtr = &dep;

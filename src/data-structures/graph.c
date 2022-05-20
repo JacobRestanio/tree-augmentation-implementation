@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "../../include/graph.h"
 #include "../../include/stack.h"
 
@@ -15,7 +16,6 @@ typedef struct Vertex {
   int degree;
   int visited;
   int inpath;
-  edge* minimumIncomingEdge;
   edge* nextEdge;
   struct Vertex* nextVertex;
 } vertex;
@@ -178,20 +178,12 @@ int vertex_get_inpath(vertex* vs) {
    return vs->inpath;
 }
 
-edge* vertex_get_minimum_incoming_edge(vertex* vs) {
-   return vs->minimumIncomingEdge;
-}
-
 void vertex_set_visited(vertex* vs, int visited) {
    vs->visited = visited;
 }
 
 void vertex_set_inpath(vertex* vs, int inpath) {
    vs->inpath = inpath;
-}
-
-void vertex_set_minimum_incoming_edge(vertex* vs, edge* e) {
-   vs->minimumIncomingEdge = e;
 }
 
 vertex* directedgraph_get_vertex_successors(directedgraph* dg, int v) {
@@ -239,7 +231,6 @@ directedgraph* directedgraph_create(int v) {
       ess->degree = 0;
       ess->visited = 0;
       ess->inpath = 0;
-      ess->minimumIncomingEdge = NULL;
       ess->nextEdge = NULL;
       ess->nextVertex = NULL;
       g->successors = ess;
@@ -250,7 +241,6 @@ directedgraph* directedgraph_create(int v) {
       esp->degree = 0;
       esp->visited = 0;
       esp->inpath = 0;
-      esp->minimumIncomingEdge = NULL;
       esp->nextEdge = NULL;
       esp->nextVertex = NULL;
       g->predecessors = esp;
@@ -262,7 +252,6 @@ directedgraph* directedgraph_create(int v) {
       ess->degree = 0;
       ess->visited = 0;
       ess->inpath = 0;
-      ess->minimumIncomingEdge = NULL;
       ess->nextEdge = NULL;
       ess->nextVertex = NULL;
       lastSuccessor->nextVertex = ess;
@@ -273,7 +262,6 @@ directedgraph* directedgraph_create(int v) {
       esp->degree = 0;
       esp->visited = 0;
       esp->inpath = 0;
-      esp->minimumIncomingEdge = NULL;
       esp->nextEdge = NULL;
       esp->nextVertex = NULL;
       lastPredecessor->nextVertex = esp;
@@ -467,7 +455,6 @@ void directedgraph_add_vertex(directedgraph* g, int v) {
    ness->degree = 0;
    ness->visited = 0;
    ness->inpath = 0;
-   ness->minimumIncomingEdge = NULL;
    ness->nextEdge = NULL;
    ness->nextVertex = NULL;
 
@@ -476,7 +463,6 @@ void directedgraph_add_vertex(directedgraph* g, int v) {
    nesp->degree = 0;
    nesp->visited = 0;
    nesp->inpath = 0;
-   nesp->minimumIncomingEdge = NULL;
    nesp->nextEdge = NULL;
    nesp->nextVertex = NULL;
 
@@ -858,7 +844,6 @@ graph* graph_create(int v) {
      vs->degree = 0;
      vs->visited = 0;
      vs->inpath = 0;
-     vs->minimumIncomingEdge = NULL;
      vs->nextEdge = NULL;
      vs->nextVertex = NULL;
      g->vertexSet = vs;
@@ -870,7 +855,6 @@ graph* graph_create(int v) {
      vs->degree = 0;
      vs->visited = 0;
      vs->inpath = 0;
-     vs->minimumIncomingEdge = NULL;
      vs->nextEdge = NULL;
      vs->nextVertex = NULL;
      prevVertex->nextVertex = vs;
@@ -878,6 +862,21 @@ graph* graph_create(int v) {
   }
 
   return g;
+}
+
+vertex* graph_get_vertex_list(graph* g) {
+   return g->vertexSet;
+}
+
+vertex* graph_get_vertex(graph* g, int v) {
+   vertex* currVertex = g->vertexSet;
+   while (currVertex) {
+      if (currVertex->value == v) {
+         return currVertex;
+      }
+      currVertex = currVertex->nextVertex;
+   }
+   return NULL;
 }
 
 int graph_get_number_of_vertices(graph* g) {
@@ -898,6 +897,17 @@ int graph_is_edge(graph* g, int u, int v) {
          return 1;
       }
       currEdge = currEdge->next;
+   }
+   return 0;
+}
+
+int graph_is_vertex(graph* g, int v) {
+   vertex* currVertex = g->vertexSet;
+   while (currVertex) {
+      if (currVertex->value == v) {
+         return 1;
+      }
+      currVertex = currVertex->nextVertex;
    }
    return 0;
 }
@@ -940,6 +950,31 @@ void graph_add_edge(graph* g, int u, int v) {
   g->edges++;
 }
 
+void graph_add_vertex(graph* g, int v) {
+   if (graph_is_vertex(g, v)) {
+      return;
+   }
+
+   vertex* vertex = malloc(sizeof(*vertex));
+   vertex->value = v;
+   vertex->degree = 0;
+   vertex->visited = 0;
+   vertex->inpath = 0;
+   vertex->nextEdge = NULL;
+   vertex->nextVertex = NULL;
+
+   if (g->vertices) {
+      _add_vertex(g->vertexSet, vertex);
+
+      if (v < g->vertexSet->value) {
+         g->vertexSet = vertex;
+      }
+   } else {
+      g->vertexSet = vertex;
+   }
+   g->vertices++;
+}
+
 void graph_remove_edge(graph* g, int u, int v) {
   if (!graph_is_edge(g, u, v)) {
     return;
@@ -978,6 +1013,58 @@ void graph_print(graph* g) {
       currVertex = currVertex->nextVertex;
    }
    printf("\n");
+}
+
+void graph_print_to_file(graph* g, char* filename) {
+   char filepath[255] = "data/";
+   strcat(filepath, filename);
+   strcat(filepath, ".txt");
+   FILE* out = fopen(filepath, "w+");
+
+   printf("Writing graph to file %s...\n", filepath);
+   vertex* currVertex = g->vertexSet;
+   while (currVertex) {
+      fprintf(out, "%i ", currVertex->value);
+      edge* currEdge = currVertex->nextEdge;
+      while(currEdge) {
+         fprintf(out, "%i ", currEdge->value);
+         currEdge = currEdge->next;
+      }
+      fprintf(out, "\n");
+      currVertex = currVertex->nextVertex;
+   }
+   fclose(out);
+   printf("Finished\n\n");
+}
+
+graph* graph_read_from_file(char* filename) {
+   char filepath[255] = "data/";
+   strcat(filepath, filename);
+   strcat(filepath, ".txt");
+   FILE* in = fopen(filepath, "r");
+   graph* g = graph_create(0);
+
+   printf("Reading graph from file %s...\n", filepath);
+   char buffer[1024];
+   char delimiter[3] = " \n";
+   char* token;
+   int vertex;
+   int edge;
+
+   while(fgets(buffer, sizeof(buffer), in)) {
+     token = strtok(buffer, delimiter);
+     vertex = atoi(token);
+     graph_add_vertex(g, vertex);
+     token = strtok(NULL, delimiter);
+     while(token) {
+        edge = atoi(token);
+        graph_add_vertex(g, edge);
+        graph_add_edge(g, vertex, edge);
+        token = strtok(NULL, delimiter);
+     }
+   }
+   printf("Finished\n\n");
+   return g;
 }
 
 void graph_free(graph* g) {
@@ -1108,5 +1195,6 @@ adjlist* adjlist_find_cycle_in_directedgraph(directedgraph* dg) {
       adjlist_add_element(cycle, stack_pop(path));
    }
    adjlist_add_element(cycle, pathStart);
+   stack_free(path);
    return cycle;
 }
