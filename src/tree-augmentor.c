@@ -58,6 +58,11 @@ int main(int argc, char *argv[])
   set_root(t, rt);
   set_gm(g);
 
+
+  lemma7(g,t,1,.0001);
+
+  return 0;
+
   nagamochi(g,t,1.0);
 
   int_ls *fringe = fringes(t, rt);
@@ -136,7 +141,7 @@ int main(int argc, char *argv[])
   lf = minimally_lf_closed(g,t,1);
   printf("min lf-closed: "); ls_print(lf); printf("\n\n");
 
-  COVER(g,t,rt);
+  nagamochi(g,t,.25);
 
 
   printf("\n\n");

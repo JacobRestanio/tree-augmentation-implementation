@@ -46,6 +46,27 @@ int edge_match(void *list, void *item)
     edge* list_e = ((edge_ls*)list)->e;
     edge* e = (edge*)item;
 
+
+    int u1 = value(gm,list_e->thisVertex);
+    int v1 = value(gm, list_e->otherVertex);
+
+    int u2 = value(gm,e->thisVertex);
+    int v2 = value(gm,e->otherVertex);
+    
+    return ((u1 == u2) && (v1 == v2)) || ((u1 == v2)  && (u2 == v1));
+}
+
+int edge_ls_match(void *list, void *item)
+{
+    if (!gm){
+        printf("\n\n\t\tedge_match: gm is 0!!!!!\n\n");
+        return 0;
+    }
+    
+    edge* list_e = ((edge_ls*)list)->e;
+    edge* e = ((edge_ls*)item)->e;
+
+
     int u1 = value(gm,list_e->thisVertex);
     int v1 = value(gm, list_e->otherVertex);
 

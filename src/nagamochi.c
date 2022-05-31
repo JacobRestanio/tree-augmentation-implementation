@@ -143,7 +143,7 @@ chain_ls* find_chains(graph* t, int v){
     
             if(is_branch(t,cv) || is_fringe(t,cv)){
                 int u2 = cv;
-                while(u!=get_parent(t,u2 = get_parent(t,u2)));
+                while(u!=get_parent(t,u2 = get_parent(t,u2)) && u2 != t->root);
                 chain_ls* new_chain = create_chain(u,u2,cv);
                 chains = l_add(chains,new_chain);
             }else{
@@ -189,7 +189,7 @@ int_ls* immediate_thorns(graph* t, int v){
     return ls_first(kid);
 }
 
-
+//LEAK
 edge* upper_edge(graph* g, graph* t, chain_ls* chain){
     int u = value(g,chain->u);
     int uk = value(g,chain->uk);
@@ -211,6 +211,8 @@ edge* upper_edge(graph* g, graph* t, chain_ls* chain){
                 int other_v = value(g,e->otherVertex);
                 if(!ls_contains(d_u2,other_v)){
                     ls_free(d_u2);
+                    printf("------------------------------------ e: %i", e);
+                    fflush(stdout);
                     return e;
                 }
             }
@@ -293,7 +295,7 @@ void find_binding_edges(graph* g, graph* t, chain_ls* chain){
     int ua = chain->ua;
     int uk = chain->uk;
     int ua_next = next_in_chain(t,ua);
-    int ua_next = ua_next?ua_next: ua;
+    /*int*/ ua_next = ua_next?ua_next: ua;
     int_ls* ua_to_uk = NULL;
     if(ua_next){
         ua_to_uk = tree_path(t,ua_next,get_parent(t,uk));
@@ -406,7 +408,12 @@ void process_chains(graph* g, graph* t, chain_ls* chains){
     }
 }
 
+//TODO
 void edge_ls_free(edge_ls* el){
+
+}
+//TODO
+void chain_ls_free(chain_ls* P){
 
 }
 
@@ -437,6 +444,9 @@ edge* high(graph* g, graph* t, int_ls* x){
 
     for(edge_ls* ec = es; ec; ec = ec->next ){
         edge* e = ec->e;
+
+        printf("ec->e: %X\n", e);
+
         int u = value(g,e->otherVertex);
         int v = value(g,e->thisVertex);
 
@@ -1019,7 +1029,7 @@ edge_ls* leaf_to_leaf_edges(graph* g, graph*t, int v){
 
 
 // v must be minimally lf-closed s
-void COVER(graph* g, graph* t, int v){
+void COVER(graph* g, graph* t, int v, chain_ls* P){
 
     edge_ls* F_leaf = leaf_edges(g,t,v); //leaf edges in T[v] - edges that connect a leaf to an ancestor
 
@@ -1036,8 +1046,8 @@ void COVER(graph* g, graph* t, int v){
 
     graph_print_all(g);
 
-    chain_ls* P = find_chains(t,v);
-    process_chains(g,t,P);
+    //chain_ls* P = find_chains(t,v);
+    //process_chains(g,t,P);
 
     edge_ls* E_bind = NULL; //set of all e_g's
     edge_ls* E_upper = NULL; //set of all e_p's
@@ -1061,9 +1071,12 @@ void COVER(graph* g, graph* t, int v){
 
     /* PHASE 1 - PHASE 1 - PHASE 1 - PHASE 1 - PHASE 1 - PHASE 1*/
         int_ls* vs = leaves(t,v);
+        printf("\n\nPhase 1, Prime edges: \n");
         edge_ls_print_vertices(E_prime);
+
+        printf("\n\nPhase 1, Leaf edges: \n");
         edge_ls_print_vertices(E_leaf);
-        edge_ls* e_mat = l_remove_ls(E_leaf,edge_match,E_prime);
+        edge_ls* e_mat = l_remove_ls(E_leaf,edge_ls_match,E_prime);
 
         edge_ls* m_star = blossom_algorithm2(g,vs,e_mat); //this list will be retained
 
@@ -1239,7 +1252,7 @@ void COVER(graph* g, graph* t, int v){
 
                 edge* new_eg = high(g,t,desc);
                 ls_free(desc);
-                p4_eg = l_add(p4_eg,new_eg);
+                p4_eg = l_add(p4_eg,edge_ls_create(new_eg));
             }
             else{
                 int u = value(g,cg->e->thisVertex);
@@ -1251,7 +1264,15 @@ void COVER(graph* g, graph* t, int v){
 
                 edge* new_eg = high(g,t,uupu);
                 ls_free(uupu);
-                p4_eg = l_add(p4_eg,new_eg);
+                p4_eg = l_add(p4_eg,edge_ls_create(new_eg));
+            }
+        }
+
+        edge_ls* xx[4] = {M1_s, m2_d, ew, p4_eg};
+        for(int ppp = 0; ppp<4; ppp++){
+            printf("\nLIST %i:\n", ppp);
+            for(edge_ls* eee = xx[ppp]; eee; eee = eee->next){
+                printf("%X, ", eee->e);
             }
         }
 
@@ -1259,6 +1280,10 @@ void COVER(graph* g, graph* t, int v){
         E1 = l_merge(E1,l_merge(ew,p4_eg));
 
         for(edge_ls* ec = E1; ec; ec = ec->next){
+            printf("ec: %X\n", ec);fflush(stdout);
+            printf("ec.e: %X\n",ec->e);fflush(stdout);
+            printf("v1: %i\n",ec->e->thisVertex);fflush(stdout);
+            printf("v2: %i\n\n",ec->e->otherVertex);fflush(stdout);
             retain_merge_trim(g,t,ec->e->thisVertex, ec->e->otherVertex);
         }
 
@@ -1312,8 +1337,13 @@ void COVER(graph* g, graph* t, int v){
 
         /* MERGE 2 - MERGE 2 - MERGE 2 - MERGE 2 */
         for(chain_ls* ch = P; ch; ch = ch->next){
-            int ua1 = value(g,ch->e_p->thisVertex);
+            if(!ch->e_p)
+                continue;
+            
+            int x = ch->ua;
+
             int ua2 = value(g,ch->e_p->otherVertex);
+            int ua1 = value(g,ch->e_p->thisVertex);
 
             if(ua1 == ua2)
                 continue;
@@ -1425,20 +1455,336 @@ void COVER(graph* g, graph* t, int v){
 
 }
 
+// a3 = has no solo edge
+int A3(graph* g, graph* t, chain_ls* P){
+    for(chain_ls* ch = P; ch; ch=ch->next){
+        for(swing_ls* sw = ch->swings; sw; sw = sw->next){
+            if(sw->is_solo_edge){
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
 
-edge* nagamochi(graph *g, graph *t, double approx)
+
+int lemma7_min_edges = __INT32_MAX__;
+pair_ls* lemma_7_edges = NULL;
+pair_ls* merge_order_g = NULL;
+pair_ls* merge_order_t = NULL;
+
+void lemma7(graph* g, graph* t, int r, double approx){
+    double l = (4/approx) - 1;
+
+    lemma7_min_edges = __INT32_MAX__; //reset max
+
+    if(lemma_7_edges){
+        edge_ls_free(lemma_7_edges);
+        lemma_7_edges = NULL;
+    }
+
+
+    merge_order_g = NULL;
+    merge_order_t = NULL;
+
+    //lemma 7 helper
+    //merge all in lemma_7_edges
+}
+
+modified_case1();
+modified_case2();
+
+edge_ls* lowest_edges(graph* g, graph* t, int r, int_ls* leaves){
+    //ignore self edges
+
+    int dep_r = depth(t,r);
+
+    edge_ls* low = NULL;
+
+    for(int_ls* lf = leaves; lf; lf = lf->next){
+        int lf_n = value(g,lf->value);
+        for(edge* e = g->vert[lf_n]->edge; e; e = e->next){
+            int u1 = value(g,e->thisVertex);
+            int u2 = value(g,e->otherVertex);
+
+            if(l_contains_l(low, edge_match,e))
+                continue;
+            if(u1 == u2) continue;
+
+            int_ls* tp = tree_path(t,u1,u2);
+
+            for(edge* ex = g->vert[lf_n]->edge; ex && ex!=e; ex = ex->next){
+                int v1 = value(g,ex->thisVertex);
+                int v2 = value(g,ex->otherVertex);
+
+                if(l_contains_l(low, edge_match,e))
+                    continue;
+                if(v1 == v2) continue;
+
+                if (ls_contains_2(tp, v1, v2)){
+                    l_add(low, edge_ls_create(ex));
+                }
+                else if(depth(t,v1) < dep_r && depth(t,u1) < dep_r){
+                    l_add(low, edge_ls_create(ex));
+                }
+            }
+            ls_free(tp);
+        }
+    }
+    return low;
+}
+
+
+
+// returns 1 if overflowed
+int next_edge(graph* g, int lf, edge** ep, edge_ls* lower_leaves,int ret_val){
+
+    if(!ep)
+        return -1;
+
+    edge* e = *ep;
+
+    if(!e){
+        e = g->vert[lf]->edge;
+        ret_val = 1;
+    }
+    else{
+        e = e->next;
+        
+    }
+
+    *ep = e;
+
+    int u1 = value(g,e->otherVertex);
+    int u2 = value(g,e->thisVertex);
+    if(!e || u1 == u2 || l_contains_l(lower_leaves, edge_match, e))
+        return next_edge(g,lf,ep,lower_leaves, ret_val);
+
+    return ret_val;
+}
+
+
+void lemma7_helper(graph* g, graph* t, int r, double approx, int cur_size, int recur_depth, int_ls* og_leaves){
+    double l = (4/approx) - 1;
+
+    
+    /*
+    //check if the subtree has been completely merged
+    int any_cases = 1;
+    while(any_cases){
+        any_cases = 0;
+        int c = 0;
+        while(c = modified_case1(g, t)){any_cases ^= c;};
+        //mod case1 should give edges 2 merge
+        // then merge and redo.
+        while(c = modified_case2(g, t)){any_cases ^= c;};
+        //mod case2 shoudl give edges 2 merge
+        //then merge and redo.
+    }
+      */  
+
+    int leafs = leaves(t,r);
+    int n_leaves = l_size(leaves);
+
+    
+    //check if the original tree is covered.
+    char fully_merged = 0;
+    if (n_leaves = 0)
+        fully_merged = 1;
+    for(int_ls* c_lf = og_leaves; c_lf && c_lf->next; c_lf = c_lf->next){
+        fully_merged = 1
+        if(value(g,c_lf->value) != value(g,c_lf->next->value)){
+            fully_merged = 0;
+            break;
+        }
+    }
+
+    if(fully_merged){
+        if(cur_size < lemma7_min_edges){
+            lemma7_min_edges = cur_size;
+
+            if(lemma_7_edges)
+                ls_free(lemma_7_edges);
+
+            pair_ls* ls = l_last(merge_order_g);
+            pair_ls* copy = NULL;
+
+            while(ls){
+                pair_ls* new_pair = pair_create(ls->u, ls->v, ls->blossom_number);
+                copy = ls_add(copy,ls->value);
+                ls = ls->prev;
+            }
+
+            lemma_7_edges = copy;
+        }
+        return;
+    }
+
+
+    //optimize: seperate into own leaf lists
+    edge_ls* low_edges = lowest_edges(g, t, leaves);
+
+    int lf_arr_bytes = sizeof(int*)*n_leaves;
+    int* lf_arr = malloc(lf_arr_bytes);
+    memset(lf_arr,0,lf_arr_bytes);
+
+    int e_k_bytes = sizeof(edge*)*n_leaves;
+    edge** e_k = malloc(e_k_bytes);
+    memset(e_k,0,e_k_bytes);
+
+    for(int_ls* lf = leaves; lf; lf = lf->next){
+        e_k[lf->value] = g->vert[lf->value]->edge;
+    }
+
+    //initialize each edge
+    int_ls* c_lf = leafs;
+    for(int i = 0; i<n_leaves && c_lf; i++){
+        lf_arr[i] = c_lf->value; 
+        next_edge(g, c_lf->value, &e_k[i], low_edges, 0);
+        c_lf = c_lf->next;
+    }
+
+    //function to advance an edge.
+
+    //while remaining_combos
+    char is_remaining_combos = 1;
+
+    // recurse on combination after merging edges.
+    for(int i = 0; i < l*l; i++){
+
+        // merge, recurse, then unmerge
+
+        for(int k = 0; k<n_leaves; k++){ //merge all paths
+            edge* e = e_k[k];
+            int u = value(g,e->otherVertex);
+            int v = value(g,e->otherVertex);
+            int_ls* tp = tree_path(t,u,v);
+
+            for(int_ls* n = tp; tp && tp->next; tp= tp->next){
+                int u = tp->value;
+                int v = tp->next->value;
+                blossom_merge(g,u,v,recur_depth, merge_order_g);
+                blossom_merge(t,u,v,recur_depth, merge_order_t);
+            }
+        }
+
+        recur_depth += 1;
+        cur_size += n_leaves;
+        lemma7_helper(g, t, r, approx, cur_size, recur_depth);
+
+        //unmerge
+        blossom_unmerge(g,merge_order_g);
+        blossom_unmerge(t,merge_order_t);
+
+
+        // try next combination.
+        int j = n_leaves-1;
+        int overflow = 0;
+        do{
+            overflow = 0;
+            overflow = next_edge(g,lf_arr[i],&e_k[i],low_edges,0);
+            j--;
+        }while(overflow && j >=0);
+        if(j<0)
+            break;
+        //next combo obtained.
+    }
+        
+    free(lf_arr);
+    free(e_k);
+}
+
+void lemma9(graph* g, graph* t, int v, chain_ls* P, double approx){
+    double l = (4/approx) - 1;
+
+    int_ls* leafs = leaves(t,v);
+
+    int n_leaves = ls_size(leafs);
+
+    int u_j = 0;
+    edge* low_solo = NULL;
+    int max_depth = 0;
+    chain_ls* deep_chain = NULL;
+
+    for(chain_ls* ch = P; ch; ch = ch->next){
+        for(swing_ls* sw = ch->swings; sw; sw = sw->next){
+            if(sw->is_solo_edge){
+                int cur_depth = depth(t,sw->up);
+                if(cur_depth > max_depth){
+                    max_depth = cur_depth;
+                    u_j = sw->up;
+                    deep_chain = ch;
+                    low_solo = sw->e;
+                }
+            }
+        }
+    }
+
+    if(deep_chain == NULL){
+        printf("you shouldnt have called lemma9\n");
+        fflush(stdout);
+    }
+
+    
+
+
+    if(n_leaves > l){
+        chain_ls* ch_u = find_chains(t,deep_chain->u);
+        process_chains(g,t,ch_u);
+        COVER(g,t,u_j,ch_u);
+
+        //FIX ~Fg
+    }
+    else{
+        
+        lemma7(g,t,u_j,approx);
+
+        //FIX ~Fg
+    }
+
+    //or fix ~Fg here.
+
+
+}
+
+
+edge* nagamochi(graph* g, graph* t, double approx)
 {
 
     // at the very very end, we may have to check that each edge is covered,
     // p4 doesnt seem to guarantee covering an edge when contracting f'
     // apparently we can select any edge that covers it??/???
 
-    for(int i = 0; i<50; i++){
-        while (case1(g, t) ^ 2 * case2(g, t) ^ 4 * case3(g, t) ^ 8 * case4(g, t));
-
-        int x = t->root;
+    for(int i = 0; i<99; i++){
+        
+        int any_cases = 1;
+        while(any_cases){
+            any_cases = 0;
+            int c = 0;
+            while(c = case1(g, t)){any_cases ^= c;};
+            while(c = case2(g, t)){any_cases ^= c;};
+            while(c = case3(g, t)){any_cases ^= c;};
+            while(c = case4(g, t)){any_cases ^= c;};
+        }
+        
         int_ls* mlfc = minimally_lf_closed(g,t,t->root);
-        COVER(g,t,mlfc->value);
+
+        if(mlfc){
+            chain_ls* P = find_chains(t,mlfc->value);
+            process_chains(g,t,P);
+            
+            if(A3(g,t,P)){
+                COVER(g,t,mlfc->value, P);
+            }
+            else{
+                lemma9(g,t,mlfc->value,P,approx);
+
+                COVER(g,t,mlfc->value, P);
+            }
+
+            chain_ls_free(P);
+            ls_free(mlfc);
+        }
 
     }
     return NULL;

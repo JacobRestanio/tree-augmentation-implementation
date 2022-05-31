@@ -18,13 +18,16 @@ typedef struct pair_ls
 
     int u;
     int v;
+
+    int blossom_number;
 } pair_ls;
 
 int edge_match(void *list, void *item);
+int edge_ls_match(void *list, void *item);
 int edge_match_one(void *list, void *item);
 edge_ls* edge_ls_contains(edge_ls* el, edge* e);
 
-pair_ls* pair_create(int u, int v);
+pair_ls* pair_create(int u, int v, int blossom_number);
 
 pair_ls* blossom_merge(graph* g, int u, int v, int blossom_number, pair_ls* merge_order);
 

@@ -53,6 +53,11 @@ typedef struct chain_ls{
     edge* e_p; //upper
 }chain_ls;
 
+//TODO
+void edge_ls_free(edge_ls* el);
+//TODO
+void chain_ls_free(chain_ls* ch);
+
 chain_ls* create_chain(int u,int u2,int uk);
 chain_ls* find_chains(graph* t, int v);
 void process_chains(graph* g, graph* t, chain_ls* chains);
@@ -99,7 +104,12 @@ edge_ls* prime_edges_type1(graph* g, graph* t, int v);
 edge_ls* prime_edges_type2(graph* g, graph* t, int v);
 edge_ls* prime_edges(graph* g, graph* t, int v);
 
-void COVER(graph* g, graph* t, int v);
+void COVER(graph* g, graph* t, int v, chain_ls* P);
+
+void lemma7(graph* g, graph* t, int v, double approx);
+void lemma9(graph* g, graph* t, int v, chain_ls* P, double approx);
+
+int A3(graph* g, graph* t, chain_ls* P);
 
 
 

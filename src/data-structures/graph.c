@@ -99,7 +99,13 @@ void graph_free(graph *g)
 // integer references to vertices should be passed through this function.
 // returns the correct vertex value if the input vertex was merged.
 int value(graph *g, int v)
-{ // condenses potential vertex list so that average call time is O(1)
+{ // condenses potential vertex list so that expected call time is O(1)
+
+   if(v > g->original_vertex_count || v < 0){
+      printf("ERROR: value(v), v = %i out of bounds.", v);
+      fflush(stdout);
+   }
+
    vertex *origVertex = g->vert[v];
    vertex *finalVertex = origVertex;
    while (finalVertex->mergeValue != finalVertex->value)
