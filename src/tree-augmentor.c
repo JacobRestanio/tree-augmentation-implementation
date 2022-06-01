@@ -58,6 +58,10 @@ int main(int argc, char *argv[])
   set_root(t, rt);
   set_gm(g);
 
+  printf("%X", t->vert[1]->edge);
+  fflush(stdout);
+  printf("%i", t->parents[1]);
+  fflush(stdout);
 
   lemma7(g,t,1,.0001);
 

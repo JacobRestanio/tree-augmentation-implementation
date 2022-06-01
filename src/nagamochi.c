@@ -1473,31 +1473,44 @@ pair_ls* lemma_7_edges = NULL;
 pair_ls* merge_order_g = NULL;
 pair_ls* merge_order_t = NULL;
 
+void lemma7_helper(graph* g, graph* t, int r, double approx, int cur_size, int recur_depth, int_ls* og_leaves);
+
 void lemma7(graph* g, graph* t, int r, double approx){
     double l = (4/approx) - 1;
 
     lemma7_min_edges = __INT32_MAX__; //reset max
 
     if(lemma_7_edges){
-        edge_ls_free(lemma_7_edges);
+        l_free(lemma_7_edges);
         lemma_7_edges = NULL;
     }
-
 
     merge_order_g = NULL;
     merge_order_t = NULL;
 
     //lemma 7 helper
-    //merge all in lemma_7_edges
+
+    int_ls* leafs = leaves(t,r);
+
+    lemma7_helper(g, t, r, approx, 0, 0, leafs);
+
+    l_free(leafs);
+
+    printf("lemma 7 output:\n");
+    for(pair_ls* p = lemma_7_edges; p; p = p->next){
+        printf("%i %i\n", p->u, p->v);
+        fflush(stdout);
+    }
+
 }
 
-modified_case1();
-modified_case2();
+//modified_case1();
+//modified_case2();
 
 edge_ls* lowest_edges(graph* g, graph* t, int r, int_ls* leaves){
     //ignore self edges
 
-    int dep_r = depth(t,r);
+    int_ls* r_desc = descendants(t,r);
 
     edge_ls* low = NULL;
 
@@ -1507,7 +1520,7 @@ edge_ls* lowest_edges(graph* g, graph* t, int r, int_ls* leaves){
             int u1 = value(g,e->thisVertex);
             int u2 = value(g,e->otherVertex);
 
-            if(l_contains_l(low, edge_match,e))
+            if(l_contains(low, edge_match,e))
                 continue;
             if(u1 == u2) continue;
 
@@ -1517,32 +1530,37 @@ edge_ls* lowest_edges(graph* g, graph* t, int r, int_ls* leaves){
                 int v1 = value(g,ex->thisVertex);
                 int v2 = value(g,ex->otherVertex);
 
-                if(l_contains_l(low, edge_match,e))
+                if(l_contains(low, edge_match,e))
                     continue;
                 if(v1 == v2) continue;
 
                 if (ls_contains_2(tp, v1, v2)){
                     l_add(low, edge_ls_create(ex));
                 }
-                else if(depth(t,v1) < dep_r && depth(t,u1) < dep_r){
+                // this is wrong. instead check des of r
+                else if(!ls_contains(r_desc, v1) && !ls_contains(r_desc,u1)){
                     l_add(low, edge_ls_create(ex));
                 }
             }
             ls_free(tp);
         }
     }
+    ls_free(r_desc);
     return low;
 }
 
 
 
 // returns 1 if overflowed
-int next_edge(graph* g, int lf, edge** ep, edge_ls* lower_leaves,int ret_val){
+int next_edge(graph* g, int lf, edge** ep, edge_ls* lower_leaves,int ret_val, int prev_state){
+    edge* e = *ep;
+
+    printf("lf: %i  ep %X  (%i, %i)   ret: %i  prevstat %i\n" ,lf, ep,  e?value(g, e->otherVertex):-1, e?value(g, e->thisVertex):-1, ret_val, prev_state);
 
     if(!ep)
         return -1;
 
-    edge* e = *ep;
+    
 
     if(!e){
         e = g->vert[lf]->edge;
@@ -1550,15 +1568,27 @@ int next_edge(graph* g, int lf, edge** ep, edge_ls* lower_leaves,int ret_val){
     }
     else{
         e = e->next;
-        
     }
 
     *ep = e;
 
-    int u1 = value(g,e->otherVertex);
-    int u2 = value(g,e->thisVertex);
-    if(!e || u1 == u2 || l_contains_l(lower_leaves, edge_match, e))
-        return next_edge(g,lf,ep,lower_leaves, ret_val);
+    //detect infinite loop and return 1.
+
+    int u1,u2 = 0;
+    if(e){
+        u1 = value(g,e->otherVertex);
+        u2 = value(g,e->thisVertex);
+    }
+    else{
+        if (prev_state)
+            return 1;
+        prev_state = 1;
+    }
+
+    if(!e || u1 == u2 || l_contains(lower_leaves, edge_match, e))
+        return next_edge(g,lf,ep,lower_leaves, ret_val,prev_state);
+
+    printf("exit: lf: %i  ep %X  (%i, %i)  \n" ,lf, ep,  value(g, e->otherVertex), value(g, e->thisVertex));
 
     return ret_val;
 }
@@ -1567,7 +1597,9 @@ int next_edge(graph* g, int lf, edge** ep, edge_ls* lower_leaves,int ret_val){
 void lemma7_helper(graph* g, graph* t, int r, double approx, int cur_size, int recur_depth, int_ls* og_leaves){
     double l = (4/approx) - 1;
 
-    
+    printf("lemma7_helper: cur_size: %i    recur_depth: %i  \n", cur_size, recur_depth);
+    fflush(stdout);
+
     /*
     //check if the subtree has been completely merged
     int any_cases = 1;
@@ -1583,16 +1615,14 @@ void lemma7_helper(graph* g, graph* t, int r, double approx, int cur_size, int r
     }
       */  
 
-    int leafs = leaves(t,r);
-    int n_leaves = l_size(leaves);
+    int_ls* leafs = leaves(t,r);
+    int n_leaves = l_size(leafs);
 
     
     //check if the original tree is covered.
     char fully_merged = 0;
-    if (n_leaves = 0)
-        fully_merged = 1;
     for(int_ls* c_lf = og_leaves; c_lf && c_lf->next; c_lf = c_lf->next){
-        fully_merged = 1
+        fully_merged = 1;
         if(value(g,c_lf->value) != value(g,c_lf->next->value)){
             fully_merged = 0;
             break;
@@ -1604,14 +1634,14 @@ void lemma7_helper(graph* g, graph* t, int r, double approx, int cur_size, int r
             lemma7_min_edges = cur_size;
 
             if(lemma_7_edges)
-                ls_free(lemma_7_edges);
+                l_free(lemma_7_edges);
 
             pair_ls* ls = l_last(merge_order_g);
             pair_ls* copy = NULL;
 
             while(ls){
                 pair_ls* new_pair = pair_create(ls->u, ls->v, ls->blossom_number);
-                copy = ls_add(copy,ls->value);
+                copy = l_add(copy,new_pair);
                 ls = ls->prev;
             }
 
@@ -1622,7 +1652,7 @@ void lemma7_helper(graph* g, graph* t, int r, double approx, int cur_size, int r
 
 
     //optimize: seperate into own leaf lists
-    edge_ls* low_edges = lowest_edges(g, t, leaves);
+    edge_ls* low_edges = lowest_edges(g, t, r, leafs);
 
     int lf_arr_bytes = sizeof(int*)*n_leaves;
     int* lf_arr = malloc(lf_arr_bytes);
@@ -1632,15 +1662,11 @@ void lemma7_helper(graph* g, graph* t, int r, double approx, int cur_size, int r
     edge** e_k = malloc(e_k_bytes);
     memset(e_k,0,e_k_bytes);
 
-    for(int_ls* lf = leaves; lf; lf = lf->next){
-        e_k[lf->value] = g->vert[lf->value]->edge;
-    }
-
     //initialize each edge
     int_ls* c_lf = leafs;
     for(int i = 0; i<n_leaves && c_lf; i++){
         lf_arr[i] = c_lf->value; 
-        next_edge(g, c_lf->value, &e_k[i], low_edges, 0);
+        next_edge(g, c_lf->value, &e_k[i], low_edges, 0, 0);
         c_lf = c_lf->next;
     }
 
@@ -1651,18 +1677,24 @@ void lemma7_helper(graph* g, graph* t, int r, double approx, int cur_size, int r
 
     // recurse on combination after merging edges.
     for(int i = 0; i < l*l; i++){
+        printf("A\n");
 
         // merge, recurse, then unmerge
 
         for(int k = 0; k<n_leaves; k++){ //merge all paths
+            printf("B\n");
             edge* e = e_k[k];
-            int u = value(g,e->otherVertex);
+            int u = value(g,e->thisVertex);
             int v = value(g,e->otherVertex);
             int_ls* tp = tree_path(t,u,v);
 
+            ls_print(tp);
+
             for(int_ls* n = tp; tp && tp->next; tp= tp->next){
+                printf("C\n");
                 int u = tp->value;
                 int v = tp->next->value;
+                printf("merging %i and %i\n", u, v);
                 blossom_merge(g,u,v,recur_depth, merge_order_g);
                 blossom_merge(t,u,v,recur_depth, merge_order_t);
             }
@@ -1670,7 +1702,7 @@ void lemma7_helper(graph* g, graph* t, int r, double approx, int cur_size, int r
 
         recur_depth += 1;
         cur_size += n_leaves;
-        lemma7_helper(g, t, r, approx, cur_size, recur_depth);
+        lemma7_helper(g, t, r, approx, cur_size, recur_depth, og_leaves);
 
         //unmerge
         blossom_unmerge(g,merge_order_g);
@@ -1682,7 +1714,14 @@ void lemma7_helper(graph* g, graph* t, int r, double approx, int cur_size, int r
         int overflow = 0;
         do{
             overflow = 0;
-            overflow = next_edge(g,lf_arr[i],&e_k[i],low_edges,0);
+
+            overflow = next_edge(g,lf_arr[i],&e_k[i],low_edges,0,0);
+
+            for(int m = 0; m < 80; m++){
+                overflow = next_edge(g,lf_arr[i],&e_k[i],low_edges,0,0);
+                printf("OVERFLOW %i\n",overflow);
+            }
+
             j--;
         }while(overflow && j >=0);
         if(j<0)
@@ -1709,7 +1748,7 @@ void lemma9(graph* g, graph* t, int v, chain_ls* P, double approx){
     for(chain_ls* ch = P; ch; ch = ch->next){
         for(swing_ls* sw = ch->swings; sw; sw = sw->next){
             if(sw->is_solo_edge){
-                int cur_depth = depth(t,sw->up);
+                int cur_depth = get_depth(t,sw->up);
                 if(cur_depth > max_depth){
                     max_depth = cur_depth;
                     u_j = sw->up;
