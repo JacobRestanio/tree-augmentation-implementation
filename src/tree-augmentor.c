@@ -16,8 +16,6 @@
 //TODO
 //hashmap in children()
 
-//case 1 appears to work. further testing would be helpful.
-
 //case 3 and case 4 may leave f' edges uncovered. store these edges for later and see if they are covered at the end
 
 
@@ -45,8 +43,8 @@ int main(int argc, char *argv[])
 
   // need to test merging's effect on parents
 
-  char *t_text = "1 20\n20 21\n21 22\n1 2\n2 3\n3 4\n4 5\n5 6\n6 7\n7 8\n8 9\n9 10\n10 11\n11 12\n12 13\n13 14\n14 17\n12 15\n15 16\n16 18\n18 19\n23 3\n24 6\n25 8\n4 26\n";
-  char *g_text = "1 20\n20 21\n21 22\n1 2\n2 3\n3 4\n4 5\n5 6\n6 7\n7 8\n8 9\n9 10\n10 11\n11 12\n12 13\n13 14\n14 17\n12 15\n15 16\n16 18\n18 19\n23 3\n24 6\n25 8\n4 26\n23 7\n24 25\n";
+  char *t_text = "1 2\n2 5\n5 8\n1 3\n1 4\n3 15\n15 11\n15 12\n3 6\n6 9\n6 13\n6 16\n4 7\n7 10\n7 14\n";
+  char *g_text = "1 2\n2 5\n5 8\n1 3\n1 4\n3 15\n15 11\n15 12\n3 6\n6 9\n6 13\n6 16\n4 7\n7 10\n7 14\n14 10\n9 16\n16 13\n13 11\n11 6\n15 13\n16 12\n12 13\n12 9\n9 15\n8 2\n8 1\n5 1";
   int size = 48;
   
   printf("\n\n");

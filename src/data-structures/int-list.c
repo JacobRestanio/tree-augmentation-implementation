@@ -14,17 +14,14 @@ void ls_free(int_ls *is)
     }
 }
 
-
+//free anything after is
 void ls_free_some(int_ls *is)
 {   
-    if(is && is->prev);
+    if(is && is->prev){ //but what if is->prev was just freed?
         is->prev->next=NULL;
-    while (is)
-    {
-        int_ls *next = is->next;
-        free(is);
-        is = next;
+        is->prev = NULL;
     }
+    ls_free(is);
 }
 
 int_ls *ls_create()

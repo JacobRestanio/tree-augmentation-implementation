@@ -171,15 +171,26 @@ void l_free_some(){
 
 }
 
+void l_free_recursive(void* l){
+    if(!l)
+        return;
+    l_free_recursive((void*)(((ls*)l)->next));
+    free(l);
+    return;
+}
+
 void l_free(void* l){
     ls* ll = l_first(l);
-
+    l_free_recursive(ll);
+    return;
     while(ll){
         ls* next = ll->next;
         free(ll);
         ll = next;
     }
 }
+
+
 
 void l_free_fn(){
 

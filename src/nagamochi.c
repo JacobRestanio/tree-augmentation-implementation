@@ -1550,16 +1550,14 @@ edge_ls* lowest_edges(graph* g, graph* t, int r, int_ls* leaves){
 }
 
 
-
 // returns 1 if overflowed
-int next_edge(graph* g, int lf, edge** ep, edge_ls* lower_leaves,int ret_val, int prev_state){
-    edge* e = *ep;
-
-    printf("lf: %i  ep %X  (%i, %i)   ret: %i  prevstat %i\n" ,lf, ep,  e?value(g, e->otherVertex):-1, e?value(g, e->thisVertex):-1, ret_val, prev_state);
-
-    if(!ep)
+int next_edge(graph* g, int lf, edge** ep, edge_ls* lower_leaves,int ret_val, int prev_was_null){
+    if(!ep){
+        printf("ep was null\n");
         return -1;
-
+    }
+    edge* e = *ep;
+    //printf("lf: %i  ep %X  (%i, %i)   ret: %i  prevstat %i\n" ,lf, ep,  e?value(g, e->otherVertex):-1, e?value(g, e->thisVertex):-1, ret_val, prev_was_null);
     
 
     if(!e){
@@ -1580,25 +1578,31 @@ int next_edge(graph* g, int lf, edge** ep, edge_ls* lower_leaves,int ret_val, in
         u2 = value(g,e->thisVertex);
     }
     else{
-        if (prev_state)
+        if (prev_was_null){
+            printf("overflow in next_edge\n");
             return 1;
-        prev_state = 1;
+        }
+        prev_was_null = 1;
     }
 
-    if(!e || u1 == u2 || l_contains(lower_leaves, edge_match, e))
-        return next_edge(g,lf,ep,lower_leaves, ret_val,prev_state);
+    if(!e || u1 == u2 || l_contains(lower_leaves, edge_match, e)){
+        int x = next_edge(g,lf,ep,lower_leaves, ret_val,prev_was_null);
+        //printf("exiting from invalid.\n");
+        return x;
+    }
 
     printf("exit: lf: %i  ep %X  (%i, %i)  \n" ,lf, ep,  value(g, e->otherVertex), value(g, e->thisVertex));
-
+    fflush(stdout);
     return ret_val;
 }
 
+int x = 0;
 
 void lemma7_helper(graph* g, graph* t, int r, double approx, int cur_size, int recur_depth, int_ls* og_leaves){
     double l = (4/approx) - 1;
-
+    printf("lemma7 has ran %i times\n", x++);
     printf("lemma7_helper: cur_size: %i    recur_depth: %i  \n", cur_size, recur_depth);
-    fflush(stdout);
+    //fflush(stdout);
 
     /*
     //check if the subtree has been completely merged
@@ -1615,12 +1619,13 @@ void lemma7_helper(graph* g, graph* t, int r, double approx, int cur_size, int r
     }
       */  
 
+
     int_ls* leafs = leaves(t,r);
     int n_leaves = l_size(leafs);
 
     
     //check if the original tree is covered.
-    char fully_merged = 0;
+    char fully_merged = 1;
     for(int_ls* c_lf = og_leaves; c_lf && c_lf->next; c_lf = c_lf->next){
         fully_merged = 1;
         if(value(g,c_lf->value) != value(g,c_lf->next->value)){
@@ -1629,7 +1634,7 @@ void lemma7_helper(graph* g, graph* t, int r, double approx, int cur_size, int r
         }
     }
 
-    if(fully_merged){
+    if(fully_merged || !leaves){
         if(cur_size < lemma7_min_edges){
             lemma7_min_edges = cur_size;
 
@@ -1666,47 +1671,44 @@ void lemma7_helper(graph* g, graph* t, int r, double approx, int cur_size, int r
     int_ls* c_lf = leafs;
     for(int i = 0; i<n_leaves && c_lf; i++){
         lf_arr[i] = c_lf->value; 
-        next_edge(g, c_lf->value, &e_k[i], low_edges, 0, 0);
+        int of = next_edge(g, c_lf->value, &e_k[i], low_edges, 0, 0);        
         c_lf = c_lf->next;
     }
 
     //function to advance an edge.
-
-    //while remaining_combos
-    char is_remaining_combos = 1;
+    int combination_number = 1;
 
     // recurse on combination after merging edges.
     for(int i = 0; i < l*l; i++){
-        printf("A\n");
-
+        printf("combo_n %i / %i  depth = %i\n", combination_number, (int)(l*l), recur_depth);
+        fflush(stdout);
         // merge, recurse, then unmerge
 
         for(int k = 0; k<n_leaves; k++){ //merge all paths
-            printf("B\n");
+        //    printf("B\n");
             edge* e = e_k[k];
             int u = value(g,e->thisVertex);
             int v = value(g,e->otherVertex);
             int_ls* tp = tree_path(t,u,v);
 
-            ls_print(tp);
-
             for(int_ls* n = tp; tp && tp->next; tp= tp->next){
-                printf("C\n");
+          //      printf("C\n");
                 int u = tp->value;
                 int v = tp->next->value;
-                printf("merging %i and %i\n", u, v);
-                blossom_merge(g,u,v,recur_depth, merge_order_g);
-                blossom_merge(t,u,v,recur_depth, merge_order_t);
+            //    printf("merging %i and %i\n", u, v);
+                merge_order_g = blossom_merge(g,u,v,recur_depth, merge_order_g);
+                merge_order_t = blossom_merge(t,u,v,recur_depth, merge_order_t);
             }
+            l_free(tp);
         }
 
-        recur_depth += 1;
-        cur_size += n_leaves;
-        lemma7_helper(g, t, r, approx, cur_size, recur_depth, og_leaves);
+        
+        lemma7_helper(g, t, r, approx, cur_size+n_leaves, recur_depth+1, og_leaves);
 
-        //unmerge
-        blossom_unmerge(g,merge_order_g);
-        blossom_unmerge(t,merge_order_t);
+        printf("return to depth: %i ,cur_size: %i \n", recur_depth, cur_size);
+
+        merge_order_g = blossom_unmerge_2(g,merge_order_g);
+        merge_order_t = blossom_unmerge_2(t,merge_order_t);
 
 
         // try next combination.
@@ -1714,24 +1716,30 @@ void lemma7_helper(graph* g, graph* t, int r, double approx, int cur_size, int r
         int overflow = 0;
         do{
             overflow = 0;
-
-            overflow = next_edge(g,lf_arr[i],&e_k[i],low_edges,0,0);
-
-            for(int m = 0; m < 80; m++){
-                overflow = next_edge(g,lf_arr[i],&e_k[i],low_edges,0,0);
-                printf("OVERFLOW %i\n",overflow);
-            }
-
+            overflow = next_edge(g,lf_arr[j],&e_k[j],low_edges,0,0);
             j--;
         }while(overflow && j >=0);
-        if(j<0)
+        if(j<0){
+            printf("combination overflow!\n");
             break;
+        }
         //next combo obtained.
+        printf("combo");
     }
-        
+    l_free(low_edges);
+    l_free(leafs);
     free(lf_arr);
     free(e_k);
 }
+
+
+
+
+
+
+
+
+
 
 void lemma9(graph* g, graph* t, int v, chain_ls* P, double approx){
     double l = (4/approx) - 1;

@@ -33,6 +33,8 @@ pair_ls* blossom_merge(graph* g, int u, int v, int blossom_number, pair_ls* merg
 
 pair_ls* blossom_unmerge(graph* g, pair_ls* merge_order);
 
+pair_ls* blossom_unmerge_2(graph* g, pair_ls* merge_order);
+
 int_ls* last_blossom_verts(pair_ls* merge_order);
 
 // computes maximum matching

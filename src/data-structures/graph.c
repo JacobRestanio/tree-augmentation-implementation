@@ -553,7 +553,7 @@ void unmerge_vertices(graph *g, int v)
 ///////////TREE FUNCTIONS/////////////
 
 // you should probably only do this if the graph is actually a tree.
-// has bug with merged graphs, unless you sanitize all vertex accesses. intended?
+// has bug with merged graphs, unless you deref all vertex accesses. intended?
 void set_root(graph *t, int v)
 {
    v = value(t, v);
@@ -611,7 +611,7 @@ void generate_parents(graph *t, int v)
 
 int get_parent(graph *tree, int v)
 {
-   if (tree->parents == 0)
+   if (tree->parents == NULL)
       return 0;
    v = value(tree, v);
    return value(tree, tree->parents[v]); // this originally was NOT corrected w/ value
@@ -688,15 +688,26 @@ int_ls *children(graph *t, int u)
    u = value(t, u);
    edge *e = t->vert[u]->edge;
 
-   int p = value(t, t->parents[u]);
+   int p = value(t, get_parent(t,u));
    int_ls *ls = NULL;
 
    while (e)
    {
-      char is_not_parent = value(t, e->otherVertex) != p;
-      char is_not_self = value(t, e->otherVertex) != value(t, e->thisVertex);
-      if (is_not_parent && is_not_self)
-         ls = ls_add(ls, e->otherVertex);
+      int e1 = e->otherVertex;
+      int e2 = e->thisVertex;
+      int v1 = value(t, e1);
+      int v2 = value(t, e2);
+
+      int unique_vert = v2==u?v1:v2;
+
+      char is_not_parent = unique_vert != p;
+      char is_not_self = v1 != v2;
+   
+      if (is_not_parent && is_not_self){
+         if(!ls_contains(ls,unique_vert)) //TODO; remove this line?
+            ls = ls_add(ls, unique_vert);
+         //printf("children of %i: (v1: %i, v2: %i)  p:%i  e1: %i  e2: %i\n", u, v1, v2, p, e1, e2);
+      }
       e = e->next;
    }
 
@@ -755,8 +766,11 @@ int lca(graph *t, int u, int v)
    return u;
 }
 
+int aaa = 0;
+
 int_ls *add_leaves(graph *t, int_ls *leaves, int u)
 {
+   aaa++;
    u = value(t, u);
 
    int_ls *kids = children(t, u);
@@ -772,7 +786,23 @@ int_ls *add_leaves(graph *t, int_ls *leaves, int u)
    int_ls *current_kid = kids;
    while (current_kid)
    {
-      leaves = add_leaves(t, leaves, current_kid->value);
+      /*
+      printf("u = %i, recur on %i\n", u, current_kid->value);
+      fflush(stdout);
+      //graph_print_all(t);
+      graph_print_vertex(t,1);
+      graph_print_vertex(t,3);
+      graph_print_vertex(t,6);
+
+            int arr[3] = {16, 13, 9};
+      for(int i = 0; i<3; i++){
+         int mv = t->vert[arr[i]]->mergeValue;
+         printf("mv of %i is %i\n", arr[i], mv);
+      }
+      */
+
+      int v = value(t, current_kid->value);
+      leaves = add_leaves(t, leaves, v);
       current_kid = current_kid->next;
    }
    ls_free(kids);
@@ -836,9 +866,6 @@ char is_fringe(graph *t, int u)
    ls_free(kids);
    return 1;
 }
-
-
-
 
 
 

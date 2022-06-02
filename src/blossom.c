@@ -225,10 +225,82 @@ pair_ls* blossom_unmerge(graph* g, pair_ls* merge_order){
         ls_free_some(u_alias);
 
         merge_order = l_remove(merge_order);
-        }
-    
+
+    }
+
     return merge_order;
 }
+
+pair_ls* blossom_unmerge_2(graph* g, pair_ls* merge_order){
+    if(!merge_order)
+        return NULL;
+
+    //printf("unmerge: \n");
+
+    int blossom_number = merge_order->blossom_number;
+
+    while(merge_order && (merge_order->blossom_number == blossom_number)){
+        //printf("bm: %i\n",merge_order->blossom_number);
+        int u = value(g, merge_order->u);
+        int v = value(g, merge_order->v);
+
+        int_ls* u_alias = g->vert[u]->aliases;
+
+        int_ls* v_aliases = g->vert[v]->aliases;
+
+        edge* e_prev = NULL;
+        edge* e = g->vert[u]->edge;
+
+        while(e && ls_contains(v_aliases,e->thisVertex)){
+            e_prev = e;
+            e = e->next;
+        }
+
+        if(e_prev){
+            e_prev->next = NULL;
+            g->vert[v]->lastedge = e_prev;
+        }
+
+        g->vert[v]->edge = g->vert[u]->edge;
+        g->vert[v]->lastedge = e_prev;
+
+        g->vert[u]->edge = e;
+
+        g->vert[v]->mergeValue = v;
+
+
+        while(!ls_contains(v_aliases,u_alias->value)){
+            u_alias = u_alias->next;
+        }
+
+        if(u_alias && u_alias->prev){// remove this and uncomment ls_free_some.
+            u_alias->prev->next = NULL;
+            u_alias->prev = NULL;
+        }
+        printf("test\n");
+        fflush(stdout);
+        //ls_free_some(u_alias);
+
+        merge_order = l_remove(merge_order);
+        /*
+        for(int_ls* cur_u_alias = g->vert[u]->aliases; cur_u_alias; cur_u_alias = cur_u_alias->next){
+            int cur_v = cur_u_alias->value; 
+            g->vert[cur_v]->mergeValue = u;
+        }
+
+        for(int_ls* cur_v_alias = g->vert[v]->aliases; cur_v_alias; cur_v_alias = cur_v_alias->next){
+            int cur_v = cur_v_alias->value; 
+            g->vert[cur_v]->mergeValue = v;
+        }
+        */
+    }
+
+    printf("\nblossom unmerge:\n");
+    graph_print_all(g);
+
+    return merge_order;
+}
+
 
 int_ls* last_blossom_verts(pair_ls* merge_order){
     if(!merge_order)
