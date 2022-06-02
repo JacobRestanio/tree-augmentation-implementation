@@ -7,10 +7,10 @@ LDIR=../lib
 
 LIBS=-lm
 
-_DEPS = tree-greedy.h tree-generator.h tree-helper.h int-list.h graph.h stack.h list.h nagamochi.h blossom.h
+_DEPS = tree-greedy.h tree-generator.h tree-helper.h int-list.h graph.h stack.h list.h nagamochi.h blossom.h lemma7.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-_OBJ = tree-augmentor.o tree-generator.o tree-helper.o tree-greedy.o data-structures/stack.o data-structures/int-list.o data-structures/graph.o data-structures/list.o nagamochi.o blossom.o
+_OBJ = tree-augmentor.o tree-generator.o tree-helper.o tree-greedy.o data-structures/stack.o data-structures/int-list.o data-structures/graph.o data-structures/list.o nagamochi.o blossom.o lemma7.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 

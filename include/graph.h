@@ -63,6 +63,10 @@ graph *graph_create(int v);
 
 void graph_free(graph *g);
 
+graph* normal_copy(graph* g);
+
+graph* graph_copy(graph* g, int tree_root, int_ls* vs, int** old_2_new, int** new_2_old);
+
 // needs renamed
 int value(graph *g, int v); // not sure if chains merge correctly
 

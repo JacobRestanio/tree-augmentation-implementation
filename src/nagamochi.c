@@ -1735,12 +1735,6 @@ void lemma7_helper(graph* g, graph* t, int r, double approx, int cur_size, int r
 
 
 
-
-
-
-
-
-
 void lemma9(graph* g, graph* t, int v, chain_ls* P, double approx){
     double l = (4/approx) - 1;
 

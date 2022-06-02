@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
   // need to test merging's effect on parents
 
   char *t_text = "1 2\n2 5\n5 8\n1 3\n1 4\n3 15\n15 11\n15 12\n3 6\n6 9\n6 13\n6 16\n4 7\n7 10\n7 14\n";
-  char *g_text = "1 2\n2 5\n5 8\n1 3\n1 4\n3 15\n15 11\n15 12\n3 6\n6 9\n6 13\n6 16\n4 7\n7 10\n7 14\n14 10\n9 16\n16 13\n13 11\n11 6\n15 13\n16 12\n12 13\n12 9\n9 15\n8 2\n8 1\n5 1";
+  char *g_text = "1 2\n2 5\n5 8\n1 3\n1 4\n3 15\n15 11\n15 12\n3 6\n6 9\n6 13\n6 16\n4 7\n7 10\n7 14\n14 10\n9 16\n16 13\n13 11\n11 6\n15 13\n16 12\n12 13\n12 9\n9 15\n8 2\n8 1\n5 1\n12 1";
   int size = 48;
   
   printf("\n\n");
@@ -56,12 +56,41 @@ int main(int argc, char *argv[])
   set_root(t, rt);
   set_gm(g);
 
-  printf("%X", t->vert[1]->edge);
-  fflush(stdout);
-  printf("%i", t->parents[1]);
-  fflush(stdout);
+  int_ls* d = descendants(t,3);
 
-  lemma7(g,t,1,.0001);
+  int* old_2_new_t;
+  int* new_2_old_t;
+  int* old_2_new_g;
+  int* new_2_old_g;
+
+  graph* new_t = graph_copy(t,3, d, &old_2_new_t, &new_2_old_t);
+
+  graph* new_g = graph_copy(g,3, d, &old_2_new_g, &new_2_old_g);
+
+  graph_print_all(new_t);
+
+  printf("old to new: ");
+  for(int i = 0; i<= 18; i++){
+    printf("(%i)-%i ",i, old_2_new_g[i]);
+  }printf("\n");
+
+
+  printf("new to old: ");
+  for(int i = 0; i<= ls_size(d); i++){
+    printf("(%i)-%i ", i, new_2_old_g[i]);
+  }
+
+  int_ls* new_d = descendants(new_t, old_2_new_t[6]);
+
+  for(int_ls* x = new_d; x; x = x->next){
+    printf("%i ", new_2_old_t[x->value]);
+  }printf("\n");
+
+
+  printf("\n\n g:\n");
+  graph_print_all(new_g);
+
+  //lemma7(g,t,1,.0001);
 
   return 0;
 

@@ -94,6 +94,80 @@ void graph_free(graph *g)
    free(g);
 }
 
+graph* normal_copy(graph* g){
+   int n_verts = g->original_vertex_count;
+
+   graph* new_g =  graph_create(n_verts);
+
+   for(int v = 1; v<=n_verts; n_verts++){
+      for(edge* e = g->vert[v]->edge;e; e = e->next){
+         int u1 = value(g,e->thisVertex);
+         int u2 = value(g,e->otherVertex);
+
+         if(u1 == u2 || graph_is_edge(new_g, u1, u2))
+            continue;
+
+         graph_add_edge(new_g, u1, u2);
+      }
+   }
+   if(g->root)
+     set_root(new_g, g->root);
+   return new_g;
+}
+
+
+//dont forget to set the root of any tree copies
+graph* graph_copy(graph* g, int tree_root, int_ls* vs, int** old_2_new, int** new_2_old){
+
+   int n_vs = ls_size(vs);
+
+
+   int* new_to_old = malloc(sizeof(int)*(n_vs+1));
+   new_to_old[0] = 0;
+   int_ls* v = vs;
+   for(int i = 1; i <= n_vs && v; i++){
+      new_to_old[i] = v->value;
+      v = v->next;
+   }
+
+
+   int* old_to_new = malloc(sizeof(int)*(g->original_vertex_count+1));
+   memset(old_to_new,0, sizeof(int)*(g->original_vertex_count+1));
+   for(int i = 0; i<n_vs; i++){
+      int old = new_to_old[i];
+      old_to_new[old] = i;
+   }
+
+   *old_2_new = old_to_new;
+   *new_2_old = new_to_old;
+
+
+   graph* new_g =  graph_create(n_vs);
+
+
+
+   for(int_ls* v = vs; v; v=v->next){
+      for(edge* e = g->vert[v->value]->edge;e; e = e->next){
+         int v1 = value(g,e->thisVertex);
+         int v2 = value(g,e->otherVertex);
+         
+         int u1 = old_to_new[v1]?old_to_new[v1]:old_to_new[tree_root];
+         int u2 = old_to_new[v2]?old_to_new[v2]:old_to_new[tree_root];
+
+         //printf(" adding edge (%i, %i) -> (%i, %i)\n", v1, v2, u1, u2);
+         //fflush(stdout);
+
+         if(u1 == u2 || graph_is_edge(new_g, u1, u2))
+            continue;
+
+         graph_add_edge(new_g, u1, u2);
+      }
+   }
+   if(g->root)
+     set_root(new_g, old_to_new[tree_root]);
+   return new_g;
+}
+
 /////////////GENERAL FUNCTIONS/////////////////
 
 // integer references to vertices should be passed through this function.
@@ -518,6 +592,10 @@ void merge_vertices(graph *g, int v1, int v2)
 
    g->vertex_count--;
 }
+
+
+
+
 
 void unmerge_vertices(graph *g, int v)
 {
