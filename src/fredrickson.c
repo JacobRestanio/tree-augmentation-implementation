@@ -218,6 +218,7 @@ void edmondsAlgorithm(directedgraph* edgeWeights, directedgraph* arborescence, i
       // remove contracted cycle vertex
       directedgraph_remove_vertex(arborescence, contractedVertex);
    }
+   adjlist_free(cycle);
 }
 
 int twoEdgeConnect(int n, graph* tree, directedgraph* arborescence) {
@@ -247,7 +248,7 @@ int fredrickson(graph* tree, graph* edgeSet) {
 
    int e = twoEdgeConnect(n, tree, arborescence);
 
-   free(edgeWeights);
+   directedgraph_free(edgeWeights);
    directedgraph_free(directedTree);
    directedgraph_free(arborescence);
    return e;

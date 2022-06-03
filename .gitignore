@@ -1,5 +1,6 @@
 # Custom Files
 src/data
+src/space
 
 # Prerequisites
 *.d

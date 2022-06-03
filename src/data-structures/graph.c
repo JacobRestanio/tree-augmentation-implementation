@@ -1188,6 +1188,7 @@ adjlist* adjlist_find_cycle_in_directedgraph(directedgraph* dg) {
    }
 
    if (pathStart == -1) {
+      stack_free(path);
       return NULL;
    }
    adjlist* cycle = adjlist_create(stack_pop(path));

@@ -210,9 +210,11 @@ void genEdgeWeights(int n, int edges[][n], int edgeWeights[][n], int max) {
    }
 }
 
-/* Currently this creates an adjacency matrix of all possible edges for the tree
+/* This creates a set of edges based on a specified tree and density.
+      If you want to make sure the edges generated are valid, wrap the generation in a loop
+      that uses the function checkConnected.
    int density: a number between 0 - 1000 that is the percent density of the edge set
-      1000 represents 100.0%, 500 representes 50.0%, etc.
+      100 represents 100.0%, 50 representes 50.0%, etc.
    graph* tree: the tree the edge set is based off of
    graph* edgeSet: an empty graph that is the same size as tree */
 void createEdgeSet(int density, graph* tree, graph* edgeSet) {
@@ -220,7 +222,7 @@ void createEdgeSet(int density, graph* tree, graph* edgeSet) {
    for(int i = 0; i < n; i++) {
       for(int j = 0; j < n; j++) {
          if(i != j && !graph_is_edge(tree, i, j)) {
-            if(rand() % 1000 < density) {
+            if(rand() % 100 < density) {
                graph_add_edge(edgeSet, i, j);
             }
          }
@@ -246,6 +248,24 @@ void createCompleteDirectedTree(int n, int completeDirectedGraph[][n]) {
             completeDirectedGraph[i][j] = 0;
          }
       }
+   }
+}
+
+/* returns the exact solution for the TAP in the case of a complete edge set
+   which is just the ceiling of the number of leaves divided by 2 */
+int exactPolynomial(graph* tree) {
+   int num_leaves = 0;
+   vertex* currVertex = graph_get_vertex_list(tree);
+   while (currVertex) {
+      if (vertex_get_degree(currVertex) < 2) {
+         num_leaves++;
+      }
+      currVertex = vertex_get_next(currVertex);
+   }
+   if (num_leaves % 2 == 0) {
+      return num_leaves / 2;
+   } else {
+      return num_leaves / 2 + 1;
    }
 }
 

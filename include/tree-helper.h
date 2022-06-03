@@ -40,6 +40,10 @@ void copyMatrix(int n, int originalMatrix[][n], int copyMatrix[][n]);
    completeDirectedGraph is the adjacency matrix of a graph of size n x n */
 void createCompleteDirectedTree(int n, int completeDirectedGraph[][n]);
 
+/* Returns the exact number of edges in the solution for the case of a complete edge set
+   graph* tree: the tree to calculate the exact solution */
+int exactPolynomial(graph* tree);
+
 /* returns 1 if the graph is 2-edge connected, 0 otherwise */
 int checkConnected(graph* tree, graph* edges);
 
