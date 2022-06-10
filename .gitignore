@@ -1,6 +1,10 @@
-# Custom Files
+# Folders
 src/data
 src/space
+
+# Binaries
+src/tree-augmentor
+src/data-structures/data-structure-test
 
 # Prerequisites
 *.d
