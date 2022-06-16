@@ -1,11 +1,78 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/wait.h>
 #include "../../include/stack.h"
 #include "../../include/graph.h"
 #include "../../include/fibonacci-heap.h"
 #include "../../include/queue.h"
+#include "../../include/list.h"
+#include "../../include/int-list.h"
 
 int main() {
+   printf("\n\n");
+   printf("_____LIST_____\n");
+   printf("Creating int list 1\n");
+   int_list* int_ls1 = int_list_create(1);
+   int_ls1 = list_add(int_ls1, int_list_create(2));
+   int_ls1 = list_add(int_ls1, int_list_create(3));
+   list_print(int_ls1, int_list_print);
+
+   printf("Creating int list 2\n");
+   int_list* int_ls2 = int_list_create(4);
+   int_ls2 = list_add(int_ls2, int_list_create(5));
+   int_ls2 = list_add(int_ls2, int_list_create(6));
+   int_ls2 = list_add(int_ls2, int_list_create(7));
+   list_print(int_ls2, int_list_print);
+
+   printf("Size of list 1: %i\n", list_size(int_ls1));
+   printf("Size of list 2: %i\n\n", list_size(int_ls2));
+
+   printf("Merging list 1 and list 2\n");
+   int_ls1 = list_merge(int_ls1, int_ls2);
+   printf("List 1: ");
+   list_print(int_ls1, int_list_print);
+   printf("List 2: ");
+   list_print(list_first(int_ls2), int_list_print);
+
+   printf("Removing from combined list elements 1, 4, and 3\n");
+   int_ls2 = int_list_create(1);
+   int_ls1 = list_remove_elem(int_ls1, int_list_match, free, int_ls2);
+   int_ls2 = list_remove(int_ls2, free);
+   int_ls2 = int_list_create(4);
+   int_ls1 = list_remove_elem(int_ls1, int_list_match, free, int_ls2);
+   int_ls2 = list_remove(int_ls2, free);
+   int_ls2 = int_list_create(3);
+   int_ls1 = list_remove_elem(int_ls1, int_list_match, free, int_ls2);
+   int_ls2 = list_remove(int_ls2, free);
+   list_print(int_ls1, int_list_print);
+
+   printf("Adding 1, 4, and 7 back to list\n");
+   int_ls1 = list_add(int_ls1, int_list_create(1));
+   int_ls1 = list_add(int_ls1, int_list_create(4));
+   int_ls1 = list_add(int_ls1, int_list_create(7));
+   list_print(int_ls1, int_list_print);
+
+   printf("Removing from combined list elements [2, 5, 7]\n");
+   int_ls2 = int_list_create(2);
+   int_ls2 = list_add(int_ls2, int_list_create(5));
+   int_ls2 = list_add(int_ls2, int_list_create(7));
+   int_ls1 = list_remove_list(int_ls1, int_list_match, free, int_ls2);
+   list_print(int_ls1, int_list_print);
+
+   printf("Adding 2, 6, and 7 back to list\n");
+   int_ls1 = list_add(int_ls1, int_list_create(2));
+   int_ls1 = list_add(int_ls1, int_list_create(6));
+   int_ls1 = list_add(int_ls1, int_list_create(7));
+   list_print(int_ls1, int_list_print);
+
+   printf("Freeing list 1 and list 2\n");
+   list_free(int_ls1, free);
+   list_free(int_ls2, free);
+
+
+
+
+
   printf("\n\n");
   printf("_____STACK_____\n");
   printf("Creating stack\n");
@@ -42,28 +109,31 @@ int main() {
   printf("Create Empty Directed Graph\n");
   directedgraph* dg = directedgraph_create(0);
   directedgraph_print(dg);
-  printf("Add a vertex to empty graph\n");
-  directedgraph_add_vertex(dg, 0);
-  directedgraph_add_vertex(dg, 2);
+  printf("Adding vertices 1, 2, 3 to empty graph\n");
   directedgraph_add_vertex(dg, 1);
+  directedgraph_add_vertex(dg, 2);
+  directedgraph_add_vertex(dg, 3);
   directedgraph_print(dg);
+  printf("Freeing directed graph\n");
   directedgraph_free(dg);
-  printf("Creating Directed Graph\n");
+  printf("Creating Directed Graph with 5 vertices\n");
   dg = directedgraph_create(5);
 
   printf("Print empty graph:\n");
   directedgraph_print(dg);
 
-  printf("Adding edges (0,1) (0,2) (0,3) (1,3) (2,4) (3,4)\n");
-  directedgraph_add_edge(dg, 0, 1);
-  directedgraph_add_edge(dg, 0, 1);
-  directedgraph_add_edge(dg, 0, 2);
-  directedgraph_add_edge(dg, 0, 3);
+  printf("Adding edges (1,2), (1,3), (1,4), (2,4), (3,1), (3,5), (4,5), (5,2)\n");
+  directedgraph_add_edge(dg, 1, 2);
+  directedgraph_add_edge(dg, 1, 2);
   directedgraph_add_edge(dg, 1, 3);
+  directedgraph_add_edge(dg, 1, 4);
   directedgraph_add_edge(dg, 2, 4);
-  directedgraph_add_edge(dg, 3, 4);
-  directedgraph_add_edge(dg, 5, 3);
   directedgraph_add_edge(dg, 3, 5);
+  directedgraph_add_edge(dg, 3, 1);
+  directedgraph_add_edge(dg, 5, 2);
+  directedgraph_add_edge(dg, 4, 5);
+  directedgraph_add_edge(dg, 6, 3);
+  directedgraph_add_edge(dg, 4, 6);
 
   printf("Print graph:\n");
   directedgraph_print(dg);
@@ -72,99 +142,114 @@ int main() {
   directedgraph* dg_copy = directedgraph_create_copy(dg);
   directedgraph_print_weights(dg_copy);
 
-  printf("Update cost of existing edge:\n");
-  directedgraph_add_weighted_edge(dg_copy, 0, 2, 0);
+  printf("Update cost of existing edge (1,3):\n");
+  directedgraph_add_weighted_edge(dg_copy, 1, 3, 0);
   directedgraph_print_weights(dg_copy);
 
   printf("Removing vertices 0, 2, 4:\n");
+  directedgraph_remove_vertex(dg, 0);
+  directedgraph_remove_vertex(dg, 2);
+  directedgraph_remove_vertex(dg, 4);
   directedgraph_print(dg);
 
-  printf("Adding vertices 0, 2, 5\n");
-  directedgraph_add_vertex(dg, 0);
+  printf("Adding vertices 1, 2, 6\n");
+  directedgraph_add_vertex(dg, 1);
   directedgraph_add_vertex(dg, 2);
-  directedgraph_add_vertex(dg, 5);
+  directedgraph_add_vertex(dg, 6);
 
-  printf("Adding edges (0,1) (0,2) (0,3) (1,3) (5,3) (3,5)\n");
+  printf("Adding edges (0,1) (1,2) (2,3) (1,3) (5,3) (3,5)\n");
   directedgraph_add_edge(dg, 0, 1);
   directedgraph_add_edge(dg, 0, 1);
-  directedgraph_add_edge(dg, 0, 2);
-  directedgraph_add_edge(dg, 0, 3);
+  directedgraph_add_edge(dg, 1, 2);
+  directedgraph_add_edge(dg, 2, 3);
   directedgraph_add_edge(dg, 1, 3);
   directedgraph_add_edge(dg, 2, 4);
   directedgraph_add_edge(dg, 3, 4);
   directedgraph_add_edge(dg, 5, 3);
   directedgraph_add_edge(dg, 3, 5);
 
-  printf("Check if 2 is a successor of 0: %i\n", directedgraph_is_successor(dg, 0, 2));
-  printf("Check if 0 is a predecessor of 2: %i\n", directedgraph_is_predecessor(dg, 2, 0));
+  printf("Check if 2 is a successor of 1: %i\n", directedgraph_is_successor(dg, 1, 2));
+  printf("Check if 1 is a predecessor of 2: %i\n", directedgraph_is_predecessor(dg, 1, 2));
 
   printf("Print graph:\n");
   directedgraph_print(dg);
+  directedgraph_print_predecessors(dg);
 
-  printf("Finding a cycle in the directed graph rooted:\n");
+  printf("Finding a cycle in the directed graph:\n");
   adjlist* cycle = adjlist_find_cycle_in_directedgraph(dg);
   adjlist_print(cycle);
   adjlist_free(cycle);
 
-  printf("Removing all predecessors of edge 4\n");
-  directedgraph_remove_predecessors(dg, 4);
+  printf("Removing all predecessors of vertex 3\n");
+  directedgraph_remove_predecessors(dg, 3);
 
-  printf("Removing edges (0,2) (3,5) (5,3)\n");
-  directedgraph_remove_edge(dg, 0, 2);
+  printf("Removing edges (1,2) (3,5) (5,3)\n");
+  directedgraph_remove_edge(dg, 1, 2);
   directedgraph_remove_edge(dg, 3, 5);
   directedgraph_remove_edge(dg, 5, 3);
 
-  printf("Check if 2 is a successor of 0: %i\n", directedgraph_is_successor(dg, 0, 2));
-  printf("Check if 0 is a predecessor of 2: %i\n", directedgraph_is_predecessor(dg, 2, 0));
+  printf("Check if 2 is a successor of 1: %i\n", directedgraph_is_successor(dg, 1, 2));
+  printf("Check if 1 is a predecessor of 2: %i\n", directedgraph_is_predecessor(dg, 1, 2));
 
-  printf("Print graph:\n");
+  printf("Print directed graph:\n");
   directedgraph_print(dg);
 
-  printf("Freeing graph\n");
+  printf("Free directed graph\n");
   directedgraph_free(dg);
   directedgraph_free(dg_copy);
 
   printf("\n\n");
   printf("_____GRAPH_____\n");
-  printf("Creating Graph\n");
-  graph* g = graph_create(10);
+  printf("Creating Graph of size 5\n");
+  graph* g = graph_create(5);
 
-  printf("Print empty graph:\n");
+  printf("Print graph:\n");
   graph_print(g);
 
-  printf("Adding edges (0,2) (0,3) (0,6) (0,5) (1,3) (2,4) (3,4)\n");
-  graph_add_edge(g, 0, 2);
-  graph_add_edge(g, 0, 3);
-  graph_add_edge(g, 0, 6);
-  graph_add_edge(g, 0, 5);
+  printf("Adding edges (1,2) (1,3) (1,6) (1,5) (2,3) (2,4) (3,3) (3,4) (5,3) (3,5)\n");
+  graph_add_edge(g, 1, 2);
   graph_add_edge(g, 1, 3);
+  graph_add_edge(g, 1, 6);
+  graph_add_edge(g, 1, 5);
+  graph_add_edge(g, 2, 3);
+  graph_add_edge(g, 3, 3);
   graph_add_edge(g, 2, 4);
   graph_add_edge(g, 3, 4);
   graph_add_edge(g, 5, 3);
   graph_add_edge(g, 3, 5);
 
-  printf("Check if edge (0,2) is in the graph: %i\n", graph_is_edge(g, 0, 2));
-  printf("Check if edge (2,0) is in the graph: %i\n", graph_is_edge(g, 0, 2));
-
   printf("Print graph:\n");
   graph_print(g);
 
-  printf("Removing edges (0,2) (2,4)\n");
-  graph_remove_edge(g, 0, 2);
-  graph_remove_edge(g, 0, 2);
+  printf("Making a copy of the current graph\n");
+  graph* gcopy = graph_copy(g);
+  graph_print(gcopy);
+
+  printf("Removing edges (1,2) (1,2) (2,3) (2,4) (1,4) (3,3) (6,7) (6,3) (3,6)\n");
+  graph_remove_edge(g, 1, 2);
+  graph_remove_edge(g, 1, 2);
+  graph_remove_edge(g, 2, 3);
   graph_remove_edge(g, 2, 4);
   graph_remove_edge(g, 1, 4);
-  graph_remove_edge(g, 3, 5);
-  graph_remove_edge(g, 5, 3);
-
-  printf("Check if (2,0) is in the graph: %i\n", graph_is_edge(g, 0, 2));
-  printf("Check if (0,2) is in the graph: %i\n", graph_is_edge(g, 2, 0));
+  graph_remove_edge(g, 3, 3);
+  graph_remove_edge(g, 6, 7);
+  graph_remove_edge(g, 6, 3);
+  graph_remove_edge(g, 3, 6);
 
   printf("Print graph:\n");
   graph_print(g);
+
+  printf("Remove vertex 3 and 6\n");
+  graph_remove_vertex(g, 3);
+  graph_remove_vertex(g, 6);
+  graph_print(g);
+
+  printf("Making sure the copy hasn't changed\n");
+  graph_print(gcopy);
 
   printf("Freeing graph\n");
   graph_free(g);
+  graph_free(gcopy);
 
   /* Queue */
   printf("\n\n");
@@ -175,36 +260,43 @@ int main() {
   printf("Check if queue is empty: %i\n", queue_isEmpty(q));
 
   printf("Enqueue 1, 2, 3\n");
-  queue_enqueue(q, 1);
-  queue_enqueue(q, 2);
-  queue_enqueue(q, 3);
-  queue_print(q);
+  int_ls1 = int_list_create(1);
+  int_ls2 = int_list_create(2);
+  int_list* int_ls3 = int_list_create(3);
+  queue_enqueue(q, int_ls1);
+  queue_enqueue(q, int_ls2);
+  queue_enqueue(q, int_ls3);
+  queue_print(q, int_list_print);
 
   printf("Check if queue is empty: %i\n", queue_isEmpty(q));
 
   printf("Dequeue 1\n");
   queue_dequeue(q);
-  queue_print(q);
+  queue_print(q, int_list_print);
 
   printf("Dequeue 2\n");
   queue_dequeue(q);
-  queue_print(q);
+  queue_print(q, int_list_print);
 
-  printf("Peek at front of queue: %i\n", queue_peek(q));
+  printf("Peek at front of queue: %i\n", int_list_value(queue_peek(q)));
 
   printf("Dequeue 3\n");
   queue_dequeue(q);
-  queue_print(q);
+  queue_print(q, int_list_print);
 
   printf("Dequeue empty\n");
   queue_dequeue(q);
-  queue_print(q);
+  queue_print(q, int_list_print);
 
   printf("Enqueue 1, 2, 3\n");
-  queue_enqueue(q, 1);
-  queue_enqueue(q, 2);
-  queue_enqueue(q, 3);
-  queue_print(q);
+  queue_enqueue(q, int_ls1);
+  queue_enqueue(q, int_ls2);
+  queue_enqueue(q, int_ls3);
+  queue_print(q, int_list_print);
+
+  int_list_free(int_ls1);
+  int_list_free(int_ls2);
+  int_list_free(int_ls3);
 
   printf("Free queue\n");
   queue_free(q);

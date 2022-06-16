@@ -10,39 +10,37 @@
 /* Finds the first vertex that is a leaf (1-edge connected) */
 vertex* findLeaf(graph* tree) {
    // loop through the vertices of the tree and return the first leaf found
-   vertex* currVertex = graph_get_vertex_list(tree);
-   while (currVertex) {
-      if (vertex_get_degree(currVertex) == 1) {
-         return currVertex;
-      } else {
-         currVertex = vertex_get_next(currVertex);
+   for (vertex* v = graph_get_vertices(tree); v; v = vertex_get_next(v)) {
+      if (vertex_get_degree(v) ==1) {
+         return v;
       }
    }
-   // this shouldn't be possible since we are working with trees
    return NULL;
 }
 
 /* Function that uses a queue to direct edges towards the root */
-void directTree(graph* tree, directedgraph* directedTree, vertex* root) {
+directedgraph* directTree(graph* tree, vertex* root) {
+   directedgraph* directedTree = directedgraph_create(0);
+   directedgraph_add_vertices(directedTree, graph_get_vertices(tree));
    queue* que = queue_create();
-   queue_enqueue(que, vertex_get_value(root));
-   int visited[graph_get_number_of_vertices(tree)];
-   for (int i = 0; i < graph_get_number_of_vertices(tree); i++) {
+   queue_enqueue(que, root);
+   int visited[graph_find_largest_vertex(tree) + 1];
+   for (int i = 0; i < graph_find_largest_vertex(tree) + 1; i++) {
       visited[i] = 0;
    }
+
    while (!queue_isEmpty(que)) {
-      int currVertex = queue_dequeue(que);
-      visited[currVertex] = 1;
-      edge* currEdge = vertex_get_edges(graph_get_vertex(tree, currVertex));
-      while (currEdge) {
-         if (!visited[edge_get_value(currEdge)]) {
-            directedgraph_add_edge(directedTree, edge_get_value(currEdge), currVertex);
-            queue_enqueue(que, edge_get_value(currEdge));
+      vertex* v = queue_dequeue(que);
+      visited[vertex_get_value(v)] = 1;
+      for (edge* e = vertex_get_edges(v); e; e = edge_next(e)) {
+         if (!visited[vertex_get_value(edge_get_destination(e))]) {
+            directedgraph_add_edge(directedTree, edge_destination_value(e), vertex_get_value(v));
+            queue_enqueue(que, edge_get_destination(e));
          }
-         currEdge = edge_get_next(currEdge);
       }
    }
    queue_free(que);
+   return directedTree;
 }
 
 /* Sets the weights of the graph that will be used when finding a minimum arborescence */
@@ -69,7 +67,7 @@ void setEdgeWeights(directedgraph* directedTree, directedgraph* edgeWeights, ver
 void edmondsAlgorithm(directedgraph* edgeWeights, directedgraph* arborescence, int root) {
    // we need to keep track of node that the incoming edge originates from
    // for each node j other than the root, find the edge incoming to j of minimum weight
-   vertex* currVertex = directedgraph_get_vertex_predecessors_list(edgeWeights);
+   vertex* currVertex = directedgraph_get_predecessors(edgeWeights);
    edge* currEdge = NULL;
    int greatestVertex = directedgraph_get_greatest_vertex(edgeWeights);
    // define a lookup array that contains the source of each incoming edge in our arborescence
@@ -82,7 +80,7 @@ void edmondsAlgorithm(directedgraph* edgeWeights, directedgraph* arborescence, i
       int currVertexValue = vertex_get_value(currVertex);
       int minimumIncomingEdgeWeight = INF;
       while (currEdge) {
-         int currEdgeValue = edge_get_value(currEdge);
+         int currEdgeValue = vertex_get_value(edge_get_destination(currEdge));
          int currEdgeCost = edge_get_cost(currEdge);
          // Remove edges to the root
          if (currVertexValue == root) {
@@ -126,10 +124,10 @@ void edmondsAlgorithm(directedgraph* edgeWeights, directedgraph* arborescence, i
       while(currCycle) {
          int currCycleValue = adjlist_get_value(currCycle);
          // (u,v) is an edge incoming to the cycle
-         vertex* currPredecessorVertex = directedgraph_get_vertex_predecessors(edgeWeights, currCycleValue);
+         vertex* currPredecessorVertex = directedgraph_find_predecessor_vertex(edgeWeights, currCycleValue);
          edge* currIncomingEdge = vertex_get_edges(currPredecessorVertex);
          while (currIncomingEdge) {
-            int currIncomingEdgeValue = edge_get_value(currIncomingEdge);
+            int currIncomingEdgeValue = vertex_get_value(edge_get_destination(currIncomingEdge));
             if (!adjlist_is_element(cycle, currIncomingEdgeValue)) {
                int minimumIncomingEdgeValue = source[vertex_get_value(currPredecessorVertex)];
                int cost = edge_get_cost(currIncomingEdge) - minimumIncomingEdgeValue;
@@ -142,10 +140,10 @@ void edmondsAlgorithm(directedgraph* edgeWeights, directedgraph* arborescence, i
             currIncomingEdge = edge_get_next(currIncomingEdge);
          }
          // (u,v) is an edge outgoing from the cycle
-         vertex* currSuccessorVertex = directedgraph_get_vertex_successors(edgeWeights, currCycleValue);
+         vertex* currSuccessorVertex = directedgraph_find_successor_vertex(edgeWeights, currCycleValue);
          edge* currOutgoingEdge = vertex_get_edges(currSuccessorVertex);
          while (currOutgoingEdge) {
-            int currOutgoingEdgeValue = edge_get_value(currOutgoingEdge);
+            int currOutgoingEdgeValue = vertex_get_value(edge_get_destination(currOutgoingEdge));
             if (!adjlist_is_element(cycle, currOutgoingEdgeValue)) {
                int cost = edge_get_cost(currOutgoingEdge);
                if (cost < minimumOutgoingEdgeWeights[currOutgoingEdgeValue]) {
@@ -176,7 +174,7 @@ void edmondsAlgorithm(directedgraph* edgeWeights, directedgraph* arborescence, i
       }
       directedgraph_add_vertex(arborescence, contractedVertex);
 
-      vertex* currContractedVertex = directedgraph_get_vertex_successors_list(edgeWeights);
+      vertex* currContractedVertex = directedgraph_get_successors(edgeWeights);
       while (currContractedVertex) {
          directedgraph_add_vertex(arborescence, vertex_get_value(currContractedVertex));
          currContractedVertex = vertex_get_next(currContractedVertex);
@@ -197,19 +195,19 @@ void edmondsAlgorithm(directedgraph* edgeWeights, directedgraph* arborescence, i
       directedgraph_add_edge(arborescence, adjlist_get_value(cycle), adjlist_get_value(prevCycle));
 
       // remove the edge (pi(v), v) from the cycle and add edge (u, v)
-      vertex* cyclePredecessorVertex = directedgraph_get_vertex_predecessors(arborescence, contractedVertex);
+      vertex* cyclePredecessorVertex = directedgraph_find_predecessor_vertex(arborescence, contractedVertex);
       edge* incomingEdgeCycle = vertex_get_edges(cyclePredecessorVertex);
-      int incomingEdgeCycleValue = edge_get_value(incomingEdgeCycle);
+      int incomingEdgeCycleValue = vertex_get_value(edge_get_destination(incomingEdgeCycle));
       int correspondingCycleVertexValue = incomingCorrespondingEdges[incomingEdgeCycleValue];
       int prevIncomingEdgeValue = source[correspondingCycleVertexValue];
       directedgraph_remove_edge(arborescence, prevIncomingEdgeValue, correspondingCycleVertexValue);
       directedgraph_add_edge(arborescence, incomingEdgeCycleValue, correspondingCycleVertexValue);
 
       // add corresponding outgoing edges from the cycle
-      vertex* cycleSuccessorVertex = directedgraph_get_vertex_successors(arborescence, contractedVertex);
+      vertex* cycleSuccessorVertex = directedgraph_find_successor_vertex(arborescence, contractedVertex);
       edge* outgoingEdgeCycle = vertex_get_edges(cycleSuccessorVertex);
       while (outgoingEdgeCycle) {
-         int outgoingEdgeCycleValue = edge_get_value(outgoingEdgeCycle);
+         int outgoingEdgeCycleValue = vertex_get_value(edge_get_destination(outgoingEdgeCycle));
          int correspondingCycleVertexValue = outgoingCorrespondingEdges[outgoingEdgeCycleValue];
          directedgraph_add_edge(arborescence, correspondingCycleVertexValue, outgoingEdgeCycleValue);
          outgoingEdgeCycle = edge_get_next(outgoingEdgeCycle);
@@ -223,9 +221,9 @@ void edmondsAlgorithm(directedgraph* edgeWeights, directedgraph* arborescence, i
 
 int twoEdgeConnect(int n, graph* tree, directedgraph* arborescence) {
    int e = 0;
-   for (int i = 0; i < n; i++) {
-      for (int j = 0; j < n; j++) {
-         if (directedgraph_is_successor(arborescence, i, j) && !graph_is_edge(tree, i, j)) {
+   for (int i = 1; i <= n; i++) {
+      for (int j = 1; j <= n; j++) {
+         if (directedgraph_is_successor(arborescence, i, j) && !graph_find_edge(tree, i, j)) {
             e++;
          }
       }
@@ -234,11 +232,10 @@ int twoEdgeConnect(int n, graph* tree, directedgraph* arborescence) {
 }
 
 int fredrickson(graph* tree, graph* edgeSet) {
-   int n = graph_get_number_of_vertices(tree);
+   int n = graph_get_size(tree);
 
    vertex* root = findLeaf(tree);
-   directedgraph* directedTree = directedgraph_create(n);
-   directTree(tree, directedTree, root);
+   directedgraph* directedTree = directTree(tree, root);
 
    directedgraph* edgeWeights = directedgraph_create(n);
    setEdgeWeights(directedTree, edgeWeights, root);

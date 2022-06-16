@@ -1,28 +1,17 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include "../../include/list.h"
 
 typedef struct Element {
-   int value;
-   struct Element* nextElement;
-   struct Element* prevElement;
+   struct Element* next;
+   struct Element* prev;
+   void* object;
 } element;
 
 typedef struct Queue {
    element* front;
    element* rear;
 } queue;
-
-element* _element_create(int e) {
-   element* elem = malloc(sizeof(*elem));
-   elem->value = e;
-   elem->nextElement = NULL;
-   elem->prevElement = NULL;
-   return elem;
-}
-
-void _element_free(element* e) {
-   free(e);
-}
 
 queue* queue_create() {
    queue* que = malloc(sizeof(*que));
@@ -39,54 +28,58 @@ int queue_isEmpty(queue* q) {
    }
 }
 
-void queue_enqueue(queue* q, int e) {
-   element* elem = _element_create(e);
+void queue_enqueue(queue* q, void* object) {
+   element* elm = malloc(sizeof(struct Element));
+   elm->next = NULL;
+   elm->prev = NULL;
+   elm->object = object;
+
    if (q->rear) {
-      elem->prevElement = q->rear;
-      q->rear->nextElement = elem;
+      elm->prev = q->rear;
+      q->rear->next = elm;
    }
-   q->rear = elem;
+   q->rear = elm;
    if (!q->front) {
-      q->front = elem;
+      q->front = elm;
    }
 }
 
-int queue_dequeue(queue* q) {
+void* queue_dequeue(queue* q) {
    if (queue_isEmpty(q)) {
-      return -1;
+      return NULL;
    }
-   element* elem = q->front;
+   element* elm = q->front;
    if (q->front == q->rear) {
       q->front = NULL;
       q->rear = NULL;
    } else {
-      q->front = q->front->nextElement;
+      q->front = q->front->next;
    }
-   int e = elem->value;
-   _element_free(elem);
-   return e;
+   void* object = elm->object;
+   free(elm);
+   return object;
 }
 
-int queue_peek(queue *q) {
+void* queue_peek(queue *q) {
    if (queue_isEmpty(q)) {
-      return -1;
+      return NULL;
    }
-   int elem = q->front->value;
-   return elem;
+   element* elm = q->front;
+   void* object = elm->object;
+   return object;
 }
 
-void queue_print(queue* q) {
-   element* currElem = q->front;
-   while (currElem) {
-      printf("%i <- ", currElem->value);
-      currElem = currElem->nextElement;
+void queue_print(queue* q, void (*print_fn)(void*)) {
+   element* elm = q->front;
+   while (elm) {
+      print_fn(elm->object);
+      printf(" <- ");
+      elm = elm->next;
    }
    printf("\n");
 }
 
 void queue_free(queue* q) {
-   while(q->front) {
-      queue_dequeue(q);
-   }
+   while (queue_dequeue(q)) {}
    free(q);
 }

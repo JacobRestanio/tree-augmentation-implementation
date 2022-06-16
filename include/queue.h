@@ -10,13 +10,13 @@ queue* queue_create();
 
 int queue_isEmpty(queue* q);
 
-void queue_enqueue(queue* q, int e);
+void queue_enqueue(queue* q, void* object);
 
-int queue_dequeue(queue* q);
+void* queue_dequeue(queue* q);
 
-int queue_peek(queue* q);
+void* queue_peek(queue* q);
 
-void queue_print(queue* q);
+void queue_print(queue* q, void (*print_fn)(void*));
 
 void queue_free(queue* q);
 

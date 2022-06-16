@@ -218,10 +218,10 @@ void genEdgeWeights(int n, int edges[][n], int edgeWeights[][n], int max) {
    graph* tree: the tree the edge set is based off of
    graph* edgeSet: an empty graph that is the same size as tree */
 void createEdgeSet(int density, graph* tree, graph* edgeSet) {
-   int n = graph_get_number_of_vertices(tree);
-   for(int i = 0; i < n; i++) {
-      for(int j = 0; j < n; j++) {
-         if(i != j && !graph_is_edge(tree, i, j)) {
+   int n = graph_get_size(tree);
+   for(int i = 1; i <= n; i++) {
+      for(int j = 1; j <= n; j++) {
+         if(i != j && !graph_find_edge(tree, i, j)) {
             if(rand() % 100 < density) {
                graph_add_edge(edgeSet, i, j);
             }
@@ -255,7 +255,7 @@ void createCompleteDirectedTree(int n, int completeDirectedGraph[][n]) {
    which is just the ceiling of the number of leaves divided by 2 */
 int exactPolynomial(graph* tree) {
    int num_leaves = 0;
-   vertex* currVertex = graph_get_vertex_list(tree);
+   vertex* currVertex = graph_get_vertices(tree);
    while (currVertex) {
       if (vertex_get_degree(currVertex) < 2) {
          num_leaves++;
@@ -279,8 +279,8 @@ int _checkBridgeConnected(int n, int v, graph* tree, graph* edges, int arrival[]
   int d = arrival[v];
   int bfs;
   /* we need to check all the edges coming out from our current node */
-  for (int j = 0; j < n; j++) {
-    if (graph_is_edge(tree, v, j) || graph_is_edge(edges, v, j)) {
+  for (int j = 1; j <= n; j++) {
+    if (graph_find_edge(tree, v, j) || graph_find_edge(edges, v, j)) {
       /* if we find an edge to a node that has not been visited, recurse on the node */
       if (visited[j] == 0) {
         bfs = _checkBridgeConnected(n, j, tree, edges, arrival, visited, v, depPtr);
@@ -305,16 +305,16 @@ int _checkBridgeConnected(int n, int v, graph* tree, graph* edges, int arrival[]
 
 /* returns 1 if the graph is 2-edge connected, 0 otherwise */
 int checkConnected(graph* tree, graph* edges) {
-  /* perform DFS on graph rooted at node 0
+  /* perform DFS on graph rooted at node 1
 	   we need to make sure no bridges exist in our graph */
-   int n = graph_get_number_of_vertices(tree);
-	int r = 0;
+   int n = graph_get_size(tree);
+	int r = 1;
 	int dep = 0;
 	int* depPtr = &dep;
 	int parent =-1;
-	int arrival[n];
-	int visited[n];
-	for (int i = 0; i < n; i++) {
+	int arrival[n + 1];
+	int visited[n + 1];
+	for (int i = 1; i <= n; i++) {
 	  arrival[i] = 0;
 	  visited[i] = 0;
 	}

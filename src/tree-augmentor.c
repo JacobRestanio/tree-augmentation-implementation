@@ -30,8 +30,9 @@ int main(int argc, char *argv[]) {
    }
 
    /* parameters */
-   int random = 0; // 1: enable random algorithm, 0: disable
-   int frederickson = 0; // 1: enable frederickson algorithm, 0: disable
+   int exactpoly = 1; // 1: enable exact polynomial algorithm, 0: disable
+   int random = 1; // 1: enable random algorithm, 0: disable
+   int frederickson = 1; // 1: enable frederickson algorithm, 0: disable
    int numAlgorithms = 2; // number of algorithms we have implemented
    int numTreeTypes = 6; // number of tree types we are testing on
    int density[3] = {100, 10, 1}; // edge set densities to test
@@ -140,13 +141,13 @@ int main(int argc, char *argv[]) {
                /* Reads generated edge set from file */
                // edgeSet = graph_read_from_file(edgeSetFileName);
 
-               /* Exact solution only for complete edge sets */
-               if (density[d] == 100) {
-                  int num_edges_exact = exactPolynomial(tree);
-                  exact[n][treetype] = i > 0 ? (i * exact[n][treetype] + num_edges_exact) / (i + 1) : num_edges_exact;
-               }
-
                if (checkConnected(tree, edgeSet)) {
+                  /* ____________________EXACT POLY ALGORITHM_____________________ */
+                  if (density[d] == 100 && exactpoly) {
+                     int num_edges_exact = exactPolynomial(tree);
+                     exact[n][treetype] = i > 0 ? (i * exact[n][treetype] + num_edges_exact) / (i + 1) : num_edges_exact;
+                  }
+
                   /* ______________________GREEDY ALGORITHM_______________________ */
                   if (random) {
                      int num_edges_greedy;
@@ -162,9 +163,7 @@ int main(int argc, char *argv[]) {
                      averagedSolutions[0][d][n][treetype] = i > 0 ? (i * averagedSolutions[0][d][n][treetype] + num_edges_greedy) / (i + 1) : num_edges_greedy;
                   }
 
-                  /* ____________________FREDRICKSON ALGORITHM_______________________ */
-                  // num_edges = fredrickson(treesize[n], tree);
-                  // printf("Fredrickson Algorithm: %i\n", num_edges);
+                  /* ____________________FREDRICKSON ALGORITHM____________________ */
                   if (frederickson) {
                      int num_edges_fredrickson;
                      clock_t time_fredrickson;
