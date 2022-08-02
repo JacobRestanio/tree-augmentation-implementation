@@ -48,8 +48,7 @@ void vertex_free(vertex *v)
    {
       edge *e = v->edge;
       edge_free(e);
-      if (v->mergeValue == v->value)
-         ls_free(v->aliases);
+      ls_free(v->aliases);
       free(v);
    }
 }
@@ -74,7 +73,6 @@ graph *graph_create(int v)
 
    g->root = 0;
    g->parents = NULL;
-   g->depths = NULL;
 
    return g;
 }
@@ -83,15 +81,25 @@ void graph_free(graph *g)
 {
    for (int i = 0; i <= g->original_vertex_count; i++)
    {
-      free(g->vert[i]);
+      vertex_free(g->vert[i]);
    }
-
+   if(g->vert)
+      free(g->vert);
+   if(g->retain)
+      free(g->retain);
    if (g->parents)
       free(g->parents);
-   if (g->depths)
-      free(g->depths);
 
    free(g);
+}
+
+edge* edge_copy(edge* e){
+   edge* ret_e = NULL;
+   for(; e; e = e->next){
+      edge* new_e = edge_create(e->thisVertex, e->otherVertex);
+      ret_e = l_add(ret_e, new_e);
+   }
+   return ret_e;
 }
 
 graph* normal_copy(graph* g){
@@ -99,7 +107,11 @@ graph* normal_copy(graph* g){
 
    graph* new_g =  graph_create(n_verts);
 
-   for(int v = 1; v<=n_verts; n_verts++){
+   for(int i = 0; i<=n_verts; i++){
+      new_g->vert[i]->mergeValue = g->vert[i]->mergeValue;
+   }
+
+   for(int v = 1; v<=n_verts; v++){
       for(edge* e = g->vert[v]->edge;e; e = e->next){
          int u1 = value(g,e->thisVertex);
          int u2 = value(g,e->otherVertex);
@@ -112,6 +124,8 @@ graph* normal_copy(graph* g){
    }
    if(g->root)
      set_root(new_g, g->root);
+
+   new_g->retain = edge_copy(g->retain);
    return new_g;
 }
 
@@ -163,6 +177,13 @@ graph* graph_copy(graph* g, int tree_root, int_ls* vs, int** old_2_new, int** ne
          graph_add_edge(new_g, u1, u2);
       }
    }
+
+   for(int i = 0; i<=n_vs; i++){
+      int old = new_to_old[i];
+      new_g->vert[i]->mergeValue = old_to_new[g->vert[old]->mergeValue];
+   }
+
+
    if(g->root)
      set_root(new_g, old_to_new[tree_root]);
    return new_g;
@@ -174,6 +195,8 @@ graph* graph_copy(graph* g, int tree_root, int_ls* vs, int** old_2_new, int** ne
 // returns the correct vertex value if the input vertex was merged.
 int value(graph *g, int v)
 { // condenses potential vertex list so that expected call time is O(1)
+
+   
 
    if(v > g->original_vertex_count || v < 0){
       printf("ERROR: value(v), v = %i out of bounds.", v);
@@ -264,8 +287,7 @@ void retain(graph *g, edge *e)
       return;
    }
    edge *ne = edge_create(e->thisVertex, e->otherVertex);
-   ne->next = g->retain;
-   g->retain = ne;
+   g->retain = l_add(g->retain, ne);
 }
 
 // twin nonsense? what if v2 and v1 are flipped? is this possible?
@@ -635,36 +657,23 @@ void unmerge_vertices(graph *g, int v)
 void set_root(graph *t, int v)
 {
    v = value(t, v);
-   if (t->root)
-   { // changing the root. need to reset old parents
-      // if there are bugs, just memset parents[] to 0;
-      // update parents for edges on the path from old root to new root.
-      int prev = v;
-      int current = v;
-      int currentParent = value(t, t->parents[current]);
-      while (current != currentParent)
-      {
-         t->parents[current] = prev;
 
-         prev = current;
-         current = currentParent;
-         currentParent = value(t, t->parents[current]);
-      }
-      t->parents[current] = prev;
-      t->root = v;
-   }
-   else
+   if (t->root)
    {
-      if (!t->parents)
-         t->parents = malloc(sizeof(int) * (t->original_vertex_count + 1));
-      // t->depths = malloc(sizeof(int) * (t->original_vertex_count+1));
-      memset(t->parents, 0, sizeof t->parents);
-      // memset(t->depths, 0, sizeof t->depths);
-      t->root = v;
-      t->parents[v] = v; // PARENT OF ROOT IS SELF
-      // t->depths[v] = 0;
-      generate_parents(t, v);
+      memset(t->parents, 0, sizeof(int) * (t->original_vertex_count + 1) );
+      t->root = 0;
    }
+
+   if (!t->parents)
+      t->parents = malloc(sizeof(int) * (t->original_vertex_count + 1));
+   // t->depths = malloc(sizeof(int) * (t->original_vertex_count+1));
+   memset(t->parents, 0,sizeof(int) * (t->original_vertex_count + 1));
+   // memset(t->depths, 0, sizeof t->depths);
+   t->root = v;
+   t->parents[v] = v; // PARENT OF ROOT IS SELF
+   // t->depths[v] = 0;
+   generate_parents(t, v);
+
 }
 
 void generate_parents(graph *t, int v)
@@ -766,25 +775,22 @@ int_ls *children(graph *t, int u)
    u = value(t, u);
    edge *e = t->vert[u]->edge;
 
-   int p = value(t, get_parent(t,u));
+   int p = value(t, t->parents[u]);
    int_ls *ls = NULL;
 
    while (e)
    {
-      int e1 = e->otherVertex;
-      int e2 = e->thisVertex;
-      int v1 = value(t, e1);
-      int v2 = value(t, e2);
-
-      int unique_vert = v2==u?v1:v2;
-
-      char is_not_parent = unique_vert != p;
-      char is_not_self = v1 != v2;
-   
+      char is_not_parent = value(t, e->otherVertex) != p;
+      char is_not_self = value(t, e->otherVertex) != value(t, e->thisVertex);
       if (is_not_parent && is_not_self){
-         if(!ls_contains(ls,unique_vert)) //TODO; remove this line?
-            ls = ls_add(ls, unique_vert);
-         //printf("children of %i: (v1: %i, v2: %i)  p:%i  e1: %i  e2: %i\n", u, v1, v2, p, e1, e2);
+         //graph_print_all(t);
+         if(0 && t->root == 14){
+            printf("rt: %i u %i  p %i  ch  %i\n",t->root , p, value(t,e->otherVertex));
+            graph_print_all(t);
+            graph_print(t);
+         }
+         
+         ls = ls_add(ls, value(t,e->otherVertex));
       }
       e = e->next;
    }
@@ -797,13 +803,14 @@ int_ls *children(graph *t, int u)
 int_ls *d_helper(graph *t, int u)
 {
    u = value(t, u);
-
+   //printf("u %i\n", u);
    int_ls *kids = children(t, u);
    int_ls *kids_of_kids = NULL;
 
    int_ls *current_kid = kids;
    while (current_kid)
    {
+      //printf("ck: %i\n", current_kid->value);
       int_ls *currents_kids = d_helper(t, current_kid->value);
       kids_of_kids = ls_merge(kids_of_kids, currents_kids);
       current_kid = current_kid->next;
@@ -844,11 +851,8 @@ int lca(graph *t, int u, int v)
    return u;
 }
 
-int aaa = 0;
-
 int_ls *add_leaves(graph *t, int_ls *leaves, int u)
 {
-   aaa++;
    u = value(t, u);
 
    int_ls *kids = children(t, u);
@@ -864,23 +868,7 @@ int_ls *add_leaves(graph *t, int_ls *leaves, int u)
    int_ls *current_kid = kids;
    while (current_kid)
    {
-      /*
-      printf("u = %i, recur on %i\n", u, current_kid->value);
-      fflush(stdout);
-      //graph_print_all(t);
-      graph_print_vertex(t,1);
-      graph_print_vertex(t,3);
-      graph_print_vertex(t,6);
-
-            int arr[3] = {16, 13, 9};
-      for(int i = 0; i<3; i++){
-         int mv = t->vert[arr[i]]->mergeValue;
-         printf("mv of %i is %i\n", arr[i], mv);
-      }
-      */
-
-      int v = value(t, current_kid->value);
-      leaves = add_leaves(t, leaves, v);
+      leaves = add_leaves(t, leaves, current_kid->value);
       current_kid = current_kid->next;
    }
    ls_free(kids);
@@ -1376,6 +1364,7 @@ void graph_print(graph *g)
 void graph_print_vertex(graph* g, int i){
    vertex* v = g->vert[i];
    printf("v %i",v->value);
+   printf("  merge: %i\t",v->mergeValue);
    printf("\te: "); print_edges(g,i,0); fflush(stdout);
    printf("\talias: "); ls_print(v->aliases);
    printf("\n");

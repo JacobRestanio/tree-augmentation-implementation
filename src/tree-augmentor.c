@@ -11,6 +11,7 @@
 #include "../include/list.h"
 #include "../include/nagamochi.h"
 #include "../include/blossom.h"
+#include "../include/lemma7.h"
 
 
 //TODO
@@ -56,41 +57,22 @@ int main(int argc, char *argv[])
   set_root(t, rt);
   set_gm(g);
 
-  int_ls* d = descendants(t,3);
-
-  int* old_2_new_t;
-  int* new_2_old_t;
-  int* old_2_new_g;
-  int* new_2_old_g;
-
-  graph* new_t = graph_copy(t,3, d, &old_2_new_t, &new_2_old_t);
-
-  graph* new_g = graph_copy(g,3, d, &old_2_new_g, &new_2_old_g);
-
-  graph_print_all(new_t);
-
-  printf("old to new: ");
-  for(int i = 0; i<= 18; i++){
-    printf("(%i)-%i ",i, old_2_new_g[i]);
-  }printf("\n");
 
 
-  printf("new to old: ");
-  for(int i = 0; i<= ls_size(d); i++){
-    printf("(%i)-%i ", i, new_2_old_g[i]);
-  }
+  graph* new_g = normal_copy(g);
+  graph* new_t = normal_copy(t);
 
-  int_ls* new_d = descendants(new_t, old_2_new_t[6]);
+  int_ls* d = descendants(new_t,6);
+  ls_print(d);
 
-  for(int_ls* x = new_d; x; x = x->next){
-    printf("%i ", new_2_old_t[x->value]);
-  }printf("\n");
+  graph_print_all(g);
 
-
-  printf("\n\n g:\n");
+  printf("\n\n new_g:\n");
+  
   graph_print_all(new_g);
+  
 
-  //lemma7(g,t,1,.0001);
+  lemma72(g,t,1,.0001);
 
   return 0;
 

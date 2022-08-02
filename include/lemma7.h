@@ -12,13 +12,6 @@
 
 
 
-
-
-int lemma7_min_edges = __INT32_MAX__;
-pair_ls* lemma_7_edges = NULL;
-pair_ls* merge_order_g = NULL;
-pair_ls* merge_order_t = NULL;
-
 void lemma72(graph* g, graph* t, int r, double approx);
 
 void lowest_edges2(graph* g, graph* t, int r, int_ls* leaves);
