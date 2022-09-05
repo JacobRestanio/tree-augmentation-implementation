@@ -468,7 +468,6 @@ edge* high(graph* g, graph* t, int_ls* x){
 
 int case1(graph *g, graph *t)
 {
-
     int ret = 0;
     int_ls *fringe = fringes(t, t->root);
     int_ls *cur_fringe = fringe;
@@ -483,10 +482,11 @@ int case1(graph *g, graph *t)
 
             edge_ls* cur_e = e_retain;
 
-            while(cur_e){
+            for(edge_ls* cur_e = e_retain; cur_e; cur_e = cur_e->next){
+                int u1 = cur_e->e->thisVertex;
+                int u2 = cur_e->e->otherVertex;
+                printf("case1: %i %i\n", u1, u2);
                 retain_merge_trim(g,t,cur_e->e->thisVertex, cur_e->e->otherVertex);
-
-                cur_e = cur_e->next;
             }
 
             //graph_print_all(g);
@@ -1766,8 +1766,6 @@ void lemma9(graph* g, graph* t, int v, chain_ls* P, double approx){
         fflush(stdout);
     }
 
-    
-
 
     if(n_leaves > l){
         chain_ls* ch_u = find_chains(t,deep_chain->u);
@@ -1792,7 +1790,7 @@ void lemma9(graph* g, graph* t, int v, chain_ls* P, double approx){
 edge* nagamochi(graph* g, graph* t, double approx)
 {
 
-    // at the very very end, we may have to check that each edge is covered,
+    // at the very end, we may have to check that each edge is covered,
     // p4 doesnt seem to guarantee covering an edge when contracting f'
     // apparently we can select any edge that covers it??/???
 

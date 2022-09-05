@@ -125,12 +125,13 @@ graph* normal_copy(graph* g){
    if(g->root)
      set_root(new_g, g->root);
 
-   new_g->retain = edge_copy(g->retain);
+   //new_g->retain = edge_copy(g->retain);
    return new_g;
 }
 
 
 //dont forget to set the root of any tree copies
+//old_2_new and new_2_old provide mappings between vertex numbers
 graph* graph_copy(graph* g, int tree_root, int_ls* vs, int** old_2_new, int** new_2_old){
 
    int n_vs = ls_size(vs);

@@ -12,9 +12,8 @@
 
 int lemma7_min_edges2 = __INT32_MAX__;
 pair_ls* lemma_7_edges2 = NULL;
-pair_ls* merge_order_g2 = NULL;
-pair_ls* merge_order_t2 = NULL;
 
+// r is the node to call the function wrt
 void lemma72(graph* g, graph* t, int r, double approx){
     double l = (4/approx) - 1;
 
@@ -24,9 +23,6 @@ void lemma72(graph* g, graph* t, int r, double approx){
         l_free(lemma_7_edges2);
         lemma_7_edges2 = NULL;
     }
-
-    merge_order_g2 = NULL;
-    merge_order_t2 = NULL;
 
     int_ls* des = descendants(t,r);
     int* newold;
@@ -52,7 +48,7 @@ void lemma72(graph* g, graph* t, int r, double approx){
 
         edge* e = find_edge(g,u1,u2);
         if(!e){
-            printf("lemma 7 err: edge not found\n");
+            printf("lemma 7 err: edge (%i, %i) not found\n", u1, u2);
         }else{
             printf("(%i, %i)  \t%i\n", e->thisVertex, e->otherVertex, p->blossom_number);
             retain_merge_trim(g,t,u1,u2);
@@ -90,11 +86,11 @@ void lowest_edges2(graph* g, graph* t, int r, int_ls* leaves){
 
             int_ls* des =  descendants(t,uu);
 
-            while(des = ls_contains(des, uu)){
+            while(ls_contains(des, uu)){
+                des = ls_contains(des, uu);
                 des = ls_remove(des);
+                des = ls_first(des);
             }
-
-            des = ls_first(des);
 
             if(ls_contains_any(des, z_incident)){
                 while(remove_edge(g, uu, z));
@@ -103,7 +99,7 @@ void lowest_edges2(graph* g, graph* t, int r, int_ls* leaves){
         }
         ls_free(z_incident);
     }
-    set_root(t,t->root);
+    set_root(t,original_root);
 }
 
 
@@ -124,6 +120,34 @@ pair_ls* pair_ls_copy(pair_ls* ls){
 int times_ran = 0;
 
 void lemma7_helper2(graph* g, graph* t, int r, double approx, int recur_depth, pair_ls* cur_edges){
+
+    //Do cases 1 and 2 to find some edges in polytime
+    int any_cases = 1;
+    while(any_cases){
+        any_cases = 0;
+        int c = 0;
+        while(c = case1(g, t)){any_cases ^= c;};
+
+        for(edge* retained = g->retain; retained; retained = retained->next){
+        edge* e = retained;
+        printf("c1retaining %i %i \n", e->thisVertex, e->otherVertex);
+        }        
+
+        while(c = case2(g, t)){any_cases ^= c;};
+
+        for(edge* retained = g->retain; retained; retained = retained->next){
+        edge* e = retained;
+        printf("c2retaining %i %i \n", e->thisVertex, e->otherVertex);
+    }
+    }
+
+    
+    for(edge* retained = g->retain; retained; retained = retained->next){
+        edge* e = retained;
+        printf("retaining %i %i \n", e->thisVertex, e->otherVertex);
+        cur_edges = l_add(cur_edges, pair_create(e->thisVertex,e->otherVertex,recur_depth));
+    }
+
     double l = (4/approx) - 1;
     r = value(g,r);
     int cur_size = l_size(cur_edges);
@@ -136,6 +160,7 @@ void lemma7_helper2(graph* g, graph* t, int r, double approx, int recur_depth, p
     
     //check if the original tree is covered.
     printf("r: %i,  lf->v: %i    n_lfs:%i   \n", r, leafs->value, n_leaves);
+
     if(leafs->value == r || g->vert[leafs->value]->edge == NULL){
         if(cur_size < lemma7_min_edges2){ //if best so far
             lemma7_min_edges2 = cur_size;
@@ -184,7 +209,9 @@ void lemma7_helper2(graph* g, graph* t, int r, double approx, int recur_depth, p
         pair_ls* new_edges = pair_ls_copy(cur_edges);
 
         for(int k = 0; k<n_leaves; k++){ //merge all paths
-            edge* e = e_k[k];
+            edge* e = e_k[k]; //what to do if e is null?
+            if(!e)
+                continue;
 
             int u = value(new_g,e->thisVertex);
             int v = value(new_g,e->otherVertex);
@@ -204,7 +231,11 @@ void lemma7_helper2(graph* g, graph* t, int r, double approx, int recur_depth, p
         do{
             
             overflow = 0;
+
+            printf("e_k[j]: %X\n", e_k[j]);
+
             e_k[j] = e_k[j]->next;
+
             
             /*
             while(e_k[j]&&(value(new_g, e_k[j]->thisVertex) == value(new_g, e_k[j]->otherVertex))){
@@ -212,8 +243,6 @@ void lemma7_helper2(graph* g, graph* t, int r, double approx, int recur_depth, p
                 //printf("advanced e_k to %X  \n", e_k[j]);
             } 
             */            
-
-           
 
             if(e_k[j] == NULL){
                 e_k[j] = g->vert[lf_arr[j]]->edge;
