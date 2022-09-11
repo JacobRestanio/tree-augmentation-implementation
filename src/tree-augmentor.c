@@ -16,7 +16,7 @@
 
 //TODO
 //hashmap in children()
-
+// merge_vertices breaks parent array. can only merge_path.
 //case 3 and case 4 may leave f' edges uncovered. store these edges for later and see if they are covered at the end
 
 
@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 
   char *t_text = "1 2\n2 5\n5 8\n1 3\n1 4\n3 15\n15 11\n15 12\n3 6\n6 9\n6 13\n6 16\n4 7\n7 10\n7 14\n";
   char *g_text = "1 2\n2 5\n5 8\n1 3\n1 4\n3 15\n15 11\n15 12\n3 6\n6 9\n6 13\n6 16\n4 7\n7 10\n7 14\n14 10\n9 16\n16 13\n13 11\n11 6\n15 13\n16 12\n12 13\n12 9\n9 15\n8 2\n8 1\n5 1";
-  int size = 48;
+  int size = 17;
   
   printf("\n\n");
 
@@ -54,25 +54,15 @@ int main(int argc, char *argv[])
   int rt = 1;
   set_root(t, rt);
   set_gm(g);
+    
 
-  graph* new_g = normal_copy(g);
-  graph* new_t = normal_copy(t);
+  //lemma7(g,t,1,.0001);
 
-  int_ls* d = descendants(new_t,6);
-  ls_print(d);
-
-  graph_print_all(g);
-
-  printf("\n\n new_g:\n");
   
-  graph_print_all(new_g);
-  
-
-  lemma72(g,t,1,.0001);
+  nagamochi(g,t,.1);
 
   return 0;
 
-  nagamochi(g,t,1.0);
 
   int_ls *fringe = fringes(t, rt);
   int_ls *p_fringes = pseudo_fringes(g, t, rt);

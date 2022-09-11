@@ -69,7 +69,7 @@ void *l_remove(void *list)
     {
         is_next->prev = is_prev;
     }
-    free(is);
+    //free(is);
     return (is_prev) ? is_prev : is_next;
 }
 
@@ -175,7 +175,7 @@ void l_free_recursive(void* l){
     if(!l)
         return;
     l_free_recursive((void*)(((ls*)l)->next));
-    free(l);
+    //free(l);
     return;
 }
 
@@ -185,7 +185,7 @@ void l_free(void* l){
     return;
     while(ll){
         ls* next = ll->next;
-        free(ll);
+        //free(ll);
         ll = next;
     }
 }

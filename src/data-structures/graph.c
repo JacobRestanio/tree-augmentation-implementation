@@ -102,6 +102,7 @@ edge* edge_copy(edge* e){
    return ret_e;
 }
 
+// copies a graph without copying retain list, but keeping mergevalues. 
 graph* normal_copy(graph* g){
    int n_verts = g->original_vertex_count;
 
@@ -356,6 +357,7 @@ edge *find_prev_edge_se(graph *g, edge *se, int v1, int v2)
    }
    return NULL;
 }
+
 
 
 unsigned int retain_merge_trim(graph *g, graph *t, int u, int v)
@@ -718,7 +720,7 @@ int get_depth(graph *t, int v)
    return d;
 }
 
-// 'u' will be the remaining vertex after merging the path.
+// the LCA(u,v) will be the vertex remaining after the merge
 void merge_path(graph *t, int u, int v)
 {
    int_ls *path = tree_path(t, u, v);
@@ -776,21 +778,14 @@ int_ls *children(graph *t, int u)
    u = value(t, u);
    edge *e = t->vert[u]->edge;
 
-   int p = value(t, t->parents[u]);
+   int p = get_parent(t,u);
    int_ls *ls = NULL;
 
    while (e)
    {
       char is_not_parent = value(t, e->otherVertex) != p;
       char is_not_self = value(t, e->otherVertex) != value(t, e->thisVertex);
-      if (is_not_parent && is_not_self){
-         //graph_print_all(t);
-         if(0 && t->root == 14){
-            printf("rt: %i u %i  p %i  ch  %i\n",t->root , p, value(t,e->otherVertex));
-            graph_print_all(t);
-            graph_print(t);
-         }
-         
+      if (is_not_parent && is_not_self){       
          ls = ls_add(ls, value(t,e->otherVertex));
       }
       e = e->next;
@@ -804,18 +799,19 @@ int_ls *children(graph *t, int u)
 int_ls *d_helper(graph *t, int u)
 {
    u = value(t, u);
-   //printf("u %i\n", u);
+   //printf("\nu %i\n", u);
    int_ls *kids = children(t, u);
    int_ls *kids_of_kids = NULL;
 
    int_ls *current_kid = kids;
    while (current_kid)
    {
-      //printf("ck: %i\n", current_kid->value);
+      //printf("u: %i \t ck: %i\n", u, current_kid->value);
       int_ls *currents_kids = d_helper(t, current_kid->value);
       kids_of_kids = ls_merge(kids_of_kids, currents_kids);
       current_kid = current_kid->next;
    }
+   //printf(".\n");
    return ls_merge(kids, kids_of_kids);
 }
 
@@ -1081,11 +1077,11 @@ int_ls* all_fringes(graph* g,graph* t,int v){
    int_ls* pf = pseudo_fringes(g,t,v);
    int_ls* f = fringes(t,v);
 
-   return ls_merge(pf,f);
+   return ls_first(ls_merge(pf,f));
 }
 
 
-//horrible. just terrible
+//TODO. very inefficient
 int_ls* minimally_lf_closed(graph* g, graph* t, int v){
    v = value(g,v);
 
@@ -1093,29 +1089,29 @@ int_ls* minimally_lf_closed(graph* g, graph* t, int v){
 
    int_ls* lf_close = NULL; //holds all lf-closed verts
 
-   int_ls* cur_des = des;
-   while(cur_des){                     //find each lf-closed vertex
+   //printf("mlfc on %i\n", v);
+   //printf("lf-closed: ");
+   for(int_ls* cur_des = des; cur_des; cur_des = cur_des->next){                    //find each lf-closed vertex
       if(lf_closed(g,t,cur_des->value)){
-         int v = value(g,cur_des->value);
-         lf_close = ls_add(lf_close,v);
+         int lfc = value(g,cur_des->value);
+         lf_close = ls_add(lf_close,lfc);
+         //printf("%i ", lfc);
       }
-      cur_des = cur_des->next;
    }
+   //printf("\n");
 
    int_ls* ret = NULL;
 
-   int_ls* cur_lf_close = lf_close;
-   while(cur_lf_close){
+   for(int_ls* cur_lf_close = lf_close; cur_lf_close; cur_lf_close = cur_lf_close->next){
       int u = cur_lf_close->value;
       int_ls* des_lf = descendants(t,u);
 
       des_lf = ls_first(ls_remove(ls_contains(des_lf,u)));
 
-      if(!ls_contains_any(des_lf,lf_close) && des_lf != NULL){ //is minimally lf_closed
+      if(des_lf != NULL && !ls_contains_any(des_lf,lf_close)){ //is minimally lf_closed
          ret = ls_add(ret,u);
       }
       ls_free(des_lf);
-      cur_lf_close = cur_lf_close->next;
    }
 
    ls_free(lf_close);
@@ -1135,14 +1131,15 @@ char lf_closed(graph* g, graph* t, int v){
    int_ls* lfs_ps = ls_merge(fringes,leafs);
 
    int_ls* des = descendants(t,v);
-   int_ls* lf_p = lfs_ps;
+   
 
-   while(lf_p){
+   for(int_ls* lf_p = lfs_ps; lf_p; lf_p = lf_p->next){
       int u = value(g,lf_p->value);
       edge* e = g->vert[u]->edge;
 
       while(e){
          int other_v = value(g,e->otherVertex);
+
          if(!ls_contains(des,other_v)){
             ls_free(des);
             ls_free(lfs_ps);
@@ -1151,7 +1148,6 @@ char lf_closed(graph* g, graph* t, int v){
          }
          e = e->next;
       }
-      lf_p = lf_p->next;
    }
    ls_free(des);
    ls_free(lfs_ps);

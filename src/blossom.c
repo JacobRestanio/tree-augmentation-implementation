@@ -463,13 +463,13 @@ edge_ls *blossom_algorithm(graph *g, int_ls *vs)
         if(!not_exposed[root]){ //start BFS from unmatched verticies
             int break_flag = 0;
 
-            /*printf("\n\nmatching: ");
+            printf("\n\nmatching: ");
             fflush(stdout);
             print_edge_ls(matching);
             printf("\n");
             printf("starting from: %i\n", root);
             printf("non_aug: %i\n", non_aug_checks);
-            fflush(stdout);*/
+            fflush(stdout);
 
             int_ls* queue = ls_add(NULL, root); //start queue
             int_ls* cur_queue = queue;
@@ -486,7 +486,7 @@ edge_ls *blossom_algorithm(graph *g, int_ls *vs)
 
                 int looking_for_matched = current_depth%2;
 
-                //printf("u:%i \tcurrent depth: %i\n", q_u, current_depth);fflush(stdout);
+                printf("u:%i \tcurrent depth: %i\n", q_u, current_depth);fflush(stdout);
                 while(e){ //go through each edge in current vertex
                         int u = value(g,e->thisVertex); // should be the same as q_u
                         int v = value(g,e->otherVertex);
@@ -494,9 +494,7 @@ edge_ls *blossom_algorithm(graph *g, int_ls *vs)
                     if(is_in_subgraph(g,e,in_subgraph) && u!=v){
 
                         int e_in_matching = !!l_contains(matching,edge_match,e);
-                        //printf("%i,%i :\t looking: %i\tin_m:%i\tq[v]mod2 = %i\n",u,v,looking_for_matched,e_in_matching,queued[v]%2);fflush(stdout);
-
-                        
+                        printf("%i,%i :\t looking: %i\tin_m:%i\tq[v]mod2 = %i\n",u,v,looking_for_matched,e_in_matching,queued[v]%2);fflush(stdout);
                         
                         if(exposed_verts(g,e,not_exposed)){  //add to matching
                             edge_ls* new_edge_ls = edge_ls_create(e);
@@ -512,8 +510,8 @@ edge_ls *blossom_algorithm(graph *g, int_ls *vs)
 
                         if(looking_for_matched && e_in_matching){
                             if(!queued[v]){                   //add to queue
-                                //printf("2. queueing %i ", v);fflush(stdout);
-                                //ls_print(cur_queue);
+                                printf("2. queueing %i ", v);fflush(stdout);
+                                ls_print(cur_queue);
 
                                 int_ls* new_node = ls_add(NULL,v);
                                 ls_merge(last_queue,new_node);
@@ -522,17 +520,17 @@ edge_ls *blossom_algorithm(graph *g, int_ls *vs)
                                 queued_by[v] = q_u;
                                 queues[q_u] = v;
 
-                                //printf("  ->  ");fflush(stdout);
-                                //ls_print(cur_queue);
-                                //printf("\n");fflush(stdout);
+                                printf("  ->  ");fflush(stdout);
+                                ls_print(cur_queue);
+                                printf("\n");fflush(stdout);
                             }
                             break;//can break because this should be the only one.
                         }
                         else if(!looking_for_matched && !e_in_matching && !queued[v]%2){
-                            //printf("!looking & !in mathcing\n");fflush(stdout);
+                            printf("!looking & !in mathcing\n");fflush(stdout);
                             
                             if(!not_exposed[v]){ //flip edges
-                              //  printf("exposed!\n");fflush(stdout);
+                                printf("exposed!\n");fflush(stdout);
                                 int cur_v = v;
                                 int old_u = u;
                                 int p_u = queued_by[old_u];
@@ -541,7 +539,7 @@ edge_ls *blossom_algorithm(graph *g, int_ls *vs)
                                 while(merge_order = lift_blossom(g, matching,queued_by,queues,not_exposed,merge_order));
                                     
                                 do{
-                                    //printf("\t flipping:\t cur_v: %i \t old_u: %i\t p_u: %i\n",cur_v,old_u,p_u); fflush(stdout);
+                                    printf("\t flipping:\t cur_v: %i \t old_u: %i\t p_u: %i\n",cur_v,old_u,p_u); fflush(stdout);
                                     edge* temp_e = edge_create(old_u,cur_v); //edge struct for matching list
 
                                     edge* ee = find_edge(g,old_u,cur_v);
@@ -561,16 +559,18 @@ edge_ls *blossom_algorithm(graph *g, int_ls *vs)
                                     }
 
                                     cur_v = p_u;
-                                    old_u = queued_by[p_u];
-                                    p_u = queued_by[old_u];
-                                }while(old_u);
+                                    if(p_u){
+                                        old_u = queued_by[p_u];
+                                        p_u = queued_by[old_u];
+                                    }
+                                }while(old_u && p_u);
                                 non_aug_checks = -1; //reset counter
                                 break_flag = 1;
                                 break;
                             }
                             if(!queued[v]){                   //add to queue
-                                //printf("3. queueing %i ", v);fflush(stdout);
-                                //ls_print(cur_queue);
+                                printf("3. queueing %i ", v);fflush(stdout);
+                                ls_print(cur_queue);
 
                                 int_ls* new_node = ls_add(NULL,v);
                                 ls_merge(last_queue,new_node);
@@ -578,15 +578,15 @@ edge_ls *blossom_algorithm(graph *g, int_ls *vs)
                                 queued[v] = current_depth;
                                 queued_by[v] = q_u;
                                 queues[q_u] = v;
-                                //printf("  ->  ");fflush(stdout);
-                                //ls_print(cur_queue);
-                                //printf("\n");fflush(stdout);
+                                printf("  ->  ");fflush(stdout);
+                                ls_print(cur_queue);
+                                printf("\n");fflush(stdout);
                             }
                         }else if(!looking_for_matched && queued[v]%2){ //blossom found
                                 blossom_count++;
 
                                 //backtrack and merge until du and dv meet
-                                //printf("!!!!CONTRACTING BLOSSOM\n");
+                                printf("!!!!CONTRACTING BLOSSOM\n");
                                 in_blossom[u] = blossom_count;
                                 in_blossom[v] = blossom_count;
 
@@ -887,9 +887,11 @@ edge_ls *blossom_algorithm2(graph *g, int_ls *vs, edge_ls* es)
                                     }
 
                                     cur_v = p_u;
-                                    old_u = queued_by[p_u];
-                                    p_u = queued_by[old_u];
-                                }while(old_u);
+                                    if(p_u){
+                                        old_u = queued_by[p_u];
+                                        p_u = queued_by[old_u];
+                                    }
+                                }while(old_u && p_u);
                                 non_aug_checks = -1; //reset counter
                                 break_flag = 1;
                                 break;

@@ -9,7 +9,7 @@ void ls_free(int_ls *is)
     while (is)
     {
         int_ls *next = is->next;
-        free(is);
+        //free(is);
         is = next;
     }
 }
@@ -21,7 +21,7 @@ void ls_free_some(int_ls *is)
         is->prev->next=NULL;
         is->prev = NULL;
     }
-    ls_free(is);
+    //ls_free(is);
 }
 
 int_ls *ls_create()
@@ -95,7 +95,7 @@ int_ls *ls_remove(int_ls *is)
     }
     is->next = NULL;
     is->prev = NULL;
-    ls_free(is);
+    //ls_free(is);
 
     return (is_prev) ? is_prev : is_next;
 }

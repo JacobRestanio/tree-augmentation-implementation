@@ -5,7 +5,7 @@
 #include <string.h>
 #include "../include/list.h"
 #include "../include/blossom.h"
-
+#include "../include/lemma7.h"
 
 
 void print_edge_ls_fn(void* el){
@@ -440,7 +440,7 @@ edge* high(graph* g, graph* t, int_ls* x){
 
     edge_ls* es = E(g,t,x);
 
-    int least_depth = 99999;
+    int least_depth = __INT_MAX__;
 
     for(edge_ls* ec = es; ec; ec = ec->next ){
         edge* e = ec->e;
@@ -476,16 +476,17 @@ int case1(graph *g, graph *t)
         int v = value(t, cur_fringe->value);
         if (l_closed(g, t, v))
         {
-            int_ls* des = descendants(t,v);
+            int_ls* des = leaves(t,v);
 
             edge_ls* e_retain = blossom_algorithm(g,des);
+            ret = l_size(e_retain);
 
             edge_ls* cur_e = e_retain;
 
             for(edge_ls* cur_e = e_retain; cur_e; cur_e = cur_e->next){
                 int u1 = cur_e->e->thisVertex;
                 int u2 = cur_e->e->otherVertex;
-                printf("case1: %i %i\n", u1, u2);
+                //printf("case1: %i %i\n", u1, u2);
                 retain_merge_trim(g,t,cur_e->e->thisVertex, cur_e->e->otherVertex);
             }
 
@@ -501,12 +502,13 @@ int case1(graph *g, graph *t)
                     cur_des = cur_des->next;
                     continue;
                 }
-              //  printf("(((u: %i\t",u);
+               //printf("(((u: %i\t",u);
                // fflush(stdout);
                 int u2 = g->vert[u]->edge->otherVertex;
                 //printf("u2: %i\t))))\n",u2);
-                retain_merge_trim(g,t,u,u2);
-
+                if(u != value(g,u2)){
+                    retain_merge_trim(g,t,u,u2);
+                }
                 //printf("v4: %i\n",g->vert[4]->edge->otherVertex);
                 
 //                graph_print_all(g);
@@ -579,34 +581,46 @@ int case3(graph *g, graph *t)
 {
     //printf("\n\n__CASE 3__\n\n");
    // fflush(stdout);
-
+    //graph_print_all(t);
+    //graph_print(t);
+    //printf("start c3\n"); fflush(stdout);
+    //graph_print(g);
+    //printf("p6 = %i", get_parent(t,6));
     int_ls *fringe = fringes(t, t->root);
+    //printf("frings\n"); fflush(stdout);
     int_ls *cur_fringe = fringe;
     int ret = 0;
     while (cur_fringe)
     {
         int parent = value(t, cur_fringe->value);
         if (!l_closed(g, t, parent))
-        {
+        {   
+            //printf("b4 chilren\n"); fflush(stdout);
             int_ls *kids = children(t, parent);
+            //printf("after children\n"); fflush(stdout);
             if (ls_size(kids) == 3)
-            {
+            {   
+                //printf("b4 iso\n"); fflush(stdout);
                 int_ls *iso = isolated(g, t, parent);
+                //printf("after iso\n"); fflush(stdout);
                 if (iso == NULL)
                 {
                     int_ls *cur_kid = kids;
                     while (cur_kid)
-                    {
+                    {   
+                        //printf("a\n"); fflush(stdout);
                         if (trivial(g, t, cur_kid->value))
                             break;
                         cur_kid = cur_kid->next;
                     }
                     if (!cur_kid)
                     {
+                        //printf("b\n"); fflush(stdout);
                         ret++;
                         int par_of_par = get_parent(t, parent);
-                        merge_vertices(g, parent, par_of_par);
-                        merge_vertices(t, parent, par_of_par);
+                        int_ls* tp = tree_path(t, parent, par_of_par);
+                        merge_list(g, tp);
+                        merge_list(t, tp);
                         remove_self_edges(g, parent);
                         remove_self_edges(t, parent);
                     }
@@ -634,7 +648,7 @@ int case4(graph *g, graph *t)
 
     int ret = 0;//return value. true if contract
     int_ls *fringe = fringes(t, u);
-    ls_print(fringe);
+    //ls_print(fringe);
     int_ls *cur_fri = fringe;
 
     while (cur_fri)
@@ -1452,7 +1466,6 @@ void COVER(graph* g, graph* t, int v, chain_ls* P){
         l_free(E1); //edge_ls* E1
         ls_free(cur_desc); //int_ls* cur_desc
         ls_free(lf_p); //int_ls* lf_p
-
 }
 
 // a3 = has no solo edge
@@ -1468,280 +1481,8 @@ int A3(graph* g, graph* t, chain_ls* P){
 }
 
 
-int lemma7_min_edges = __INT32_MAX__;
-pair_ls* lemma_7_edges = NULL;
-pair_ls* merge_order_g = NULL;
-pair_ls* merge_order_t = NULL;
-
-void lemma7_helper(graph* g, graph* t, int r, double approx, int cur_size, int recur_depth, int_ls* og_leaves);
-
-void lemma7(graph* g, graph* t, int r, double approx){
-    double l = (4/approx) - 1;
-
-    lemma7_min_edges = __INT32_MAX__; //reset max
-
-    if(lemma_7_edges){
-        l_free(lemma_7_edges);
-        lemma_7_edges = NULL;
-    }
-
-    merge_order_g = NULL;
-    merge_order_t = NULL;
-
-    //lemma 7 helper
-
-    int_ls* leafs = leaves(t,r);
-
-    lemma7_helper(g, t, r, approx, 0, 0, leafs);
-
-    l_free(leafs);
-
-    printf("lemma 7 output:\n");
-    for(pair_ls* p = lemma_7_edges; p; p = p->next){
-        printf("%i %i\n", p->u, p->v);
-        fflush(stdout);
-    }
-
-}
-
-//modified_case1();
-//modified_case2();
-
-edge_ls* lowest_edges(graph* g, graph* t, int r, int_ls* leaves){
-    //ignore self edges
-
-    int_ls* r_desc = descendants(t,r);
-
-    edge_ls* low = NULL;
-
-    for(int_ls* lf = leaves; lf; lf = lf->next){
-        int lf_n = value(g,lf->value);
-        for(edge* e = g->vert[lf_n]->edge; e; e = e->next){
-            int u1 = value(g,e->thisVertex);
-            int u2 = value(g,e->otherVertex);
-
-            if(l_contains(low, edge_match,e))
-                continue;
-            if(u1 == u2) continue;
-
-            int_ls* tp = tree_path(t,u1,u2);
-
-            for(edge* ex = g->vert[lf_n]->edge; ex && ex!=e; ex = ex->next){
-                int v1 = value(g,ex->thisVertex);
-                int v2 = value(g,ex->otherVertex);
-
-                if(l_contains(low, edge_match,e))
-                    continue;
-                if(v1 == v2) continue;
-
-                if (ls_contains_2(tp, v1, v2)){
-                    l_add(low, edge_ls_create(ex));
-                }
-                // this is wrong. instead check des of r
-                else if(!ls_contains(r_desc, v1) && !ls_contains(r_desc,u1)){
-                    l_add(low, edge_ls_create(ex));
-                }
-            }
-            ls_free(tp);
-        }
-    }
-    ls_free(r_desc);
-    return low;
-}
-
-
-// returns 1 if overflowed
-int next_edge(graph* g, int lf, edge** ep, edge_ls* lower_leaves,int ret_val, int prev_was_null){
-    if(!ep){
-        printf("ep was null\n");
-        return -1;
-    }
-    edge* e = *ep;
-    //printf("lf: %i  ep %X  (%i, %i)   ret: %i  prevstat %i\n" ,lf, ep,  e?value(g, e->otherVertex):-1, e?value(g, e->thisVertex):-1, ret_val, prev_was_null);
+void lemma9(graph* g, graph* t, int v, chain_ls* P, double epsilon){
     
-
-    if(!e){
-        e = g->vert[lf]->edge;
-        ret_val = 1;
-    }
-    else{
-        e = e->next;
-    }
-
-    *ep = e;
-
-    //detect infinite loop and return 1.
-
-    int u1,u2 = 0;
-    if(e){
-        u1 = value(g,e->otherVertex);
-        u2 = value(g,e->thisVertex);
-    }
-    else{
-        if (prev_was_null){
-            printf("overflow in next_edge\n");
-            return 1;
-        }
-        prev_was_null = 1;
-    }
-
-    if(!e || u1 == u2 || l_contains(lower_leaves, edge_match, e)){
-        int x = next_edge(g,lf,ep,lower_leaves, ret_val,prev_was_null);
-        //printf("exiting from invalid.\n");
-        return x;
-    }
-
-    printf("exit: lf: %i  ep %X  (%i, %i)  \n" ,lf, ep,  value(g, e->otherVertex), value(g, e->thisVertex));
-    fflush(stdout);
-    return ret_val;
-}
-
-int x = 0;
-
-void lemma7_helper(graph* g, graph* t, int r, double approx, int cur_size, int recur_depth, int_ls* og_leaves){
-    double l = (4/approx) - 1;
-    printf("lemma7 has ran %i times\n", x++);
-    printf("lemma7_helper: cur_size: %i    recur_depth: %i  \n", cur_size, recur_depth);
-    //fflush(stdout);
-
-    /*
-    //check if the subtree has been completely merged
-    int any_cases = 1;
-    while(any_cases){
-        any_cases = 0;
-        int c = 0;
-        while(c = modified_case1(g, t)){any_cases ^= c;};
-        //mod case1 should give edges 2 merge
-        // then merge and redo.
-        while(c = modified_case2(g, t)){any_cases ^= c;};
-        //mod case2 shoudl give edges 2 merge
-        //then merge and redo.
-    }
-      */  
-
-
-    int_ls* leafs = leaves(t,r);
-    int n_leaves = l_size(leafs);
-
-    
-    //check if the original tree is covered.
-    char fully_merged = 1;
-    for(int_ls* c_lf = og_leaves; c_lf && c_lf->next; c_lf = c_lf->next){
-        fully_merged = 1;
-        if(value(g,c_lf->value) != value(g,c_lf->next->value)){
-            fully_merged = 0;
-            break;
-        }
-    }
-
-    if(fully_merged || !leaves){
-        if(cur_size < lemma7_min_edges){
-            lemma7_min_edges = cur_size;
-
-            if(lemma_7_edges)
-                l_free(lemma_7_edges);
-
-            pair_ls* ls = l_last(merge_order_g);
-            pair_ls* copy = NULL;
-
-            while(ls){
-                pair_ls* new_pair = pair_create(ls->u, ls->v, ls->blossom_number);
-                copy = l_add(copy,new_pair);
-                ls = ls->prev;
-            }
-
-            lemma_7_edges = copy;
-        }
-        return;
-    }
-
-
-    //optimize: seperate into own leaf lists
-    edge_ls* low_edges = lowest_edges(g, t, r, leafs);
-
-    int lf_arr_bytes = sizeof(int*)*n_leaves;
-    int* lf_arr = malloc(lf_arr_bytes);
-    memset(lf_arr,0,lf_arr_bytes);
-
-    int e_k_bytes = sizeof(edge*)*n_leaves;
-    edge** e_k = malloc(e_k_bytes);
-    memset(e_k,0,e_k_bytes);
-
-    //initialize each edge
-    int_ls* c_lf = leafs;
-    for(int i = 0; i<n_leaves && c_lf; i++){
-        lf_arr[i] = c_lf->value; 
-        int of = next_edge(g, c_lf->value, &e_k[i], low_edges, 0, 0);        
-        c_lf = c_lf->next;
-    }
-
-    //function to advance an edge.
-    int combination_number = 1;
-
-    // recurse on combination after merging edges.
-    for(int i = 0; i < l*l; i++){
-        printf("combo_n %i / %i  depth = %i\n", combination_number, (int)(l*l), recur_depth);
-        fflush(stdout);
-        // merge, recurse, then unmerge
-
-        for(int k = 0; k<n_leaves; k++){ //merge all paths
-        //    printf("B\n");
-            edge* e = e_k[k];
-            int u = value(g,e->thisVertex);
-            int v = value(g,e->otherVertex);
-            int_ls* tp = tree_path(t,u,v);
-
-            for(int_ls* n = tp; tp && tp->next; tp= tp->next){
-          //      printf("C\n");
-                int u = tp->value;
-                int v = tp->next->value;
-            //    printf("merging %i and %i\n", u, v);
-                merge_order_g = blossom_merge(g,u,v,recur_depth, merge_order_g);
-                merge_order_t = blossom_merge(t,u,v,recur_depth, merge_order_t);
-            }
-            l_free(tp);
-        }
-
-        
-        lemma7_helper(g, t, r, approx, cur_size+n_leaves, recur_depth+1, og_leaves);
-
-        printf("return to depth: %i ,cur_size: %i \n", recur_depth, cur_size);
-
-        merge_order_g = blossom_unmerge_2(g,merge_order_g);
-        merge_order_t = blossom_unmerge_2(t,merge_order_t);
-
-
-        // try next combination.
-        int j = n_leaves-1;
-        int overflow = 0;
-        do{
-            overflow = 0;
-            overflow = next_edge(g,lf_arr[j],&e_k[j],low_edges,0,0);
-            j--;
-        }while(overflow && j >=0);
-        if(j<0){
-            printf("combination overflow!\n");
-            break;
-        }
-        //next combo obtained.
-        printf("combo");
-    }
-    l_free(low_edges);
-    l_free(leafs);
-    free(lf_arr);
-    free(e_k);
-}
-
-
-
-
-void lemma9(graph* g, graph* t, int v, chain_ls* P, double approx){
-    double l = (4/approx) - 1;
-
-    int_ls* leafs = leaves(t,v);
-
-    int n_leaves = ls_size(leafs);
-
     int u_j = 0;
     edge* low_solo = NULL;
     int max_depth = 0;
@@ -1766,65 +1507,141 @@ void lemma9(graph* g, graph* t, int v, chain_ls* P, double approx){
         fflush(stdout);
     }
 
+    double l = (4/epsilon) - 1;
+    int_ls* leafs = leaves(t,u_j);
+    int n_leaves = ls_size(leafs);
 
-    if(n_leaves > l){
+    if(n_leaves >= l){
         chain_ls* ch_u = find_chains(t,deep_chain->u);
         process_chains(g,t,ch_u);
         COVER(g,t,u_j,ch_u);
-
-        //FIX ~Fg
     }
     else{
-        
-        lemma7(g,t,u_j,approx);
-
-        //FIX ~Fg
+        lemma7(g,t,u_j,epsilon);
     }
 
-    //or fix ~Fg here.
+    // following code selects the 2 edges to cover ~Fg
 
+    u_j = value(t,u_j);
 
+    int_ls* d = descendants(t,u_j);
+    printf("LEMMA9: %i desc after reduction\n", l_size(d));
+    
+    //must add 2 edges to cover ~Fg. 
+
+    edge* e_star = NULL;
+    int w_star = 0;
+    
+    
+    for(int u = get_parent(g,u_j); ;u = get_parent(t,u)){
+        edge* e = find_edge(g,u,u_j);
+        if(e){
+            e_star = e;
+            w_star = u;
+        }
+        if(value(g,u)== value(g,v) || u == value(t,t->root)){
+            break;
+        }
+    }
+
+    
+    int z1 = 0;
+    int z2 = 0;
+
+    int z1_d = __INT_MAX__;
+    int z2_d = __INT_MAX__;
+
+    int_ls* th = thorns(t,v);
+
+    for(int_ls* cur_th; cur_th; cur_th = cur_th->next){ //find z1
+        int th_v = value(g, cur_th->value);
+        int dep = get_depth(t,th_v);
+        if(dep < z1_d){
+            z1 = th_v;
+            z1_d = dep;
+        }
+    }
+    for(int_ls* cur_th; cur_th; cur_th = cur_th->next){ //find z2
+        int th_v = value(g, cur_th->value);
+        int dep = get_depth(t,th_v);
+        if(dep < z2_d && z1 != th_v && th_v != u_j){
+            z2 = th_v;
+            z2_d = dep;
+        }
+    }
+
+    //cover ~Fg
+    if(!z2){
+        if(e_star){
+            retain_merge_trim(g, t, e_star->thisVertex, e_star->otherVertex);
+        }
+        retain_merge_trim(g, t, z1, u_j);
+    }
+    else if( get_depth(t, w_star) <= get_depth(t, z2)-1){
+        retain_merge_trim(g, t, e_star->thisVertex, e_star->otherVertex);
+        retain_merge_trim(g, t, z1, z2);
+    }
+    else{
+        retain_merge_trim(g,t,z1, u_j);
+        retain_merge_trim(g, t, z1, z2);
+    }
+    // v should now have no children.
 }
 
+// 1.875 + epsilon. (epsilon > 0)
+edge* nagamochi(graph* g, graph* t, double epsilon)
+{   
+    //while(children(t,t->root)){
+    for(int i= 0; i<2; i++){
+        printf("\n\n g:\n");
+        graph_print_all(g);
+        printf("\n\n t:\n");
+        graph_print_all(t);
+        printf("\n\n");
 
-edge* nagamochi(graph* g, graph* t, double approx)
-{
-
-    // at the very end, we may have to check that each edge is covered,
-    // p4 doesnt seem to guarantee covering an edge when contracting f'
-    // apparently we can select any edge that covers it??/???
-
-    for(int i = 0; i<99; i++){
-        
         int any_cases = 1;
         while(any_cases){
             any_cases = 0;
             int c = 0;
-            while(c = case1(g, t)){any_cases ^= c;};
-            while(c = case2(g, t)){any_cases ^= c;};
-            while(c = case3(g, t)){any_cases ^= c;};
-            while(c = case4(g, t)){any_cases ^= c;};
+            while(c = case1(g, t)){any_cases |= c;}
+            printf("c1\n");fflush(stdout);
+            while(c = case2(g, t)){any_cases |= c;}
+            printf("c2\n");fflush(stdout);
+            while(c = case3(g, t)){any_cases |= c;}
+            //graph_print_all(g);
+            //for(int k=0; k<t->vertex_count; k++){ printf("(%i > %i)", k, get_parent(t,k));} printf("\n");
+            printf("c3\n");fflush(stdout);
+            //printf("mv3: %i\n", g->vert[3]->mergeValue);
+            while(c = case4(g, t)){any_cases |= c;}
+            printf("c4\n");fflush(stdout);
         }
         
         int_ls* mlfc = minimally_lf_closed(g,t,t->root);
+        printf("mlfc\n"); fflush(stdout);
 
         if(mlfc){
             chain_ls* P = find_chains(t,mlfc->value);
             process_chains(g,t,P);
+
+            printf("pchain\n"); fflush(stdout);
             
             if(A3(g,t,P)){
                 COVER(g,t,mlfc->value, P);
+                printf("a3 -> cover\n"); fflush(stdout);
             }
             else{
-                lemma9(g,t,mlfc->value,P,approx);
+                lemma9(g,t,mlfc->value,P,epsilon);
+                printf("lemma9\n"); fflush(stdout);
 
                 COVER(g,t,mlfc->value, P);
+                printf("cover\n"); fflush(stdout);
             }
-
             chain_ls_free(P);
             ls_free(mlfc);
         }
-
     }
-    return NULL;
+    graph_print(g);
+    printf("\n");
+    graph_print(t);
+    return t->vert[0]->edge; //return retained edges
 }

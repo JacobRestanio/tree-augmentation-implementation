@@ -106,8 +106,6 @@ edge_ls* prime_edges(graph* g, graph* t, int v);
 
 void COVER(graph* g, graph* t, int v, chain_ls* P);
 
-void lemma7(graph* g, graph* t, int v, double approx);
-void lemma7_helper(graph* g, graph* t, int r, double approx, int cur_size, int recur_depth, int_ls* og_leaves);
 void lemma9(graph* g, graph* t, int v, chain_ls* P, double approx);
 
 int A3(graph* g, graph* t, chain_ls* P);

@@ -14,7 +14,7 @@ int lemma7_min_edges2 = __INT32_MAX__;
 pair_ls* lemma_7_edges2 = NULL;
 
 // r is the node to call the function wrt
-void lemma72(graph* g, graph* t, int r, double approx){
+void lemma7(graph* g, graph* t, int r, double approx){
     double l = (4/approx) - 1;
 
     lemma7_min_edges2 = __INT32_MAX__; //reset max
@@ -37,11 +37,26 @@ void lemma72(graph* g, graph* t, int r, double approx){
     g_new = normal_copy(g);
     t_new = normal_copy(t);
 
-    lemma7_helper2(g_new, t_new, r, approx, 0, NULL);
+    lemma7_helper(g_new, t_new, r, approx, 0, NULL);
 
 
     printf("\nlemma 7 output:\n");
 
+    // print pairs
+    for(pair_ls* p = l_last(lemma_7_edges2); p; p = p->prev){
+        int u1 = value(g, p->u);
+        int u2 = value(g, p->v);
+
+        edge* e = find_edge(g,u1,u2);
+        if(!e){
+            printf("lemma 7 err: edge (%i, %i) not found\n", u1, u2);
+        }else{
+            printf("(%i, %i)  \t%i\n", e->thisVertex, e->otherVertex, p->blossom_number);
+        }
+        fflush(stdout);
+    }   printf("now merging\n");
+
+    //print pairs and remove
     for(pair_ls* p = l_last(lemma_7_edges2); p; p = p->prev){
         int u1 = value(g, p->u);
         int u2 = value(g, p->v);
@@ -68,7 +83,7 @@ void lemma72(graph* g, graph* t, int r, double approx){
 //modified_case1();
 //modified_case2();
 
-void lowest_edges2(graph* g, graph* t, int r, int_ls* leaves){
+void trim_lowest_edges(graph* g, graph* t, int r, int_ls* leaves){
     int original_root = t->root;
 
     for(int_ls* lf = leaves; lf; lf = lf->next){
@@ -82,7 +97,6 @@ void lowest_edges2(graph* g, graph* t, int r, int_ls* leaves){
 
         for(int_ls* u = z_incident; u; u = u->next){
             int uu = u->value;
-
 
             int_ls* des =  descendants(t,uu);
 
@@ -119,32 +133,25 @@ pair_ls* pair_ls_copy(pair_ls* ls){
 
 int times_ran = 0;
 
-void lemma7_helper2(graph* g, graph* t, int r, double approx, int recur_depth, pair_ls* cur_edges){
+void lemma7_helper(graph* prev_g, graph* t, int r, double approx, int recur_depth, pair_ls* cur_edges){
 
     //Do cases 1 and 2 to find some edges in polytime
+
+    // make a copy so that doing poly-time reduction doesnt affect the graph from the previous call.
+    graph* g = normal_copy(prev_g);
+
     int any_cases = 1;
-    while(any_cases){
+    while(any_cases){ // do poly-time reduction
         any_cases = 0;
         int c = 0;
-        while(c = case1(g, t)){any_cases ^= c;};
-
-        for(edge* retained = g->retain; retained; retained = retained->next){
-        edge* e = retained;
-        printf("c1retaining %i %i \n", e->thisVertex, e->otherVertex);
-        }        
-
-        while(c = case2(g, t)){any_cases ^= c;};
-
-        for(edge* retained = g->retain; retained; retained = retained->next){
-        edge* e = retained;
-        printf("c2retaining %i %i \n", e->thisVertex, e->otherVertex);
+        while(c = case1(g, t)){any_cases |= c;}
+        while(c = case2(g, t)){any_cases |= c;}
     }
-    }
-
     
+    // add retained list to cur_edges.
     for(edge* retained = g->retain; retained; retained = retained->next){
         edge* e = retained;
-        printf("retaining %i %i \n", e->thisVertex, e->otherVertex);
+        //printf("retaining %i %i \n", e->thisVertex, e->otherVertex);
         cur_edges = l_add(cur_edges, pair_create(e->thisVertex,e->otherVertex,recur_depth));
     }
 
@@ -176,7 +183,7 @@ void lemma7_helper2(graph* g, graph* t, int r, double approx, int recur_depth, p
         return;
     }
 
-    lowest_edges2(g, t, r, leafs);
+    trim_lowest_edges(g, t, r, leafs);
 
     int lf_bytes = sizeof(int)*n_leaves;
     int* lf_arr = malloc(lf_bytes);
@@ -224,7 +231,7 @@ void lemma7_helper2(graph* g, graph* t, int r, double approx, int recur_depth, p
             retain_merge_trim(new_g, new_t, u, v);
         }
         
-        lemma7_helper2(new_g, new_t, r, approx, recur_depth+1, new_edges);
+        lemma7_helper(new_g, new_t, r, approx, recur_depth+1, new_edges);
 
         int j = n_leaves-1;
         int overflow = 0;
