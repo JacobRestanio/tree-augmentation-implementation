@@ -210,8 +210,9 @@ void genEdgeWeights(int n, int edges[][n], int edgeWeights[][n], int max) {
    }
 }
 
-/* Currently this creates an adjacency matrix of all possible edges for the tree
-   basically a worst-case scenario, need to make sure this is acceptable */
+/*
+// Currently this creates an adjacency matrix of all possible edges for the tree
+   //basically a worst-case scenario, need to make sure this is acceptable
 void createEdgeSet(int n, graph* tree, graph* edgeSet) {
    for(int i = 0; i < n; i++) {
       for(int j = 0; j < n; j++) {
@@ -221,6 +222,7 @@ void createEdgeSet(int n, graph* tree, graph* edgeSet) {
       }
    }
 }
+*/
 
 /* Copies originalMatrix to copiedMatrix */
 void copyMatrix(int n, int originalMatrix[][n], int copyMatrix[][n]) {

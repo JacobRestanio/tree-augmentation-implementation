@@ -116,5 +116,41 @@ graph* randomForestTree(int n) {
     }
   }
   graph_add_edge(g, u+1, v+1);
+  set_root(g, 1);
   return g;
 }
+
+/* This creates a set of edges based on a specified tree and density.
+      If you want to make sure the edges generated are valid, wrap the generation in a loop
+      that uses the function checkConnected.
+   int density: a number between 0 - 100 that is the percent density of the edge set
+      100 represents 100.0% chance to add an edge, 50 represents 50.0%, etc.
+   graph* tree: the tree the edge set is based off of
+   graph* edgeSet: an empty graph that is the same size as tree */
+graph* createEdgeSet(int density, graph* tree) {
+  graph* edgeset = graph_create(tree->original_vertex_count);
+   for (int u = 1; u <= tree->original_vertex_count; u++) {
+      for (int v = 1; v <= tree->original_vertex_count; v++) {
+         if (rand() % 100 < density && u != v) {
+            graph_add_edge(edgeset, u, v);
+         }
+      }
+   }
+   return edgeset;
+}
+/*
+// Generates an edge set based off tree 
+               printf("Generating Edge Set based off tree...\n");
+               int maxAttempts = 100;
+               int attempts = 0;
+               do {
+                  printf("\tAttempting to generate valid edge set...\n");
+                  createEdgeSet(density[d], tree, edgeSet);
+                  attempts++;
+               } while (!checkConnected(tree, edgeSet) && attempts < maxAttempts);
+               if (attempts == maxAttempts) {
+                  printf("\tCould not generate a valid edge set\n\n");
+               } else {
+                  printf("\tFinished\n\n");
+               }
+*/

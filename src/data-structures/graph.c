@@ -22,7 +22,7 @@ void edge_free(edge *e)
    if (e)
    {
       edge *ee = e->next;
-      free(e);
+      //free(e);
       edge_free(ee);
    }
 }
@@ -49,7 +49,7 @@ void vertex_free(vertex *v)
       edge *e = v->edge;
       edge_free(e);
       ls_free(v->aliases);
-      free(v);
+      //free(v);
    }
 }
 
@@ -83,14 +83,15 @@ void graph_free(graph *g)
    {
       vertex_free(g->vert[i]);
    }
+   /*
    if(g->vert)
       free(g->vert);
    if(g->retain)
       free(g->retain);
    if (g->parents)
       free(g->parents);
-
    free(g);
+   */
 }
 
 edge* edge_copy(edge* e){
@@ -1080,6 +1081,38 @@ int_ls* all_fringes(graph* g,graph* t,int v){
    return ls_first(ls_merge(pf,f));
 }
 
+//deletes all duplicate edges
+void trim_all_duplicates(graph* g){
+   for(int i = 1; i<= g->original_vertex_count; i++){
+      if( value(g,i) == i){ // avoid verts that are merged.
+         trim_duplicates(g, i);
+      }
+   }
+}
+void trim_duplicates(graph* g, int v){
+   edge** duplicate = (edge**)malloc((g->original_vertex_count+1) * sizeof(edge*));
+   memset(duplicate,0, sizeof(edge*)*(g->original_vertex_count+1));
+   for(edge* e = g->vert[v]->edge; e; e = e->next){
+      int u = value(g,e->otherVertex);
+      int u2 = value(g,e->thisVertex);
+      duplicate[u] = e;
+      duplicate[u2] = e;
+   }
+   g->vert[v]->edge = NULL;
+   g->vert[v]->lastedge = NULL;
+   for(int i = 1; i<= g->original_vertex_count; i++){
+      if(i == v)
+         continue;
+      edge* e = duplicate[i];
+      if(e){
+         e->next = g->vert[v]->edge;
+         g->vert[v]->edge = e;
+         if(g->vert[v]->lastedge == NULL){
+            g->vert[v]->lastedge = e;
+         }
+      }
+   }
+}
 
 //TODO. very inefficient
 int_ls* minimally_lf_closed(graph* g, graph* t, int v){

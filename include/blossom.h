@@ -40,11 +40,10 @@ int_ls* last_blossom_verts(pair_ls* merge_order);
 // computes maximum matching
 edge_ls* blossom_algorithm(graph *g, int_ls *vs);
 
-
 pair_ls* lift_blossom2(graph* g, edge_ls* matching, int* queued_by, int* queues, char* not_exposed, edge_ls* es, pair_ls* merge_order);
 
 edge_ls *blossom_algorithm2(graph *g, int_ls *vs, edge_ls* es);
 
 void set_gm(graph* g);
-
+void set_tm(graph* g);
 #endif

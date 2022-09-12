@@ -197,7 +197,7 @@ edge* upper_edge(graph* g, graph* t, chain_ls* chain){
     int u2 = value(g,chain->u2);
 
     int_ls* d_u2 = descendants(t, u2);
-    printf("d %i->%i\t",u,u2); ls_print(d_u2); printf("\n");
+    //printf("d %i->%i\t",u,u2); ls_print(d_u2); printf("\n");
 
     for(int v = uk; v != u; v = get_parent(t,v)){ //go up the chain from uk
         int_ls* thorns_and_v = NULL;
@@ -211,7 +211,7 @@ edge* upper_edge(graph* g, graph* t, chain_ls* chain){
                 int other_v = value(g,e->otherVertex);
                 if(!ls_contains(d_u2,other_v)){
                     ls_free(d_u2);
-                    printf("------------------------------------ e: %i", e);
+                    //printf("------------------------------------ e: %i", e);
                     fflush(stdout);
                     return e;
                 }
@@ -445,7 +445,7 @@ edge* high(graph* g, graph* t, int_ls* x){
     for(edge_ls* ec = es; ec; ec = ec->next ){
         edge* e = ec->e;
 
-        printf("ec->e: %X\n", e);
+        //printf("ec->e: %X\n", e);
 
         int u = value(g,e->otherVertex);
         int v = value(g,e->thisVertex);
@@ -467,7 +467,9 @@ edge* high(graph* g, graph* t, int_ls* x){
 }
 
 int case1(graph *g, graph *t)
-{
+{   
+    trim_all_duplicates(g); //prevents bugs
+    trim_all_duplicates(t);
     int ret = 0;
     int_ls *fringe = fringes(t, t->root);
     int_ls *cur_fringe = fringe;
@@ -579,13 +581,18 @@ int case2(graph *g, graph *t)
 
 int case3(graph *g, graph *t)
 {
-    //printf("\n\n__CASE 3__\n\n");
-   // fflush(stdout);
-    //graph_print_all(t);
-    //graph_print(t);
-    //printf("start c3\n"); fflush(stdout);
-    //graph_print(g);
-    //printf("p6 = %i", get_parent(t,6));
+    /*
+    printf("\n\n__CASE 3__\n\n");
+    fflush(stdout);
+    printf("c3: t\n"); fflush(stdout);
+    graph_print_all(t);
+    graph_print(t);
+    printf("c3: g\n"); fflush(stdout);
+    
+    graph_print_all(g);
+    graph_print(g);
+    */
+
     int_ls *fringe = fringes(t, t->root);
     //printf("frings\n"); fflush(stdout);
     int_ls *cur_fringe = fringe;
@@ -600,7 +607,7 @@ int case3(graph *g, graph *t)
             //printf("after children\n"); fflush(stdout);
             if (ls_size(kids) == 3)
             {   
-                //printf("b4 iso\n"); fflush(stdout);
+               // printf("b4 iso\n"); fflush(stdout);
                 int_ls *iso = isolated(g, t, parent);
                 //printf("after iso\n"); fflush(stdout);
                 if (iso == NULL)
@@ -634,15 +641,25 @@ int case3(graph *g, graph *t)
     ls_free(fringe);
 
     //printf("\t ret: %i",ret);
-    //fflush(stdout);
+    fflush(stdout);
 
     return ret;
 }
 
 int case4(graph *g, graph *t)
 {   
-    //printf("\n\n__CASE 4__\n\n");
-    //fflush(stdout);
+    /*
+    printf("\n\n__CASE 4__\n\n");
+    fflush(stdout);
+
+    printf("c4: t\n"); fflush(stdout);
+    graph_print_all(t);
+    graph_print(t);
+    printf("c4: g\n"); fflush(stdout);
+    
+    graph_print_all(g);
+    graph_print(g);
+    */
 
     int u = t->root;
 
@@ -659,12 +676,12 @@ int case4(graph *g, graph *t)
 
         if (kids->next && !kids->next->next)
         { // number of kids is two
-          //  printf("%i: number of kids is two\n", f);
+            //printf("%i: number of kids is two\n", f);
             int u1 = kids->value;
             int u2 = kids->next->value;
             if (graph_is_edge(g, u1, u2))
             { // kids are connected, prime edge type 1
-            //    printf("%i: u1(%i) and u2(%i)  are connected\n", f, u1, u2);
+                //printf("%i: u1(%i) and u2(%i)  are connected\n", f, u1, u2);
                 int cur_parent = get_parent(t, f);
                 int n;
                 while (cur_parent)
@@ -673,23 +690,24 @@ int case4(graph *g, graph *t)
                     int_ls *cur_kids = children(t, cur_parent);
                     if (cur_kids->next && !cur_kids->next->next)
                     { // two children
-                      //  printf("%i (%i): <-- potential p_fringe\n", f, cur_parent);
+                        //printf("%i (%i): <-- potential p_fringe\n", f, cur_parent);
                         int v = cur_parent;
                         cur_parent = 0; // stop while loop
 
                         // make u3 the leaf hanging from p_fringe
                         int u3 = is_leaf(t, cur_kids->value);
                         u3 = u3 ? u3 : is_leaf(t, cur_kids->next->value);
-                       // printf("%i : u3 is %i\n", f, u3);
+                        //printf("%i : u3 is %i\n", f, u3);
                         if (u3)
                         {
                             if (!l_closed(g, t, v))
                             { // the paper asserts that this is true, but I am not convinced
-                         //       printf("%i - %i not lclosed\n", f, v);
+                                //printf("%i - %i not lclosed\n", f, v);
                                 int u1_u3 = graph_is_edge(g, u1, u3);
                                 int u2_u3 = graph_is_edge(g, u2, u3);
 
-                                int unconnected = (u1_u3? 0:u1) + (u2_u3?0:u2);
+                                int unconnected = (u1_u3? 0:u1);
+                                unconnected = unconnected ? unconnected : (u2_u3?0:u2);
                                 //printf("%i - unconnected %i\n", f, unconnected);
                                 int unconnected_connects_outside = 0;
 
@@ -702,24 +720,31 @@ int case4(graph *g, graph *t)
                                     
                                     while(e){
                                         int cur_e = value(g,e->otherVertex);
-                                  //      printf("e:%i  ", cur_e);
+                                        //printf("e:%i  ", cur_e);
                                         if(!ls_contains(tree_verts,cur_e)){
                                             // mark for parent contraction
                                             unconnected_connects_outside = 1;
-                                    //        printf("%i - connects outside = %i\n", f, unconnected_connects_outside);
+                                            //printf("%i - connects outside = %i\n", f, unconnected_connects_outside);
                                             break;
                                         }
                                         e = e->next;
                                     }
-                                    // printf("%i - connects outside = %i\n", f, unconnected_connects_outside);
+                                     //printf("%i - connects outside = %i\n", f, unconnected_connects_outside);
                                 }
 
                                 if ((u1_u3 && u2_u3) || unconnected_connects_outside)
                                 { // prime edge type 2
-                                    retain_merge_trim(g,t,v, get_parent(t,v));
+                                    int prnt = get_parent(t,v);
+                                    //printf("retaining1: %i %i\n", v, prnt);
+                                    int_ls* tp = tree_path(t, v, prnt);
+                                    merge_list(g, tp);
+                                    merge_list(t, tp);
+                                    remove_self_edges(g, prnt);
+                                    remove_self_edges(t, prnt);
                                     ret = 1;
                                 }
                                 else{
+                                    //printf("retaining2: %i %i\n", u1, u2);
                                     retain_merge_trim(g,t,u1, u2);
                                     ret = 1;
                                 }
@@ -740,8 +765,8 @@ int case4(graph *g, graph *t)
         cur_fri = cur_fri->next;
     }
     ls_free(fringe);
-//    printf("\t ret: %i",ret);
- //  fflush(stdout);
+    //printf("ret: %i",ret);
+   fflush(stdout);
     return ret;
 }
 
@@ -1048,17 +1073,17 @@ void COVER(graph* g, graph* t, int v, chain_ls* P){
     edge_ls* F_leaf = leaf_edges(g,t,v); //leaf edges in T[v] - edges that connect a leaf to an ancestor
 
     edge_ls* E_leaf = leaf_to_leaf_edges(g,t,v); //edges that connect two leaves
-    edge_ls_print_vertices(E_leaf);
+    //edge_ls_print_vertices(E_leaf);
 
     edge_ls* E_prime1 = prime_edges_type1(g,t,v);
 
     edge_ls* E_prime2 = prime_edges_type2(g,t,v);
 
     edge_ls* E_prime = l_merge(edge_ls_copy(E_prime1), edge_ls_copy(E_prime2)); //prime edges
-    edge_ls_print_vertices(E_prime);
+    //edge_ls_print_vertices(E_prime);
 
 
-    graph_print_all(g);
+    //graph_print_all(g);
 
     //chain_ls* P = find_chains(t,v);
     //process_chains(g,t,P);
@@ -1081,15 +1106,15 @@ void COVER(graph* g, graph* t, int v, chain_ls* P){
         int vi; //current branch vertex
 /*     E_upper(vi) set of upper edges e_p of -chains of vi-  */
 
-    graph_print_all(g);
+    //graph_print_all(g);
 
     /* PHASE 1 - PHASE 1 - PHASE 1 - PHASE 1 - PHASE 1 - PHASE 1*/
         int_ls* vs = leaves(t,v);
-        printf("\n\nPhase 1, Prime edges: \n");
-        edge_ls_print_vertices(E_prime);
+        //printf("\n\nPhase 1, Prime edges: \n");
+        //edge_ls_print_vertices(E_prime);
 
-        printf("\n\nPhase 1, Leaf edges: \n");
-        edge_ls_print_vertices(E_leaf);
+        //printf("\n\nPhase 1, Leaf edges: \n");
+        //edge_ls_print_vertices(E_leaf);
         edge_ls* e_mat = l_remove_ls(E_leaf,edge_ls_match,E_prime);
 
         edge_ls* m_star = blossom_algorithm2(g,vs,e_mat); //this list will be retained
@@ -1144,7 +1169,7 @@ void COVER(graph* g, graph* t, int v, chain_ls* P){
             ls_free(uu);
         }
 
-        graph_print_all(g);
+        //graph_print_all(g);
 
         edge_ls* m2_d = NULL; //m2_d should be size m1_d/2
         for(edge_ls* m = M1_s; m; m = m->next){ 
@@ -1284,9 +1309,9 @@ void COVER(graph* g, graph* t, int v, chain_ls* P){
 
         edge_ls* xx[4] = {M1_s, m2_d, ew, p4_eg};
         for(int ppp = 0; ppp<4; ppp++){
-            printf("\nLIST %i:\n", ppp);
+            //printf("\nLIST %i:\n", ppp);
             for(edge_ls* eee = xx[ppp]; eee; eee = eee->next){
-                printf("%X, ", eee->e);
+                //printf("%X, ", eee->e);
             }
         }
 
@@ -1301,7 +1326,7 @@ void COVER(graph* g, graph* t, int v, chain_ls* P){
             retain_merge_trim(g,t,ec->e->thisVertex, ec->e->otherVertex);
         }
 
-        graph_print_all(g);
+        //graph_print_all(g);
 
     /* PHASE 2 - PHASE 2 - PHASE 2 - PHASE 2 - PHASE 2 - PHASE 2*/
 
@@ -1347,7 +1372,7 @@ void COVER(graph* g, graph* t, int v, chain_ls* P){
             }
         }
 
-        graph_print_all(g);
+        //graph_print_all(g);
 
         /* MERGE 2 - MERGE 2 - MERGE 2 - MERGE 2 */
         for(chain_ls* ch = P; ch; ch = ch->next){
@@ -1410,7 +1435,7 @@ void COVER(graph* g, graph* t, int v, chain_ls* P){
                 if(uppers){
                     uppers = l_add(uppers,edge_ls_create(ch->e_p));
 
-                    for(edge_ls* ue = uppers; ue; ue->next){
+                    for(edge_ls* ue = uppers; ue; ue = ue->next){
                         int v1 = value(g,ue->e->thisVertex);
                         int v2 = value(g,ue->e->otherVertex);
 
@@ -1425,7 +1450,7 @@ void COVER(graph* g, graph* t, int v, chain_ls* P){
         }
 
 
-        graph_print_all(g);
+        //graph_print_all(g);
 
     /* PHASE 3 - PHASE 3 - PHASE 3 - PHASE 3 - PHASE 3 - PHASE 3*/
         int_ls* cur_desc = descendants(t,v);
@@ -1448,7 +1473,7 @@ void COVER(graph* g, graph* t, int v, chain_ls* P){
             ls_free(ul);
         }
 
-        graph_print_all(g);
+        //graph_print_all(g);
 
         l_free(F_leaf); //edge_ls* F_leaf
         l_free(E_leaf);  //edge_ls* E_leaf
@@ -1591,57 +1616,65 @@ void lemma9(graph* g, graph* t, int v, chain_ls* P, double epsilon){
 // 1.875 + epsilon. (epsilon > 0)
 edge* nagamochi(graph* g, graph* t, double epsilon)
 {   
-    //while(children(t,t->root)){
-    for(int i= 0; i<2; i++){
-        printf("\n\n g:\n");
-        graph_print_all(g);
-        printf("\n\n t:\n");
-        graph_print_all(t);
-        printf("\n\n");
+    set_gm(g);
+    set_tm(t);
+    if(!t->root){
+        set_root(t, 1);
+    }
 
+    //printf("\n\n g:\n");
+    //graph_print(g);
+    //printf("\n\n t:\n");
+    //graph_print(t);
+    //printf("\n\n");
+
+    //while(children(t,t->root)){
+    for(int i= 0; i<99; i++){
         int any_cases = 1;
         while(any_cases){
             any_cases = 0;
             int c = 0;
             while(c = case1(g, t)){any_cases |= c;}
-            printf("c1\n");fflush(stdout);
+            //printf("c1\n");fflush(stdout);
             while(c = case2(g, t)){any_cases |= c;}
-            printf("c2\n");fflush(stdout);
+            //printf("c2\n");fflush(stdout);
             while(c = case3(g, t)){any_cases |= c;}
             //graph_print_all(g);
             //for(int k=0; k<t->vertex_count; k++){ printf("(%i > %i)", k, get_parent(t,k));} printf("\n");
-            printf("c3\n");fflush(stdout);
+            //printf("c3\n");fflush(stdout);
             //printf("mv3: %i\n", g->vert[3]->mergeValue);
             while(c = case4(g, t)){any_cases |= c;}
-            printf("c4\n");fflush(stdout);
+            //printf("c4\n");fflush(stdout);
         }
+
+        trim_all_duplicates(g); //prevents bugs
+        trim_all_duplicates(t);
         
         int_ls* mlfc = minimally_lf_closed(g,t,t->root);
-        printf("mlfc\n"); fflush(stdout);
+        //printf("mlfc\n"); fflush(stdout);
 
         if(mlfc){
             chain_ls* P = find_chains(t,mlfc->value);
             process_chains(g,t,P);
 
-            printf("pchain\n"); fflush(stdout);
+            //printf("pchain\n"); fflush(stdout);
             
             if(A3(g,t,P)){
                 COVER(g,t,mlfc->value, P);
-                printf("a3 -> cover\n"); fflush(stdout);
+                //printf("a3 -> cover\n"); fflush(stdout);
             }
             else{
                 lemma9(g,t,mlfc->value,P,epsilon);
-                printf("lemma9\n"); fflush(stdout);
-
-                COVER(g,t,mlfc->value, P);
-                printf("cover\n"); fflush(stdout);
+                //printf("lemma9\n"); fflush(stdout);
             }
             chain_ls_free(P);
             ls_free(mlfc);
         }
+        trim_all_duplicates(g);
+        trim_all_duplicates(t);
     }
     graph_print(g);
-    printf("\n");
+    //printf("\n");
     graph_print(t);
     return t->vert[0]->edge; //return retained edges
 }

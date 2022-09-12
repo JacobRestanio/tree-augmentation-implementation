@@ -75,8 +75,8 @@ void *l_remove(void *list)
 
 void *l_merge(void *list1, void *list2)
 {
-    ls *l = list1;
-    ls *l2 = list2;
+    ls *l = l_first(list1);
+    ls *l2 = l_first(list2);
     if (!l)
         return l2;
     if (!l2)

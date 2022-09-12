@@ -42,158 +42,57 @@ int main(int argc, char *argv[])
 {
   srand(time(0));
 
-  char *t_text = "1 2\n2 5\n5 8\n1 3\n1 4\n3 15\n15 11\n15 12\n3 6\n6 9\n6 13\n6 16\n4 7\n7 10\n7 14\n";
-  char *g_text = "1 2\n2 5\n5 8\n1 3\n1 4\n3 15\n15 11\n15 12\n3 6\n6 9\n6 13\n6 16\n4 7\n7 10\n7 14\n14 10\n9 16\n16 13\n13 11\n11 6\n15 13\n16 12\n12 13\n12 9\n9 15\n8 2\n8 1\n5 1";
-  int size = 17;
-  
-  printf("\n\n");
+  char *t_text = "1 14\n1 11\n2 14\n3 15\n4 13\n4 10\n5 11\n5 8\n5 7\n6 7\n7 6\n7 5\n8 5\n9 15\n9 12\n10 4\n11 16\n11 15\n11 5\n11 1\n12 9\n13 16\n13 4\n14 2\n14 1\n15 11\n15 9\n15 3\n16 13\n16 11";
+  char *g_text = "1 14\n1 13\n1 11\n1 8\n1 7\n1 6\n1 5\n1 4\n2 15\n2 12\n2 11\n2 10\n2 9\n2 8\n2 7\n2 5\n2 3\n3 16\n3 15\n3 14\n3 13\n3 12\n3 11\n3 10\n3 7\n3 2\n4 15\n4 13\n4 11\n4 10\n4 9\n4 8\n4 1\n5 13\n5 10\n5 9\n5 8\n5 2\n5 1\n6 15\n6 13\n6 12\n6 11\n6 7\n6 1\n7 16\n7 15\n7 12\n7 9\n7 8\n7 6\n7 3\n7 2\n7 1\n8 15\n8 14\n8 12\n8 11\n8 9\n8 7\n8 5\n8 4\n8 2\n8 1\n9 16\n9 14\n9 8\n9 7\n9 5\n9 4\n9 2\n10 15\n10 12\n10 5\n10 4\n10 3\n10 2\n11 15\n11 13\n11 8\n11 6\n11 4\n11 3\n11 2\n11 1\n12 16\n12 15\n12 14\n12 10\n12 8\n12 7\n12 6\n12 3\n12 2\n13 16\n13 11\n13 6\n13 5\n13 4\n13 3\n13 1\n14 16\n14 15\n14 12\n14 9\n14 8\n14 3\n14 1\n15 16\n15 14\n15 12\n15 11\n15 10\n15 8\n15 7\n15 6\n15 4\n15 3\n15 2\n16 15\n16 14\n16 13\n16 12\n16 9\n16 7\n16 3";
+  int size = 17; //size of the tree and graph above.
+  //create tree and graph from text above
+  //graph *t = graph_create_text(t_text, size); 
+  //graph *g = graph_create_text(g_text, size);
 
-  graph *t = graph_create_text(t_text, size);
-  graph *g = graph_create_text(g_text, size);
+  while(1){
+    //create tree and graph
+    graph* t = randomForestTree(16); int rt = 1; set_root(t, rt);
+    graph* g = createEdgeSet(25, t);
 
-  int rt = 1;
-  set_root(t, rt);
-  set_gm(g);
-    
+    //copy t and g to cover
+    graph* tt = normal_copy(t); set_root(tt,1);
+    graph* gg = normal_copy(g);
 
-  //lemma7(g,t,1,.0001);
+    //copy t and g, so that the original graph can be printed later.
+    graph* ttt = normal_copy(t); set_root(tt,1);
+    graph* ggg = normal_copy(g);
 
-  
-  nagamochi(g,t,.1);
+    //solve t and g
+    nagamochi(g,t,.1);
+
+    // print retained edges
+    print_edge(g->retain,1); 
+
+    // use retained edges to cover copies
+    for(edge* e = g->retain; e; e= e->next){ 
+      int u = e->thisVertex;
+      int v = e->otherVertex;
+      retain_merge_trim(gg,tt,u,v);
+    }
+
+    int v_count = ls_size(children(t,1));
+
+    if(v_count > 0){
+      printf("copy was not covered\n");
+      printf("gg: \n"); graph_print_all(gg); printf("\n\n");
+      printf("gg: \n"); graph_print_all(gg); printf("\n\n");
+
+      printf("retained in g: "); print_edge(g->retain,1);
+
+      printf("gg: \n"); graph_print_all(gg); printf("\n\n");
+      printf("tt: \n"); graph_print_all(tt); printf("\n\n");
+
+      printf("original graphs:");
+      printf("t:\n"); graph_print(ttt); printf("\n\n");
+      printf("g:\n"); graph_print(ggg); printf("\n\n");
+      while(1);
+    }
+  }
 
   return 0;
-
-
-  int_ls *fringe = fringes(t, rt);
-  int_ls *p_fringes = pseudo_fringes(g, t, rt);
-  int_ls *desc = descendants(t, rt);
-  int_ls *child = children(t, rt);
-  int_ls *f = all_fringes(g, t, rt);
-  int_ls *th = thorns(t,rt);
-  int_ls *br = NULL;
-  edge_ls* x1 = leaf_edges(g,t,rt);
-  edge_ls* x2 = leaf_to_leaf_edges(g,t,rt);
-  edge_ls* prime1 = prime_edges_type1(g,t,rt);
-  edge_ls* prime2 = prime_edges_type2(g,t,rt);
-  edge_ls* primes = prime_edges(g,t,rt);
-  chain_ls* chains = find_chains(t,rt);
-  process_chains(g,t,chains);
-  
-  /*for(int_ls* cur_des = desc; cur_des; cur_des = cur_des->next){
-    if(is_branch(t,cur_des->value))
-      br = ls_add(br,cur_des->value);
-  }*/
-
-  printf("desc: ");
-  ls_print(desc);
-  printf("\n");
-
-  printf("children: ");
-  ls_print(child);
-  printf("\n");
-
-  printf("fringes: ");
-  ls_print(fringe);
-  printf("\n");
-
-  printf("p_fringes: ");
-  ls_print(p_fringes);
-  printf("\n");
-
-  printf("all fringe: ");
-  ls_print(f);
-  printf("\n");
-
-  printf("thorns: ");
-  ls_print(th);
-  printf("\n");
-
-  printf("branches ");
-  ls_print(br);
-  printf("\n");
-
-  printf("leaf_edges:\t"); print_edge_ls(x1); printf("\n");
-
-  printf("lf2lf_edges:\t"); print_edge_ls(x2); printf("\n");
-
-  printf("prime type 1:\t"); print_edge_ls(prime1); printf("\n");
-
-  printf("prime type 2:\t"); print_edge_ls(prime2); printf("\n");
-
-  printf("all prime:\t"); print_edge_ls(primes); printf("\n");
-
-  int u = 1; int v = 11;
-  printf("path %i %i :\t",u,v); ls_print(tree_path(t,u,v)); printf("\n");
-
- print_chain_and_swings(chains); printf("\n");
-
-  int_ls* des = descendants(t,rt);
-  int_ls* lf = NULL;
-  /*while(des){
-    if(lf_closed(g,t,des->value)){
-      lf = ls_add(lf,des->value);
-    }
-    des = des->next;
-  }*/
-
-  printf("lf-closed: "); ls_print(lf); printf("\n\n");
-  lf = minimally_lf_closed(g,t,1);
-  printf("min lf-closed: "); ls_print(lf); printf("\n\n");
-
-  nagamochi(g,t,.25);
-
-
-  printf("\n\n");
-
-  /*
-  int_ls *pth = tree_path(t, 5, 2);
-
-  merge_list(t, pth);
-  merge_list(g, pth);
-
-  unmerge_vertices(g, 4);
-  unmerge_vertices(t, 4);
-
-  int_ls *fringe = fringes(t, rt);
-  int_ls *p_fringes = pseudo_fringes(g, t, rt);
-  int_ls *desc = descendants(t, rt);
-  int_ls *child = children(t, rt);
-
-  printf("desc: ");
-  ls_print(desc);
-  printf("\n");
-
-  printf("children: ");
-  ls_print(child);
-  printf("\n");
-
-  printf("fringes: ");
-  ls_print(fringe);
-  printf("\n");
-
-  printf("p_fringes: ");
-  ls_print(p_fringes);
-  printf("\n");
-
-  while (fringe)
-  {
-    int_ls *isol = isolated(g, t, fringe->value);
-    int_ls *non_redun = non_redundant(g, t, fringe->value);
-    printf("p: %i \tisol: ", fringe->value);
-    ls_print(isol);
-
-    int_ls *childs = children(t, fringe->value);
-    while (childs)
-    {
-      printf("\t non-red(%i): ", childs->value);
-      ls_print(non_redundant(g, t, childs->value));
-      printf("  triv(%i){%i}", childs->value, trivial(g, t, childs->value));
-      childs = childs->next;
-    }
-
-    printf("\n");
-
-    fringe = fringe->next;
-  }
-  */
 }

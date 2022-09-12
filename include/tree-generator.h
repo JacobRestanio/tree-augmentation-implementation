@@ -32,4 +32,6 @@ graph* lobsterTree(int n);
    tree is the adjacency matrix of size n x n */
 graph* randomForestTree(int n);
 
+graph* createEdgeSet(int density, graph* tree);
+
 #endif

@@ -109,6 +109,9 @@ void merge_path(graph *t, int u, int v);
 
 void merge_list(graph *g, int_ls *vs);
 
+void trim_all_duplicates(graph* g);
+void trim_duplicates(graph* g, int v);
+
 int_ls *tree_path(graph *t, int u, int v);
 
 int_ls *children(graph *t, int u);
