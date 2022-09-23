@@ -1319,10 +1319,10 @@ void COVER(graph* g, graph* t, int v, chain_ls* P){
         E1 = l_merge(E1,l_merge(ew,p4_eg));
 
         for(edge_ls* ec = E1; ec; ec = ec->next){
-            printf("ec: %X\n", ec);fflush(stdout);
-            printf("ec.e: %X\n",ec->e);fflush(stdout);
-            printf("v1: %i\n",ec->e->thisVertex);fflush(stdout);
-            printf("v2: %i\n\n",ec->e->otherVertex);fflush(stdout);
+            //printf("ec: %X\n", ec);fflush(stdout);
+            //printf("ec.e: %X\n",ec->e);fflush(stdout);
+            //printf("v1: %i\n",ec->e->thisVertex);fflush(stdout);
+            //printf("v2: %i\n\n",ec->e->otherVertex);fflush(stdout);
             retain_merge_trim(g,t,ec->e->thisVertex, ec->e->otherVertex);
         }
 
@@ -1622,50 +1622,31 @@ edge* nagamochi(graph* g, graph* t, double epsilon)
         set_root(t, 1);
     }
 
-    //printf("\n\n g:\n");
-    //graph_print(g);
-    //printf("\n\n t:\n");
-    //graph_print(t);
-    //printf("\n\n");
-
-    //while(children(t,t->root)){
-    for(int i= 0; i<99; i++){
+    while(l_size(children(t, t->root)) > 0){
         int any_cases = 1;
         while(any_cases){
             any_cases = 0;
             int c = 0;
             while(c = case1(g, t)){any_cases |= c;}
-            //printf("c1\n");fflush(stdout);
             while(c = case2(g, t)){any_cases |= c;}
-            //printf("c2\n");fflush(stdout);
             while(c = case3(g, t)){any_cases |= c;}
-            //graph_print_all(g);
-            //for(int k=0; k<t->vertex_count; k++){ printf("(%i > %i)", k, get_parent(t,k));} printf("\n");
-            //printf("c3\n");fflush(stdout);
-            //printf("mv3: %i\n", g->vert[3]->mergeValue);
             while(c = case4(g, t)){any_cases |= c;}
-            //printf("c4\n");fflush(stdout);
         }
 
         trim_all_duplicates(g); //prevents bugs
         trim_all_duplicates(t);
         
         int_ls* mlfc = minimally_lf_closed(g,t,t->root);
-        //printf("mlfc\n"); fflush(stdout);
 
         if(mlfc){
             chain_ls* P = find_chains(t,mlfc->value);
             process_chains(g,t,P);
-
-            //printf("pchain\n"); fflush(stdout);
             
             if(A3(g,t,P)){
                 COVER(g,t,mlfc->value, P);
-                //printf("a3 -> cover\n"); fflush(stdout);
             }
             else{
                 lemma9(g,t,mlfc->value,P,epsilon);
-                //printf("lemma9\n"); fflush(stdout);
             }
             chain_ls_free(P);
             ls_free(mlfc);
@@ -1673,8 +1654,5 @@ edge* nagamochi(graph* g, graph* t, double epsilon)
         trim_all_duplicates(g);
         trim_all_duplicates(t);
     }
-    graph_print(g);
-    //printf("\n");
-    graph_print(t);
     return t->vert[0]->edge; //return retained edges
 }
