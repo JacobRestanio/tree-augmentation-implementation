@@ -1,0 +1,348 @@
+import networkx as nx
+import matplotlib.pyplot as plt
+import treegenerator as tg
+import random
+import numpy as np
+import time
+from itertools import combinations
+
+contract_map = {}
+
+def even(tree, links):
+    contract_map.clear()
+    """
+    This function runs the Even et al algorithm on a given Tree and Link Set (preprocessing included)
+
+    """
+    T = tree.copy()
+    L = links.copy()
+
+    print("tree", T.edges())
+    print("links", L.edges())
+
+    # solution set!
+    I = tree.copy()
+
+    ##### PREPROCESSING #####
+
+    # Assumption 2: There are no 'reducible' edges in T
+    # Determine the maximal links of L. If there is a unique maximal link 
+    # covering an edge e, put the link in I, and contract the whole cycle. Repeat exhaustively.
+                    
+    T,L,I = eliminate_reducible_edges(T,L,I)
+
+    print("reduced tree", T.edges(), "w reduced links ", L.edges())
+
+    if(len(list(T.nodes())) == 1):
+        return I
+
+    #print(reduced_links.edges(), reduced_tree.edges())
+
+#     ##########################
+
+    # designate an arbitrary root node
+    root_node = list(T.nodes())[0]
+
+    # we want to obtain a matching among nontwin leaf-to-leaf links
+
+    leaf_to_leaf = L.copy()
+
+    # filter out edges which are not leaf-to-leaf or twin
+    for link in L.edges():
+
+        # remove edge if not leaf-to-leaf
+        if T.degree(link[0]) != 1 or T.degree(link[1]) != 1:
+            leaf_to_leaf.remove_edge(*link)
+            continue
+
+        # check for a common parent
+        common_parent = next(T.neighbors(link[0]))
+        if common_parent == next(T.neighbors(link[1])):
+             # if parent is root node, the parent isnt a stem and the children aren't twins
+            if(common_parent == root_node):
+                continue
+            # throw away the edge if the link is connecting twins
+            if len([n for n in T.neighbors(common_parent) if n != link[0] and n!= link[1] and T.degree(n) == 1]) == 0:
+                leaf_to_leaf.remove_edge(link[0], link[1])
+
+    print("leaf-to-leaf links", leaf_to_leaf.edges())
+
+    # obtain a maximal matching on this link-set
+    matching = nx.maximal_matching(leaf_to_leaf)
+    print("matching ", matching)
+
+    # distribute coupons initially
+    for node in T.nodes():
+        T.nodes[node]['coupons'] = 0
+
+        ## unmatched leaves get 1 coupon ##
+        if(T.degree(node) == 1 and not any(node in edge for edge in matching)):
+            T.nodes[node]['coupons']=1
+   
+    # so does the root
+    T.nodes[root_node]['coupons']=1
+
+    # initialize the link coupons
+    for edge in L.edges():
+        L[edge[0]][edge[1]]['coupons'] = 0
+
+    # find links in the matching where one node is a leaf of a stem and the other child is unmatched
+    for link in matching:
+        # ensure one node in the link is a leaf
+        for i in range(2):
+            parent = next(T.neighbors(link[i]))
+            if parent != root_node:
+                sibling_leaf_count = 0
+                sibling_leaf = None
+                for neighbor in T.neighbors(parent):
+                    if(neighbor != link[i] and T.degree(neighbor) == 1):
+                        sibling_leaf = neighbor
+                        sibling_leaf_count+=1
+                if(sibling_leaf_count == 1 and not any(sibling_leaf in edge for edge in matching)):
+                    L[link[0]][link[1]]['coupons'] = 2
+                    break
+        else:
+            L[link[0]][link[1]]['coupons'] = 1.5
+
+    for node in T:
+        print("node ", node, " has ", T.nodes[node]['coupons'])
+
+    for edge in L.edges():
+        print("edge ", edge, " has ", L[edge[0]][edge[1]]['coupons'])
+
+    print(I.edges())
+
+    #while(len(T.nodes()) > 1):
+    print("matching",matching)
+    T,L,I = greedy1(T, L, I, matching, links)
+    print("matching", matching)
+    print("solution", I.edges())
+    T,L,I = greedy2(T,L,I,matching, links)
+    print("tree", T.edges())
+    print("links", L.edges())
+    print("solution", I.edges())
+
+# GREEDY CONTRACTION 2: for any two links in M, contract both if they're disjoint
+def greedy2(T,L,I,matching, original_linkset):
+    print("starting greedy 2")
+    while True:
+        pairs = combinations(matching, 2)
+        any_disjoint=False
+        for pair in pairs:
+            if not set(nx.shortest_path(T, pair[0][0], pair[0][1])).intersection(set(nx.shortest_path(T, pair[1][0], pair[1][1]))):
+                print("FOUND SOME DISJOINTS")
+                T, L, I, matching = contract(T, pair[0], I, L, original_linkset, matching)
+                T, L, I, matching = contract(T, pair[1], I, L, original_linkset, matching)
+                any_disjoint = True
+                break
+        if not any_disjoint:
+            break
+
+    return T,L,I
+    
+
+# GREEDY CONTRACTION 1 : if link + treepath has >= 2 coupons, contract the cycle
+def greedy1(tree, links, I, matching, original_linkset):
+    print("starting greedy 1")
+    while(True):
+        print("solution", I.edges())
+        print("links",links.edges(), "tree", tree.edges())
+        for link in links.edges():
+            if tree.nodes[link[0]]['coupons'] + tree.nodes[link[0]]['coupons'] >= 2:
+                tree, links,I, matching = contract(tree, link, I, links, original_linkset,  matching)
+                print("contract 1")
+                break
+            if link in matching:
+                found = False
+                for node in nx.shortest_path(tree, link[0], link[1]):
+                    if(node != link[0] and node != link[1] and tree.nodes[node]['coupons']):
+                        tree, links,I, matching = contract(tree, link, I, links, original_linkset, matching)
+                        print("contract 2")
+                        found = True
+                        break
+                if(found):
+                    break
+            if links[link[0]][link[1]]['coupons'] == 2:
+                tree, links,I, matching = contract(tree, link, I, links, original_linkset, matching)
+                print("contract 3")
+                break
+        else:
+            break
+
+        return tree, links, I
+
+def contract(tree, link, I, links, original_linkset, matching):
+    print("contracting", link)
+    toContract = []
+    shadow = nx.shortest_path(tree, link[0], link[1])
+    for i in range(len(shadow)-1):
+        toContract.append([shadow[i],shadow[i+1]]) if [shadow[i],shadow[i+1]] not in toContract and [shadow[i+1],shadow[i]] not in toContract else None
+
+    while(not len(toContract) == 0):
+        print(toContract)
+        # contract the first edge in the list
+        tree = nx.contracted_edge(tree,tuple(toContract[0]),self_loops=False)
+
+        if tuple(toContract[0]) not in links.edges() and tuple(toContract[0])[::-1] not in links.edges():
+            links.add_edge(*tuple(toContract[0]))
+        links = nx.contracted_edge(links,tuple(toContract[0]),self_loops=False)
+
+        # if any other edge in our list is adjacent to the "dest" node of contraction, re-index it
+        for toFix in toContract[1:]:
+            if(toFix[0] == toContract[0][1]):
+                toFix[0] = toContract[0][0]
+            elif(toFix[1] == toContract[0][1]):
+                toFix[1] = toContract[0][0]
+
+        for pair in matching.copy():
+            if(pair[0] == toContract[0][1]):
+                print(pair[0],"vs",toContract[0][0])
+                matching.remove(pair)
+                if pair[1] != toContract[0][0]:
+                    matching.add((toContract[0][0], pair[1]))
+            elif(pair[1] == toContract[0][1]):
+                print("working2 ")
+                matching.remove(pair)
+                if pair[0] != toContract[0][0]:
+                    matching.add((pair[0],toContract[0][0]))
+        # remove the edge we contracted from our list
+        tree.nodes[toContract[0][0]]['coupons'] = 1
+        toContract.remove(toContract[0])
+        print("in function matching", matching)
+        add_to_solution(I, original_linkset, link)
+    
+    return tree,links,I, matching
+
+def add_to_solution(I, linkset, link):
+    if link[0] in contract_map and link[1] in contract_map:
+        for v1 in contract_map[link[0]]:
+            for v2 in contract_map[link[1]]:
+                if linkset.has_edge(v1, v2):
+                    print("found")
+                    return I.add_edge(v1, v2)
+    elif link[0] in contract_map:
+        for v1 in contract_map[link[0]]:
+            if linkset.has_edge(v1, link[1]):
+                print("found")
+                return I.add_edge(v1, link[1])
+    elif link[1] in contract_map:
+        for v2 in contract_map[link[1]]:
+            if linkset.has_edge(link[0], v2):
+                print("found")
+                return I.add_edge(link[0], v2)
+    else:
+        if linkset.has_edge(link[0], link[1]):
+            print("found")
+            return I.add_edge(link[0], link[1])
+
+def eliminate_reducible_edges(T,L,I):
+    """
+    Given a tree T, link set L, and solution set I, this function contracts reducible edges and updated I accordingly.
+    More specifically, the maximal links are determined. Edges covered only with 1 maximal link are reducible and contracted
+    Note that networkx contracts edges, renaming the node with the "source" node of the contracted edge
+
+    """
+    # determine first only the max shadows
+    shadows = []
+
+    for link in L.edges():
+        link_treepath = nx.shortest_path(T, source=link[0], target=link[1])
+
+        # no max shadows? add one
+        if(len(shadows) == 0):
+            shadows.append(link_treepath)
+            continue
+
+        i = 0
+        already_replaced= False
+        while i < len(shadows):
+            verified_path = shadows[i]
+            # current is a subset of one we have?
+            if(is_sublist(link_treepath, verified_path)):
+                break
+            # one we have is subset of current?
+            elif (is_sublist(verified_path, link_treepath)):
+                # be careful, maybe this link is a superset of more than one verified max shadow
+                shadows.remove(verified_path)
+                shadows.append(link_treepath) if not already_replaced else None
+                already_replaced = True
+                continue
+            i+=1
+        # new shadow doesn't nest sequences! add it to max links
+        else:
+            shadows.append(link_treepath)
+
+    #print("MAX LINKS ", shadows)
+
+    # now that we have the max links, see what edges are reducible
+
+    # keep track of the 2-connected components with at least one edge covered by only one max shadow
+    toContract = []
+
+    # maximal links to add to I
+    toadd = set()
+
+    for e in T.edges():
+        # count of number of times covered
+        unique = 0
+        # shadow which covers it (only used when the cover is unique)
+        bp = []
+        for basis_path in shadows:
+            # is e contained in a max shadow?
+            if is_sublist([e[0],e[1]],basis_path):
+                unique += 1
+                bp = basis_path
+            # if we have more than one cover, quit. this edge isn't interesting
+            if unique > 1:
+                break
+
+        # only one cover means the 2-connected component is reducible
+        if(unique == 1):
+            # add every edge in the shadow to toContract if it isn't already there
+            for i in range(len(bp)-1):
+                toContract.append([bp[i],bp[i+1]]) if [bp[i],bp[i+1]] not in toContract and [bp[i+1],bp[i]] not in toContract else None
+            # add the max link we're using to make the 2-connected component
+            toadd.add((bp[0],bp[-1]))
+
+    print(toContract)
+    # contracting workaround
+    while(not len(toContract) == 0):
+        if toContract[0][0] not in contract_map:
+            contract_map[toContract[0][0]] = set()
+        contract_map[toContract[0][0]].add(toContract[0][1])
+
+        # contract the first edge in the list
+        T = nx.contracted_edge(T,tuple(toContract[0]),self_loops=False)
+
+        # add the tree edge to L for the sake of contracting to see the resulting link configuration
+        if tuple(toContract[0]) not in L.edges() and tuple(toContract[0])[::-1] not in L.edges():
+            L.add_edge(*tuple(toContract[0]))
+        L = nx.contracted_edge(L,tuple(toContract[0]),self_loops=False)
+
+        # if any other edge in our list is adjacent to the "dest" node of contraction, re-index it
+        for toFix in toContract[1:]:
+            if(toFix[0] == toContract[0][1]):
+                toFix[0] = toContract[0][0]
+            elif(toFix[1] == toContract[0][1]):
+                toFix[1] = toContract[0][0]
+
+        # remove the edge we contracted from our list
+        toContract.remove(toContract[0])
+    
+    # lastly, add the maximal links which are unique covers to the solution set
+    for link in toadd:
+        I.add_edge(*link)
+
+    return T,L,I
+    #print(I.edges())
+
+    
+# routine for determining normal or reverse sublists of treepaths
+def is_sublist(sub, lst):
+    return sub[0] in lst and sub[-1] in lst
+
+def main():
+    return
+
+if __name__ == '__main__':
+    main()
