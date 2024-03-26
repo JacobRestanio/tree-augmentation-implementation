@@ -8,7 +8,7 @@ import treegenerator as tg
 
 def randomized(T, L):
     minimumSolution = 0
-    for i in range(100):
+    for i in range(T.size()):
         tree = T.copy()
         links = L.copy()
         S = tree.copy()
