@@ -30,36 +30,38 @@ def even(tree, links):
     # print("links", L.edges())
 
     # solution set!
-    I = tree.copy()
+    I = nx.Graph()
+    I.add_nodes_from(T)
 
-    ##### PREPROCESSING #####
 
-    # Assumption 2: There are no 'reducible' edges in T
-    # Determine the maximal links of L. If there is a unique maximal link 
-    # covering an edge e, put the link in I, and contract the whole cycle. Repeat exhaustively.
-                    
-    eliminate_reducible_edges(T,L,I)
+    # ##### PREPROCESSING #####
 
-    # print("reduced tree", T.edges(), "w reduced links ", L.edges(), "and new solution", I.edges())
+    
 
     # print(contract_map)
-
-    if(len(list(T.nodes())) == 1):
-        return I
 
     ##########################
 
     # designate an arbitrary root node
-    root_node = list(T.nodes())[0]
+    root_node = random.choice(list(T.nodes()))
+    print("ROOT", root_node)
+    for node in T.nodes():
+        T.nodes[node]['coupons']=0
+        
+    T.nodes[root_node]['coupons']=1
 
     # we want to obtain a matching among nontwin leaf-to-leaf links
 
     leaf_to_leaf = L.copy()
 
-    # filter out edges which are not leaf-to-leaf or twin
-    for link in L.edges():
+    twins = []
+    locking_links = []
 
-        # remove edge if not leaf-to-leaf
+    # filter out edges which are not leaf-to-leaf, twin, or locking
+
+    for link in L.edges():
+        
+        # if the link is not leaf-to-leaf, remove it
         if T.degree(link[0]) != 1 or T.degree(link[1]) != 1:
             leaf_to_leaf.remove_edge(*link)
             continue
@@ -74,100 +76,379 @@ def even(tree, links):
             if len([n for n in T.neighbors(common_parent) if n != link[0] and n!= link[1] and T.degree(n) == 1]) == 0:
                 leaf_to_leaf.remove_edge(link[0], link[1])
 
+                # we're looking at a twin link. check if there is a locking link spawning from it
+
+                # first determine the path to the root to follow to look for T'
+                path_to_root = nx.shortest_path(T, common_parent, root_node)
+                for curr_node in path_to_root:
+                    avoid_node = path_to_root[path_to_root.index(curr_node) + 1] if curr_node != root_node else None
+                    subtree_leaves = find_descendant_leaves(T, curr_node, avoid_node)
+                    if len(subtree_leaves) == 3:
+                        subtree = subtree_finder(T, curr_node, avoid_node)
+                        subtree_nodes = set(subtree.nodes())
+                        bprime = None
+                        for leaf in subtree_leaves:
+                            if leaf != link[0] and leaf != link[1]:
+                                bprime = leaf
+                        if (link[0], bprime) in L.edges() or (bprime, link[0]) in L.edges():
+                            incident_links = [(u, v) for u, v in L.edges() if u == link[0] or v == link[0]]
+                            for ilink in incident_links:
+                                if ilink[0] not in subtree_nodes or ilink[1] not in subtree_nodes:
+                                    break
+                            else:
+                                twins.append(link)
+                                if (link[0], bprime) in L.edges():
+                                    locking_links.append((link[0], bprime))
+                                    leaf_to_leaf.remove_edge(link[0], bprime)
+                                else:
+                                    locking_links.append((bprime, link[0]))
+                                    leaf_to_leaf.remove_edge(bprime, link[0])
+
+                        if (link[1], bprime) in L.edges() or (bprime, link[1]) in L.edges():
+                            incident_links = [(u, v) for u, v in L.edges() if u == link[1] or v == link[1]]
+                            for ilink in incident_links:
+                                if ilink[0] not in subtree_nodes or ilink[1] not in subtree_nodes:
+                                    break
+                            else:
+                                twins.append(link) if len(twins) == len(locking_links) else None
+                                if (link[1], bprime) in L.edges():
+                                    locking_links.append((link[1], bprime)) if len(locking_links) < len(twins) else None
+                                    leaf_to_leaf.remove_edge(link[1], bprime)
+                                else:
+                                    locking_links.append((bprime, link[1])) if len(locking_links) < len(twins) else None
+                                    leaf_to_leaf.remove_edge(bprime, link[1])
+                                break
+
+                    elif len(subtree_leaves) > 3:
+                        break         
 
     # print("leaf-to-leaf",leaf_to_leaf.edges())
-    # obtain a maximal matching on this link-set
+
+    # obtain a maximal matching on this link-set - leaf-to-leaf links which are nontwin + nonlocking
     matching = nx.maximal_matching(leaf_to_leaf)
+                    # matching = set(leaf_to_leaf.edges())
+                    # matching.pop()
     # print(matching)
 
-    # distribute coupons initially
-    for node in T.nodes():
-        T.nodes[node]['coupons'] = 0
+    greedy_locking(T, L, I, matching, links, twins, locking_links)
 
-        ## unmatched leaves get 1 coupon ##
-        if(T.degree(node) == 1 and not any(node in edge for edge in matching)):
-            T.nodes[node]['coupons']=1
-   
-    # so does the root
-    T.nodes[root_node]['coupons']=1
+    exhausted = False
 
-    # initialize the link coupons
-    for edge in L.edges():
-        L[edge[0]][edge[1]]['coupons'] = 0
+    while(not exhausted):
+        twins = []
+        locking_links = []
+        for link in L.edges():
+            if T.degree(link[0]) != 1 or T.degree(link[1]) != 1:
+                continue
 
-    # find links in the matching where one node is a leaf of a stem and the other child is unmatched
-    for link in matching:
-        # ensure one node in the link is a leaf
-        for i in range(2):
-            parent = next(T.neighbors(link[i]))
-            if parent != root_node:
-                sibling_leaf_count = 0
-                sibling_leaf = None
-                for neighbor in T.neighbors(parent):
-                    if(neighbor != link[i] and T.degree(neighbor) == 1):
-                        sibling_leaf = neighbor
-                        sibling_leaf_count+=1
-                if(sibling_leaf_count == 1 and not any(sibling_leaf in edge for edge in matching)):
-                    L[link[0]][link[1]]['coupons'] = 2
-                    break
-        else:
-            L[link[0]][link[1]]['coupons'] = 1.5
+            # check for a common parent
+            common_parent = next(T.neighbors(link[0]))
+            if common_parent == next(T.neighbors(link[1])):
+                # if parent is root node, the parent isnt a stem and the children aren't twins
+                if(common_parent == root_node):
+                    continue
+                # throw away the edge if the link is connecting twins
+                if len([n for n in T.neighbors(common_parent) if n != link[0] and n!= link[1] and T.degree(n) == 1]) == 0:
 
-    # for node in T:
-    #     print("node ", node, " has ", T.nodes[node]['coupons'])
+                    # we're looking at a twin link. check if there is a locking link spawning from it
 
-    # for edge in L.edges():
-    #     print("edge ", edge, " has ", L[edge[0]][edge[1]]['coupons'])
+                    # first determine the path to the root to follow to look for T'
+                    path_to_root = nx.shortest_path(T, common_parent, root_node)
+                    for curr_node in path_to_root:
+                        avoid_node = path_to_root[path_to_root.index(curr_node) + 1] if curr_node != root_node else None
+                        subtree_leaves = find_descendant_leaves(T, curr_node, avoid_node)
+                        if len(subtree_leaves) == 3:
+                            subtree = subtree_finder(T, curr_node, avoid_node)
+                            subtree_nodes = set(subtree.nodes())
+                            bprime = None
+                            for leaf in subtree_leaves:
+                                if leaf != link[0] and leaf != link[1]:
+                                    bprime = leaf
+                            if (link[0], bprime) in L.edges() or (bprime, link[0]) in L.edges():
+                                incident_links = [(u, v) for u, v in L.edges() if u == link[0] or v == link[0]]
+                                for ilink in incident_links:
+                                    if ilink[0] not in subtree_nodes or ilink[1] not in subtree_nodes:
+                                        break
+                                else:
+                                    twins.append(link)
+                                    if (link[0], bprime) in L.edges():
+                                        locking_links.append((link[0], bprime))
+                                    else:
+                                        locking_links.append((bprime, link[0]))
 
-    #while(len(T.nodes()) > 1):
-    # print("matching", matching)
-    greedy1(T, L, I, matching, links)
+                            if (link[1], bprime) in L.edges() or (bprime, link[1]) in L.edges():
+                                incident_links = [(u, v) for u, v in L.edges() if u == link[1] or v == link[1]]
+                                for ilink in incident_links:
+                                    if ilink[0] not in subtree_nodes or ilink[1] not in subtree_nodes:
+                                        break
+                                else:
+                                    twins.append(link) if len(twins) == len(locking_links) else None
+                                    if (link[1], bprime) in L.edges():
+                                        locking_links.append((link[1], bprime)) if len(locking_links) < len(twins) else None
+                                    else:
+                                        locking_links.append((bprime, link[1])) if len(locking_links) < len(twins) else None
+                                    break
+
+                        elif len(subtree_leaves) > 3:
+                            break 
+
+        print("CALLING GREEDY LOCKING")
+        greedy_locking(T, L, I, matching, links, twins, locking_links)  
+        if len(twins) == 0:
+            exhausted = True
+
+    # while len(T.nodes()) > 1:
+    print(matching)
     greedy2(T,L,I,matching, links)
-    print("tree", T.edges())
-    print("links", L.edges())
-    print("solution", I.edges())
-    print("matching", matching)
 
 
     # Now, we contract all links in the matching with the intent to decontract them
 
-
-    list_of_matchings = list(matching)
-    contractionLog = []
-    original_incidence = []
-    
-    # we need to find a T' as specified by the proof of lemma 3.11
-    i = 0
-    while len(list_of_matchings) > 0:
-        contractionLog.append(nx.shortest_path(T, list_of_matchings[0][0], list_of_matchings[0][1]))
-        neighbors = []
-        for iter in range(len(contractionLog[i])):
-            neighbors.append(list(T.neighbors(contractionLog[i][iter])))
-        original_incidence.append(neighbors)
-        contract(T, list_of_matchings[0], I, L, links, [], False)
-        for toFix in list_of_matchings[1:]:
-            if toFix[0] in contractionLog[i][1:]:
-                toFix[0] = contractionLog[i][0]
-            elif toFix[1] in contractionLog[i][1:]:
-                toFix[1] = contractionLog[i][0]
-        i+=1
-        list_of_matchings.pop(0)
-    
-    print("contraction log", contractionLog)
-    print(original_incidence)
-
     subtree = T.copy()
-    find_rooted_subtree(subtree, L.edges())
+    find_minimally_semiclosed(subtree, L, matching, links, I)
     print("T'")
     print(subtree.edges())
 
-    #TODO: Determine why I am oversaturated with links. This step doesn't work unless there is some deficit among the vertices of T
 
-        # make each edge contraction then work backwards as designed
+def find_minimally_semiclosed(T, L, M, original_linkset, I):
+    dangerous_subtree_list = []
+
+    # Find all leaf nodes
+    leaves = [node for node in T.nodes() if T.degree(node) == 1 and node != root_node]
+
+    # Initialize a queue for BFS traversal
+    queue = leaves
+
+    # Initialize a set to keep track of visited nodes
+    visited = set(leaves)
+    print("edges", T.edges())
+    # Perform BFS traversal
+    while queue:
+        current_node = queue.pop(0)
+        path = nx.shortest_path(T, current_node, root_node)
+        toAvoid = path[path.index(current_node) + 1] if current_node != root_node else None
+        curr_rooted_subtree = subtree_finder(T, current_node, toAvoid)
+        print("testing SUBTREE", curr_rooted_subtree.nodes(), "from", current_node, "to", toAvoid)
+        print("queue", queue)
+        if M_compatible(set(curr_rooted_subtree.nodes()), M):
+            if unmatched_leaf_closed(set(curr_rooted_subtree.nodes()), T, L, M):
+                if not dangerous(curr_rooted_subtree, T, L.copy(), M):
+                    print("found not dangerous")
+                    toContract = set()
+                    for link in M:
+                        if link[0] in curr_rooted_subtree.nodes() and link[1] in curr_rooted_subtree.nodes():
+                            toContract.add(link)
+                    unmatched_leaves = [node for node in curr_rooted_subtree if T.degree(node) == 1 and all(node not in match for match in M)]
+                    for leaf in unmatched_leaves:
+                        toContract.add(uplink(T, L, leaf))
+                    while len(toContract) > 0:
+                        contract(T, toContract.pop(), I, L, original_linkset, toContract, True)
+                    return 
+                else:
+                    print("DANGEROUS")
+                    dangerous_subtree_list.append(curr_rooted_subtree)
+                    for path_node in nx.shortest_path(T, current_node, root_node):
+                        visited.add(path_node)
+
+            # if so, check if dangerous
+            # if not, return the tree and its exact cover
     
-    # TODO: Determine if this T' is a special deficient tree
-    #   if not, cover T' with a quick 'basic cover' B(T') = up(L(T')) U (M ^ T')
-    #   if so, there is a little more work involved in finding the cover (definition 4.11)
+        parent_node = [neighbor for neighbor in T.neighbors(current_node) if neighbor not in visited and neighbor != root_node and neighbor in nx.shortest_path(T, current_node, root_node)]
+        print("for", current_node, "parent node", parent_node)
+        queue.extend(parent_node)
+        visited.update(parent_node)
+
+    if len(dangerous_subtree_list) == 0:
+        print("no dangerous :(")
+        toContract = set()
+        for link in M:
+            if link[0] in curr_rooted_subtree.nodes() and link[1] in curr_rooted_subtree.nodes():
+                toContract.add(link)
+        unmatched_leaves = [node for node in curr_rooted_subtree if T.degree(node) == 1 and all(node not in match for match in M)]
+        for leaf in unmatched_leaves:
+            toContract.add(uplink(T, L, leaf))
+        while len(toContract) > 0:
+            print("contracting", toContract)
+            contract(T, toContract.pop(), I, L, original_linkset, toContract, True)
+        return
+    else:
+        dangerous_scheme(T, L, M, dangerous_subtree_list)
+
+
+
+# finds a non-dangerous semiclosed tree T' and its exact cover I' when all minimally semiclosed trees are dangerous
+def dangerous_scheme(T, L, M):
+    return
+
+def dangerous(subtree, T, L, M):
+    if len([node for node in subtree.nodes() if T.degree(node) > 1 and T.nodes[node]['coupons'] == 1]) == 0:
+        if len([(u, v) for u, v in M if u in subtree.nodes() and v in subtree.nodes()]) == 1:
+            matched_leaves = [(u, v) for u, v in M if u in subtree.nodes() and v in subtree.nodes()]
+            leaf_list = [node for node in subtree.nodes() if T.degree(node) == 1]
+            if len(leaf_list) == 3:
+                if (leaf_list[0], leaf_list[1]) in L.edges():
+                    if next(T.neighbors(leaf_list[0])) == next(T.neighbors(leaf_list[1])):
+                        return False
+                if (leaf_list[0], leaf_list[2]) in L.edges():
+                    if next(T.neighbors(leaf_list[0])) == next(T.neighbors(leaf_list[2])):
+                        return False
+                if (leaf_list[1], leaf_list[2]) in L.edges():
+                    if next(T.neighbors(leaf_list[1])) == next(T.neighbors(leaf_list[2])):
+                        return False
+                # no stems
+                    
+                a = leaf_list[0] if leaf_list[0] not in matched_leaves[0] else leaf_list[1] if leaf_list[1] not in matched_leaves[0] else leaf_list[2]
+                if (a,matched_leaves[0][0]) in L.edges() or (matched_leaves[0][0],a) in L.edges():
+                    link = (a,matched_leaves[0][0]) if (a,matched_leaves[0][0]) in L.edges() else (matched_leaves[0][0],a)
+                    copy = subtree.copy()
+                    contract(copy, link, None, L.copy(), None, M.copy(), False)
+                    if len([node for node in copy.nodes() if T.degree(node) == 1]) == 1:
+                        if len([(u,v) for u, v in L.edges() if u == matched_leaves[0][1] and v not in subtree.nodes() or v == matched_leaves[0][1] and u not in subtree.nodes()]) > 0:
+                            return True
+                elif (a,matched_leaves[0][1]) in L.edges() or (matched_leaves[0][1],a) in L.edges():
+                    link = (a,matched_leaves[0][1]) if (a,matched_leaves[0][1]) in L.edges() else (matched_leaves[0][1],a)
+                    copy = subtree.copy()
+                    contract(copy, link, None, L.copy(), None, M.copy(), False)
+                    if len([node for node in copy.nodes() if copy.degree(node) == 1]) == 1:
+                        if len([(u,v) for u, v in L.edges() if u == matched_leaves[0][1] and v not in subtree.nodes() or v == matched_leaves[0][1] and u not in subtree.nodes()]) > 0:
+                            return True
+                
+            elif len(leaf_list) == 4:
+                stem_count = 0
+                stem = [None, []]
+                if (leaf_list[0], leaf_list[1]) in L.edges():
+                    if next(T.neighbors(leaf_list[0])) == next(T.neighbors(leaf_list[1])):
+                        stem_count += 1
+                        stem = [next(T.neighbors(leaf_list[0])), [leaf_list[0], leaf_list[1]]]
+                if (leaf_list[0], leaf_list[2]) in L.edges():
+                    if next(T.neighbors(leaf_list[0])) == next(T.neighbors(leaf_list[2])):
+                        stem_count += 1
+                        stem = [next(T.neighbors(leaf_list[0])), [leaf_list[0], leaf_list[2]]]
+                if (leaf_list[0], leaf_list[3]) in L.edges():
+                    if next(T.neighbors(leaf_list[0])) == next(T.neighbors(leaf_list[3])):
+                        stem_count += 1
+                        stem = [next(T.neighbors(leaf_list[0])), [leaf_list[0], leaf_list[3]]]
+                if (leaf_list[1], leaf_list[2]) in L.edges():
+                    if next(T.neighbors(leaf_list[1])) == next(T.neighbors(leaf_list[2])):
+                        stem_count += 1
+                        stem = [next(T.neighbors(leaf_list[1])), [leaf_list[1], leaf_list[2]]]
+                if (leaf_list[1], leaf_list[3]) in L.edges():
+                    if next(T.neighbors(leaf_list[1])) == next(T.neighbors(leaf_list[3])):
+                        stem_count += 1
+                        stem = [next(T.neighbors(leaf_list[1])), [leaf_list[1], leaf_list[3]]]
+                if (leaf_list[2], leaf_list[3]) in L.edges():
+                    if next(T.neighbors(leaf_list[2])) == next(T.neighbors(leaf_list[3])):
+                        stem_count += 1
+                        stem = [next(T.neighbors(leaf_list[2])), [leaf_list[2], leaf_list[3]]]
+                if stem_count == 1:
+                    if stem[1][0] in matched_leaves[0] and stem[1][1] not in matched_leaves[0] or stem[1][1] in matched_leaves[0] and stem[1][0] not in matched_leaves[0]:
+                        subtree = nx.Graph(subtree)
+                        newM = M.copy()
+                        contract(subtree, (stem[1][0], stem[1][1]), None, L, None, newM, False)
+                        matched_leaves = [(u, v) for u, v in newM if u in subtree.nodes() and v in subtree.nodes()]
+                        leaf_list = [node for node in subtree.nodes() if T.degree(node) == 1]
+                        if len(leaf_list) == 3:
+                            if (leaf_list[0], leaf_list[1]) in L.edges():
+                                if next(T.neighbors(leaf_list[0])) == next(T.neighbors(leaf_list[1])):
+                                    return False
+                            if (leaf_list[0], leaf_list[2]) in L.edges():
+                                if next(T.neighbors(leaf_list[0])) == next(T.neighbors(leaf_list[2])):
+                                    return False
+                            if (leaf_list[1], leaf_list[2]) in L.edges():
+                                if next(T.neighbors(leaf_list[1])) == next(T.neighbors(leaf_list[2])):
+                                    return False
+                            # no stems
+                            a = leaf_list[0] if leaf_list[0] not in matched_leaves[0] else leaf_list[1] if leaf_list[1] not in matched_leaves[0] else leaf_list[2]
+                            if (a,matched_leaves[0][0]) in L.edges() or (matched_leaves[0][0],a) in L.edges():
+                                link = (a,matched_leaves[0][0]) if (a,matched_leaves[0][0]) in L.edges() else (matched_leaves[0][0],a)
+                                copy = subtree.copy()
+                                contract(copy, link, None, L.copy(), None, M.copy(), False)
+                                if len([node for node in copy.nodes() if T.degree(node) == 1]) == 1:
+                                    if len([(u,v) for u, v in L.edges() if u == matched_leaves[0][1] and v not in subtree.nodes() or v == matched_leaves[0][1] and u not in subtree.nodes()]) > 0:
+                                        return True
+                            elif (a,matched_leaves[0][1]) in L.edges() or (matched_leaves[0][1],a) in L.edges():
+                                link = (a,matched_leaves[0][1]) if (a,matched_leaves[0][1]) in L.edges() else (matched_leaves[0][1],a)
+                                copy = subtree.copy()
+                                contract(copy, link, None, L.copy(), None, M.copy(), False)
+                                if len([node for node in copy.nodes() if copy.degree(node) == 1]) == 1:
+                                    if len([(u,v) for u, v in L.edges() if u == matched_leaves[0][1] and v not in subtree.nodes() or v == matched_leaves[0][1] and u not in subtree.nodes()]) > 0:
+                                        return True
+
+    return False
+                
+
+
+
+def unmatched_leaf_closed(subtree, T, L, M):
+    unmatched_leaves = [node for node in subtree if T.degree(node) == 1 and all(node not in match for match in M)]
+
+    for leaf in unmatched_leaves:
+        incident_links = [(u, v) for u, v in L.edges() if u == leaf or v == leaf]
+        print(leaf, "indicent links", incident_links)
+        for link in incident_links:
+            if link[0] not in subtree or link[1] not in subtree:
+                return False
+    return True
+
+def M_compatible(subtree, M):
+    for link in M:
+        if link[0] not in subtree and link[1] in subtree or link[1] not in subtree and link[0] in subtree:
+            return False
+    return True
+    
+
+def uplink(tree, linkset, node):
+    closest = [None, len(tree.nodes())]
+    incident_links = [(u, v) for u, v in linkset.edges() if u == node or v == node]
+    for link in incident_links:
+        # save the tuple element which is not the node
+        other_node = link[0] if link[1] == node else link[1]
+        path = nx.shortest_path(tree, other_node, root_node)
+        print("Link", link, "Path", path)
+        if len(path) < closest[1]:
+            closest = [other_node, len(path)]
+    return (node, closest[0]) if (node, closest[0]) in linkset.edges() else (closest[0], node)
+
+
+def subtree_finder(tree, toKeep, throwAway):
+
+    if (toKeep == root_node):
+        return tree
+    
+    # Make a copy of the tree
+    tree_copy = tree.copy()
+    
+    # Remove the specified edge
+    tree_copy.remove_edge(toKeep, throwAway)
+    
+    # Get the connected components
+    connected_components = list(nx.connected_components(tree_copy))
+    
+    # Find the connected component containing the first node of the removed edge
+    for component in connected_components:
+        if toKeep in component:
+            return tree_copy.subgraph(component)
+    
+    return nx.Graph()
+
+def find_descendant_leaves(graph, node, toAvoid):
+    descendant_leaves = set()
+
+    # Perform BFS from the specified node
+    queue = [node]
+    visited = set()
+    while queue:
+        current_node = queue.pop(0)
+        visited.add(current_node)
+        neighbors = graph.neighbors(current_node)
+        for neighbor in neighbors:
+            if neighbor not in visited and neighbor != toAvoid:
+                queue.append(neighbor)
+                if graph.degree(neighbor) == 1:
+                    descendant_leaves.add(neighbor)
+
+    return descendant_leaves
+
 
 def find_rooted_subtree(tree, links):
     # Get all leaf nodes in the tree
@@ -195,41 +476,32 @@ def find_rooted_subtree(tree, links):
 # GREEDY CONTRACTION 2: for any two links in M, contract both if they're disjoint
 def greedy2(T,L,I,matching, original_linkset):
     while True:
-        pairs = combinations(matching, 2)
-        any_disjoint=False
-        for pair in pairs:
-            if not set(nx.shortest_path(T, pair[0][0], pair[0][1])).intersection(set(nx.shortest_path(T, pair[1][0], pair[1][1]))):
-                contract(T, pair[0], I, L, original_linkset, matching, True)
-                contract(T, pair[1], I, L, original_linkset, matching, True)
-                any_disjoint = True
-                break
-        if not any_disjoint:
-            break
-    if(len(matching) == 1):
-        contract(T, matching.pop(), I, L, original_linkset, matching, True)
-    
-
-# GREEDY CONTRACTION 1 : if link + treepath has >= 2 coupons, contract the cycle
-def greedy1(tree, links, I, matching, original_linkset):
-    while(True):
-        for link in links.edges():
-            if tree.nodes[link[0]]['coupons'] + tree.nodes[link[1]]['coupons'] >= 2:
-                contract(tree, link, I, links, original_linkset, matching, True)
-                break
-            if link in matching:
-                found = False
-                for node in nx.shortest_path(tree, link[0], link[1]):
-                    if(node != link[0] and node != link[1] and tree.nodes[node]['coupons']):
-                        contract(tree, link, I, links, original_linkset, matching, True)
-                        found = True
+        for link in L.edges():
+            # contract along a link connecting two unmatched leaves
+            if T.degree(link[0]) == 1 and T.degree(link[1]) == 1:
+                for matched in matching:
+                    if link[0] in matched or link[1] in matched:
                         break
-                if(found):
+                else:
+                    contract(T, link, I, L, original_linkset, matching, False)
                     break
-            if links[link[0]][link[1]]['coupons'] == 2:
-                contract(tree, link, I, links, original_linkset, matching, True)
-                break
         else:
             break
+
+    
+
+# greedy locking contraction
+def greedy_locking(tree, links, I, matching, original_linkset, twins, locking_links):
+    print("twins", twins)
+    print("locking links", locking_links)
+    for i in range(len(twins)):
+        a = twins[i][0] if twins[i][1] in locking_links[i] else twins[i][1]
+        print("contracting", locking_links[i])
+        contract(tree, locking_links[i], I, links, original_linkset, matching, True)
+        print("contracting", uplink(tree, links, a))
+        contract(tree, uplink(tree, links, a), I, links, original_linkset, matching, True)
+        plot(tree, links)
+            
 
 def contract(tree, link, I, links, original_linkset, matching, append_to_I):
     global root_node
@@ -399,7 +671,26 @@ def eliminate_reducible_edges(T,L,I):
 def is_sublist(sub, lst):
     return sub[0] in lst and sub[-1] in lst
 
+def plot(graph1, graph2):
+    plt.figure(figsize=(10, 5))
+
+    plt.subplot(121)
+    nx.draw(graph1, with_labels=True, font_weight='bold')
+    plt.title('arg 1')
+
+    plt.subplot(122)
+    nx.draw(graph2, with_labels=True, font_weight='bold', node_color='lightblue', edge_color='gray')
+    plt.title('arg 2')
+
+    plt.tight_layout()
+    plt.show()
+
 def main():
+    T = nx.Graph()
+    T.add_edges_from([(0,1),(1,2),(2,3),(3,4),(3,5),(2,6),(6,7),(6,8)])
+    L = nx.Graph()
+    L.add_edges_from([(0,8),(3,7), (4,5),(5,8)])
+    even(T, L)
     return
 
 if __name__ == '__main__':
