@@ -1,79 +1,65 @@
-import sys
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
-import numpy as np
+import tracemalloc
+import datetime
 import time
+import treegenerator as tg
+
+def randomized(T, L):
+    minimumSolution = 0
+    for i in range(T.size()):
+        tree = T.copy()
+        links = L.copy()
+        S = tree.copy()
+
+        for u in tree.nodes():
+            if S.degree(u) == 1:
+                v = random.choice(list(links[u]))
+                S.add_edge(u, v)
+                links.remove_edge(u, v)
+
+        while nx.has_bridges(S):
+            randomEdge = random.choice(list(links.edges()))
+            S.add_edge(randomEdge[0], randomEdge[1])
+            links.remove_edge(randomEdge[0], randomEdge[1])
+
+        currentSolution = S.number_of_edges() - tree.number_of_edges()
+
+        if not minimumSolution:
+            minimumSolution = currentSolution
+
+        minimumSolution = currentSolution if currentSolution < minimumSolution else minimumSolution
+
+    return minimumSolution
+
 
 def main():
-    treeType = sys.argv[1]
-    output = open(f'output/{treeType}.txt','w')
-    output.write("tree,edges,time\n")
+    file = open("randomized.txt", "w")
+    file.write(f"{datetime.datetime.now()}\n")
+    file.write(f"test, size, density, tree, edges, time, memory\n")
 
-    for s in [10,100,1000]:
-        for d in [1,10,100]:
-            for n in range(1,6):
-                print(f'Loading {treeType}{s}_{d}_{n}')
-                E = []
-                L = set()
-                g = open(f'data/{s}/random/density-{d}/{treeType}{s}_{d}_{n}.txt', "r")
-                content = g.read().split("\n")
-                addLinks = False
+    sizes = [10]
+    densities = [0.1, 0.5, 0.8]
+    trees = ["path", "star", "starlike", "caterpillar", "lobster", "random"]
+    treeFunc = [tg.path_tree, tg.star_tree, tg.starlike_tree, tg.caterpillar_tree, tg.lobster_tree, tg.random_tree]
+    iterations = range(3)
+    for s in sizes:
+        for d in densities:
+            for idx, tree in enumerate(trees):
+                for i in iterations:
+                    T = treeFunc[idx](s)
+                    L = tg.generate_links(T, d)
 
-                numDuplicates = 0
+                    st = time.time()
+                    tracemalloc.start()
+                    edges = randomized(T, L)
+                    running_time = time.time() - st
+                    current, mem = tracemalloc.get_traced_memory()
 
-                for line in content[2:]:
-                    if line != "":
-                        if line == "L":
-                            addLinks = True
-                            continue
-                        if not addLinks:
-                            i = int(line.split()[0])
-                            j = int(line.split()[1])
-                            if (j, i) not in E:
-                                E.append((i, j))
-                        else:
-                            i = int(line.split()[0])
-                            j = int(line.split()[1])
-                            if (j, i) not in L:
-                                L.add((i, j))
+                    file.write(f"{i+1}, {s}, {d}, {tree}, {edges}, {running_time}, {mem}\n")
 
-                Tree = nx.Graph()
-                Tree.add_edges_from(E)
-                Links = nx.Graph()
-                Links.add_edges_from(L)
-
-                st = time.process_time()
-                minimumSolution = 0
-                for i in range(1):
-                    S = Tree.copy()
-                    Lt = Links.copy()
-
-                    for u in Tree.nodes():
-                        if S.degree(u) == 1:
-                            v = random.choice(list(Lt[u]))
-                            S.add_edge(u, v)
-                            Lt.remove_edge(u, v)
-
-                    while nx.has_bridges(S):
-                        randomEdge = random.choice(list(Lt.edges()))
-                        S.add_edge(randomEdge[0], randomEdge[1])
-                        Lt.remove_edge(randomEdge[0], randomEdge[1])
-
-                    currentSolution = S.number_of_edges() - Tree.number_of_edges()
-
-                    if not minimumSolution:
-                        minimumSolution = currentSolution
-
-                    minimumSolution = currentSolution if currentSolution < minimumSolution else minimumSolution
-
-                    # print(f'iteration: {i+1}, currentSolution: {currentSolution}, minimumSolution: {minimumSolution}')
-
-                et = time.process_time()
-                t = et-st
-                output.write(f'{treeType}{s}_{d}_{n},{minimumSolution},{t}\n')
-                g.close()
-    output.close()
+    file.close()
 
 
 if __name__ == '__main__':

@@ -3,15 +3,18 @@ import time
 import tracemalloc
 import treegenerator as tg
 import frederickson
+import exact
+import randomized
+
 
 def main():
     date = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     with open(f"results{date}.txt", "w") as file:
-        file.write(f"test, size, density, tree, frederickson\n")
+        file.write(f"test, size, density, tree, frederickson, randomized, exact\n")
     with open(f"time{date}.txt", "w") as file:
-        file.write(f"test, size, density, tree, frederickson\n")
+        file.write(f"test, size, density, tree, frederickson, randomized, exact\n")
     with open(f"memory{date}.txt", "w") as file:
-        file.write(f"test, size, density, tree, frederickson\n")
+        file.write(f"test, size, density, tree, frederickson, randomized, exact\n")
 
     sizes = [10]
     densities = [0.1, 0.5, 0.8]
@@ -32,12 +35,26 @@ def main():
                     current, fredericksonMem = tracemalloc.get_traced_memory()
                     tracemalloc.stop()
 
+                    tracemalloc.start()
+                    st = time.time()
+                    randomizedNumLinks = randomized.randomized(T, L)
+                    randomizedTime = time.time() - st
+                    current, randomizedMem = tracemalloc.get_traced_memory()
+                    tracemalloc.stop()
+
+                    tracemalloc.start()
+                    st = time.time()
+                    exactNumLinks = exact.cutlp(T, L)
+                    exactTime = time.time() - st
+                    current, exactMem = tracemalloc.get_traced_memory()
+                    tracemalloc.stop()
+
                     with open(f"results{date}.txt", "a") as file:
-                        file.write(f"{i+1}, {s}, {d}, {tree}, {fredericksonNumLinks}\n")
+                        file.write(f"{i+1}, {s}, {d}, {tree}, {fredericksonNumLinks}, {randomizedNumLinks}, {exactNumLinks}\n")
                     with open(f"time{date}.txt", "a") as file:
-                        file.write(f"{i+1}, {s}, {d}, {tree}, {fredericksonTime}\n")
+                        file.write(f"{i+1}, {s}, {d}, {tree}, {fredericksonTime}, {randomizedTime}, {exactTime}\n")
                     with open(f"memory{date}.txt", "a") as file:
-                        file.write(f"{i+1}, {s}, {d}, {tree}, {fredericksonMem}\n")
+                        file.write(f"{i+1}, {s}, {d}, {tree}, {fredericksonMem}, {randomizedMem}, {exactMem}\n")
 
 
 if __name__ == "__main__":
