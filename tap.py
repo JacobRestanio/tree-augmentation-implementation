@@ -5,16 +5,17 @@ import treegenerator as tg
 import frederickson
 import exact
 import randomized
+import even
 
 
 def main():
     date = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     with open(f"results{date}.txt", "w") as file:
-        file.write(f"test, size, density, tree, frederickson, randomized, exact\n")
+        file.write(f"test, size, density, tree, frederickson, randomized, exact, even\n")
     with open(f"time{date}.txt", "w") as file:
-        file.write(f"test, size, density, tree, frederickson, randomized, exact\n")
+        file.write(f"test, size, density, tree, frederickson, randomized, exact, even\n")
     with open(f"memory{date}.txt", "w") as file:
-        file.write(f"test, size, density, tree, frederickson, randomized, exact\n")
+        file.write(f"test, size, density, tree, frederickson, randomized, exact, even\n")
 
     sizes = [10]
     densities = [0.1, 0.5, 0.8]
@@ -49,12 +50,19 @@ def main():
                     current, exactMem = tracemalloc.get_traced_memory()
                     tracemalloc.stop()
 
+                    tracemalloc.start()
+                    st = time.time()
+                    evenNumLinks = even.even(T, L)
+                    evenTime = time.time() - st
+                    current, evenMem = tracemalloc.get_traced_memory()
+                    tracemalloc.stop()
+
                     with open(f"results{date}.txt", "a") as file:
-                        file.write(f"{i+1}, {s}, {d}, {tree}, {fredericksonNumLinks}, {randomizedNumLinks}, {exactNumLinks}\n")
+                        file.write(f"{i+1}, {s}, {d}, {tree}, {fredericksonNumLinks}, {randomizedNumLinks}, {exactNumLinks}, {evenNumLinks}\n")
                     with open(f"time{date}.txt", "a") as file:
-                        file.write(f"{i+1}, {s}, {d}, {tree}, {fredericksonTime}, {randomizedTime}, {exactTime}\n")
+                        file.write(f"{i+1}, {s}, {d}, {tree}, {fredericksonTime}, {randomizedTime}, {exactTime}, {evenTime}\n")
                     with open(f"memory{date}.txt", "a") as file:
-                        file.write(f"{i+1}, {s}, {d}, {tree}, {fredericksonMem}, {randomizedMem}, {exactMem}\n")
+                        file.write(f"{i+1}, {s}, {d}, {tree}, {fredericksonMem}, {randomizedMem}, {exactMem}, {evenMem}\n")
 
 
 if __name__ == "__main__":
